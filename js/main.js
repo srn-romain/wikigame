@@ -35,7 +35,7 @@ function setupAuthListeners() {
     const profileBtn = document.getElementById('user-profile-btn');
     const modalContainer = document.getElementById('modal-container');
 
-    profileBtn.onclick = () => openAuthModal('login');
+    profileBtn.onclick = async () => await openAuthModal('login');
 
     // Close modal when clicking outside
     modalContainer.onclick = (e) => {

@@ -1,5 +1,5 @@
 import { 
-    auth, googleProvider, 
+    db, auth, googleProvider, 
     signInWithEmailAndPassword,
     createUserWithEmailAndPassword,
     signInWithPopup,
@@ -7,20 +7,29 @@ import {
     updateProfile,
     sendPasswordResetEmail,
     deleteUser,
-    getCurrentUser 
+    getCurrentUser,
+    doc, getDoc, setDoc, updateDoc
 } from './firebase-app.js';
 
 /**
  * Opens the Auth Modal
  * @param {string} mode 'login' | 'signup'
  */
-export function openAuthModal(mode = 'login') {
+export async function openAuthModal(mode = 'login') {
     const modalContainer = document.getElementById('modal-container');
     const user = getCurrentUser();
 
     // If user is already logged in (not anonymously), show a "Profile/Logout" view instead
     if (user && !user.isAnonymous) {
-        renderProfileModal(modalContainer, user);
+        // Fetch extended profile from Firestore
+        const userDoc = await getDoc(doc(db, "users", user.uid));
+        const userData = userDoc.exists() ? userDoc.data() : {
+            pseudo: user.displayName || "",
+            bio: "",
+            gamesPlayed: 0,
+            dailySolved: 0
+        };
+        renderProfileModal(modalContainer, user, userData);
     } else {
         renderAuthForm(modalContainer, mode);
     }
@@ -69,56 +78,134 @@ function renderAuthForm(container, mode) {
     setupFormEvents(container, mode);
 }
 
-function renderProfileModal(container, user) {
+function renderProfileModal(container, user, userData) {
     container.innerHTML = `
-        <div class="auth-modal">
+        <div class="auth-modal" style="max-width: 450px;">
             <button class="close-modal" id="close-auth">&times;</button>
-            <div style="text-align:center; margin-bottom: 2rem;">
-                <div class="avatar-placeholder" style="width:80px; height:80px; font-size:2rem; margin: 0 auto 1rem;">
-                    ${user.photoURL ? `<img src="${user.photoURL}" class="avatar-img" style="width:80px; height:80px;">` : `<i class="fa-solid fa-user-astronaut"></i>`}
+            
+            <div style="text-align:center; margin-bottom: 1.5rem;">
+                <div class="avatar-placeholder" style="width:70px; height:70px; font-size:1.8rem; margin: 0 auto 0.75rem;">
+                    ${user.photoURL ? `<img src="${user.photoURL}" class="avatar-img" style="width:70px; height:70px;">` : `<i class="fa-solid fa-user-astronaut"></i>`}
                 </div>
-                <h2 style="margin-bottom:0.25rem;">${user.displayName || 'Explorateur'}</h2>
-                <p style="color:var(--text-muted); font-size:0.9rem;">${user.email}</p>
+                <h2 style="margin-bottom:0.25rem;">Mon Profil</h2>
+                <p style="color:var(--text-muted); font-size:0.8rem;">${user.email}</p>
             </div>
 
-            <div id="profile-error" class="auth-error"></div>
+            <div class="stats-row" style="display:grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 1.5rem;">
+                <div class="glass" style="padding: 12px; text-align:center; border-radius:12px;">
+                    <div style="font-size:1.2rem; font-weight:800; color:var(--primary);">${userData.gamesPlayed || 0}</div>
+                    <div style="font-size:0.65rem; color:var(--text-muted); text-transform:uppercase;">Parties</div>
+                </div>
+                <div class="glass" style="padding: 12px; text-align:center; border-radius:12px;">
+                    <div style="font-size:1.2rem; font-weight:800; color:var(--accent);">${userData.dailySolved || 0}</div>
+                    <div style="font-size:0.65rem; color:var(--text-muted); text-transform:uppercase;">Défis Trouvés</div>
+                </div>
+            </div>
+
+            <div id="profile-msg" class="auth-error" style="background:rgba(16, 185, 129, 0.1); color:var(--accent); border-color:rgba(16, 185, 129, 0.2);"></div>
+
+            <div class="auth-form">
+                <div class="form-group">
+                    <label>Pseudo</label>
+                    <input type="text" id="profile-pseudo" value="${userData.pseudo || ''}" placeholder="Votre pseudo">
+                </div>
+                <div class="form-group">
+                    <label>Bio (max 100 caractères)</label>
+                    <textarea id="profile-bio" maxlength="100" style="background:rgba(0,0,0,0.3); border:1px solid var(--glass-border); padding:0.8rem; border-radius:var(--radius-md); color:white; font-family:var(--font-ui); resize:none; height:60px;">${userData.bio || ''}</textarea>
+                </div>
+                
+                <button id="save-profile" class="btn-primary" style="justify-content:center;">
+                    Sauvegarder les modifications
+                </button>
+
+                <button id="reset-pwd-profile" style="background:none; border:none; color:var(--primary); font-size:0.8rem; cursor:pointer; margin-top:0.5rem; text-decoration:underline;">
+                    Réinitialiser mon mot de passe
+                </button>
+            </div>
+
+            <div class="divider" style="margin: 1.5rem 0 1rem;">Actions</div>
             
-            <div class="logout-section" style="display:flex; flex-direction:column; gap:10px;">
+            <div style="display:flex; flex-direction:column; gap:8px;">
                 <button id="logout-btn" class="btn-primary" style="width:100%; background:rgba(255,255,255,0.05); color:white; border: 1px solid var(--glass-border); justify-content:center;">
                     <i class="fa-solid fa-right-from-bracket"></i> Déconnexion
                 </button>
-                <button id="delete-account-btn" style="background:none; border:none; color:#f87171; font-size:0.8rem; cursor:pointer; padding:10px; text-decoration:underline;">
+                <button id="delete-account-btn" style="color:#f87171; font-size:0.75rem; background:none; border:none; cursor:pointer; text-decoration:underline;">
                     Supprimer mon compte
                 </button>
             </div>
         </div>
     `;
 
-    document.getElementById('close-auth').onclick = () => container.classList.add('hidden');
-    
-    document.getElementById('logout-btn').onclick = async () => {
+    setupProfileEvents(container, user, userData);
+}
+
+function setupProfileEvents(container, user, userData) {
+    const closeBtn = document.getElementById('close-auth');
+    const saveBtn = document.getElementById('save-profile');
+    const logoutBtn = document.getElementById('logout-btn');
+    const deleteBtn = document.getElementById('delete-account-btn');
+    const resetBtn = document.getElementById('reset-pwd-profile');
+    const msgEl = document.getElementById('profile-msg');
+
+    closeBtn.onclick = () => container.classList.add('hidden');
+
+    resetBtn.onclick = async () => {
         try {
-            await signOut(auth);
-            container.classList.add('hidden');
+            await sendPasswordResetEmail(auth, user.email);
+            msgEl.textContent = "Email de réinitialisation envoyé !";
+            msgEl.style.display = 'block';
         } catch (e) {
-            console.error("Logout error:", e);
+            msgEl.textContent = "Erreur : " + e.message;
+            msgEl.style.color = "#f87171";
+            msgEl.style.display = 'block';
         }
     };
 
-    document.getElementById('delete-account-btn').onclick = async () => {
-        if (!confirm("Êtes-vous sûr de vouloir supprimer votre compte définitivement ? Cette action est irréversible.")) return;
-        
+    saveBtn.onclick = async () => {
+        const pseudo = document.getElementById('profile-pseudo').value;
+        const bio = document.getElementById('profile-bio').value;
+        saveBtn.disabled = true;
+        saveBtn.textContent = "Enregistrement...";
+
+        try {
+            // Update Auth profile
+            await updateProfile(user, { displayName: pseudo });
+            
+            // Update Firestore document
+            await setDoc(doc(db, "users", user.uid), {
+                pseudo,
+                bio,
+                updatedAt: Date.now()
+            }, { merge: true });
+
+            msgEl.textContent = "Profil mis à jour !";
+            msgEl.style.display = 'block';
+            setTimeout(() => msgEl.style.display = 'none', 3000);
+        } catch (e) {
+            console.error(e);
+            msgEl.textContent = "Erreur lors de la sauvegarde.";
+            msgEl.style.color = "#f87171";
+            msgEl.style.display = 'block';
+        } finally {
+            saveBtn.disabled = false;
+            saveBtn.textContent = "Sauvegarder les modifications";
+        }
+    };
+
+    logoutBtn.onclick = async () => {
+        await signOut(auth);
+        container.classList.add('hidden');
+    };
+
+    deleteBtn.onclick = async () => {
+        if (!confirm("Supprimer votre compte définitivement ?")) return;
         try {
             await deleteUser(user);
             container.classList.add('hidden');
-            alert("Compte supprimé avec succès.");
         } catch (e) {
-            console.error("Delete error:", e);
-            const errEl = document.getElementById('profile-error');
-            errEl.textContent = e.code === 'auth/requires-recent-login' 
-                ? "Pour supprimer votre compte, vous devez vous être connecté récemment. Reconnectez-vous puis réessayez."
-                : "Erreur lors de la suppression.";
-            errEl.style.display = 'block';
+            msgEl.textContent = "Action récente requise. Reconnectez-vous.";
+            msgEl.style.color = "#f87171";
+            msgEl.style.display = 'block';
         }
     };
 }
@@ -140,24 +227,16 @@ function setupFormEvents(container, initialMode) {
 
     const switchTab = (mode) => {
         currentMode = mode;
-        // Update tabs active state
         tabs.login.classList.toggle('active', mode === 'login');
         tabs.signup.classList.toggle('active', mode === 'signup');
-        
-        // Update form elements
         submitBtn.textContent = mode === 'login' ? 'Se connecter' : 'Créer un compte';
         forgotLink.style.visibility = mode === 'login' ? 'visible' : 'hidden';
-        
-        // Reset errors
         errorEl.style.display = 'none';
         successEl.style.display = 'none';
     };
 
-    // Initialize state
     switchTab(initialMode);
-
     closeBtn.onclick = () => container.classList.add('hidden');
-
     tabs.login.onclick = () => switchTab('login');
     tabs.signup.onclick = () => switchTab('signup');
 
@@ -166,15 +245,14 @@ function setupFormEvents(container, initialMode) {
             e.preventDefault();
             const email = document.getElementById('auth-email').value;
             if (!email) {
-                errorEl.textContent = "Entrez votre email pour réinitialiser le mot de passe.";
+                errorEl.textContent = "Entrez votre email.";
                 errorEl.style.display = 'block';
                 return;
             }
             try {
                 await sendPasswordResetEmail(auth, email);
-                successEl.textContent = "Email de réinitialisation envoyé !";
+                successEl.textContent = "Email envoyé !";
                 successEl.style.display = 'block';
-                errorEl.style.display = 'none';
             } catch (e) {
                 errorEl.textContent = formatError(e.code);
                 errorEl.style.display = 'block';
@@ -196,8 +274,6 @@ function setupFormEvents(container, initialMode) {
         e.preventDefault();
         const email = document.getElementById('auth-email').value;
         const password = document.getElementById('auth-password').value;
-        errorEl.style.display = 'none';
-        successEl.style.display = 'none';
         submitBtn.disabled = true;
 
         try {
@@ -221,8 +297,8 @@ function formatError(code) {
         case 'auth/user-not-found': return 'Utilisateur non trouvé.';
         case 'auth/wrong-password': return 'Mot de passe incorrect.';
         case 'auth/email-already-in-use': return 'Cet email est déjà utilisé.';
-        case 'auth/weak-password': return 'Le mot de passe est trop court (min 6 caractères).';
+        case 'auth/weak-password': return 'Le mot de passe est trop court.';
         case 'auth/invalid-email': return 'Email non valide.';
-        default: return 'Une erreur est survenue. Réessayez.';
+        default: return 'Une erreur est survenue.';
     }
 }

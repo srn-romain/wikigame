@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, collection, doc, setDoc, getDoc, updateDoc, onSnapshot, arrayUnion } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getFirestore, collection, doc, setDoc, getDoc, updateDoc, onSnapshot, arrayUnion, increment } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { 
     getAuth, 
     signInAnonymously, 
@@ -66,5 +66,5 @@ export {
     db, auth, googleProvider, 
     signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, signOut, updateProfile,
     sendPasswordResetEmail, deleteUser,
-    collection, doc, setDoc, getDoc, updateDoc, onSnapshot, arrayUnion 
+    collection, doc, setDoc, getDoc, updateDoc, onSnapshot, arrayUnion, increment 
 };

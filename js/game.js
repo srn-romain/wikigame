@@ -1,4 +1,5 @@
 import { fetchRandomArticle, fetchArticleById } from './wiki.js';
+import { db, doc, updateDoc, increment, getCurrentUser, setDoc } from './firebase-app.js';
 
 // ─────────────────────────────────────────────
 // REGEXES
@@ -381,11 +382,30 @@ function updateCloseMatches() {
 // ─────────────────────────────────────────────
 // WIN
 // ─────────────────────────────────────────────
-function triggerWin() {
+async function triggerWin() {
     state.won = true;
     state.tokens.forEach(t => { if (t.isWord) t.revealed = true; });
 
     if (window._gameTimer) clearInterval(window._gameTimer);
+
+    // Update User Stats in Firestore
+    const user = getCurrentUser();
+    if (user && !user.isAnonymous) {
+        try {
+            const updates = {
+                gamesPlayed: increment(1)
+            };
+            if (state.mode === 'daily') {
+                updates.dailySolved = increment(1);
+            }
+            
+            const userRef = doc(db, "users", user.uid);
+            await setDoc(userRef, updates, { merge: true });
+            console.log("Stats updated successfully.");
+        } catch (e) {
+            console.error("Failed to update stats:", e);
+        }
+    }
 
     renderGame(); // Full re-render with win state
 }
