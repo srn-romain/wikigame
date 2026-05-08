@@ -79,39 +79,50 @@ async function navigateTo(view) {
 // ─────────────────────────────────────────────
 // HOME PAGE
 // ─────────────────────────────────────────────
+// HOME PAGE
+// ─────────────────────────────────────────────
 function renderHome(container) {
     container.innerHTML = `
-        <div class="glass home-hero">
-            <h1>
-                <span style="color:var(--primary)">WIKI</span><span style="color:white">REVEAL</span>
-            </h1>
-            <p>
-                Un article Wikipédia a été censuré.<br>
-                Retrouvez les mots cachés un par un pour révéler le sujet secret.
+        <div class="glass home-hero" style="max-width: 960px; margin: 2rem auto; padding: 5rem 2rem; border: none; box-shadow: 0 20px 50px rgba(0,0,0,0.15);">
+            <div style="margin-bottom: 4rem; text-align: center;">
+                <h1 style="font-size: 5rem; letter-spacing: -0.05em; margin-bottom: 0.5rem; line-height: 1; display: flex; align-items: center; justify-content: center; gap: 20px;">
+                    <i class="fa-brands fa-wikipedia-w" style="color:var(--accent); font-size: 4rem;"></i>
+                    <span><span style="color:var(--primary)">WIKI</span><span style="color:var(--accent)">GAME</span></span>
+                </h1>
+                <p style="font-size: 1.25rem; color: var(--title-dark); font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.8;">
+                    Le jeu de décryptage encyclopédique
+                </p>
+            </div>
+            
+            <p style="font-size: 1.1rem; color: var(--text-muted); max-width: 500px; margin: 0 auto 3rem; line-height: 1.8; text-align: center;">
+                Saurez-vous identifier l'article caché derrière ses mots masqués ? 
+                Un défi de culture et de déduction logique.
             </p>
-            <div class="home-btns">
-                <button class="btn-primary" onclick="document.querySelector('[data-view=solo]').click()">
-                    <i class="fa-solid fa-shuffle"></i> Article Aléatoire
+
+            <div class="home-btns" style="margin-bottom: 5rem; display: flex; justify-content: center; gap: 20px;">
+                <button class="btn-accent" style="padding: 1.1rem 2.8rem;" onclick="document.querySelector('[data-view=daily]').click()">
+                    <i class="fa-solid fa-calendar-check"></i> Défi Quotidien
                 </button>
-                <button class="btn-accent" onclick="document.querySelector('[data-view=daily]').click()">
-                    <i class="fa-solid fa-calendar-day"></i> Défi du Jour
+                <button class="btn-primary" style="padding: 1.1rem 2.8rem;" onclick="document.querySelector('[data-view=solo]').click()">
+                    <i class="fa-solid fa-play"></i> Mode Solo
                 </button>
             </div>
-            <div class="feature-cards">
-                <div class="feature-card">
-                    <i class="fa-solid fa-eye-slash" style="color: var(--primary)"></i>
-                    <h3>Mots Masqués</h3>
-                    <p>Tous les mots sont cachés. Tapez un mot pour le révéler dans tout l'article.</p>
+
+            <div class="feature-cards" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 2rem;">
+                <div class="feature-card" style="background: white; border: 1px solid #eee; padding: 2.5rem 1.5rem; border-radius: 12px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.03);">
+                    <i class="fa-solid fa-brain" style="color: var(--primary); font-size: 2rem; margin-bottom: 1.5rem;"></i>
+                    <h3 style="color: var(--title-dark); font-size: 1.1rem; margin-bottom: 0.75rem; font-weight: 700;">Déduction</h3>
+                    <p style="font-size: 0.9rem; color: var(--text-muted); line-height: 1.6;">Analysez la structure et les connecteurs logiques pour percer le mystère.</p>
                 </div>
-                <div class="feature-card">
-                    <i class="fa-solid fa-circle-question" style="color: var(--orange)"></i>
-                    <h3>Indice au Clic</h3>
-                    <p>Cliquez sur un bloc noir pour afficher le nombre de lettres du mot caché.</p>
+                <div class="feature-card" style="background: white; border: 1px solid #eee; padding: 2.5rem 1.5rem; border-radius: 12px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.03);">
+                    <i class="fa-solid fa-magnifying-glass-chart" style="color: var(--accent); font-size: 2rem; margin-bottom: 1.5rem;"></i>
+                    <h3 style="color: var(--title-dark); font-size: 1.1rem; margin-bottom: 0.75rem; font-weight: 700;">Analyse</h3>
+                    <p style="font-size: 0.9rem; color: var(--text-muted);">Utilisez les indices de longueur de mots pour valider vos hypothèses.</p>
                 </div>
-                <div class="feature-card">
-                    <i class="fa-solid fa-fire" style="color: var(--accent)"></i>
-                    <h3>Mots Proches</h3>
-                    <p>Les blocs orange indiquent un mot similaire à l'un de vos essais.</p>
+                <div class="feature-card" style="background: white; border: 1px solid #eee; padding: 2.5rem 1.5rem; border-radius: 12px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.03);">
+                    <i class="fa-solid fa-ranking-star" style="color: #2563eb; font-size: 2rem; margin-bottom: 1.5rem;"></i>
+                    <h3 style="color: var(--title-dark); font-size: 1.1rem; margin-bottom: 0.75rem; font-weight: 700;">Compétition</h3>
+                    <p style="font-size: 0.9rem; color: var(--text-muted);">Mesurez votre rapidité face à la communauté sur l'article du jour.</p>
                 </div>
             </div>
         </div>
