@@ -136,6 +136,9 @@ function renderHome(container) {
 // MULTIPLAYER
 // ─────────────────────────────────────────────
 function renderMultiplayerMenu(container) {
+    const user = getCurrentUser();
+    const defaultName = (user && !user.isAnonymous) ? (user.displayName || "") : "";
+
     container.innerHTML = `
         <div class="glass" style="padding: 2rem; text-align: center; border-radius: var(--radius-lg); margin-top:1rem; max-width: 540px; margin-left: auto; margin-right: auto;">
             <i class="fa-solid fa-users-line" style="font-size: 3rem; color: var(--accent); margin-bottom: 1rem;"></i>
@@ -143,8 +146,7 @@ function renderMultiplayerMenu(container) {
             <p style="margin-bottom: 2rem; color: var(--text-muted);">Créez un salon ou rejoignez une partie existante.</p>
             
             <div id="lobby-ui" style="display: flex; flex-direction: column; gap: 1rem;">
-                <input type="text" id="username-input" placeholder="Votre Pseudo" 
-                    style="padding: 14px; border-radius: var(--radius-md); border: 1px solid var(--glass-border); background: rgba(0,0,0,0.3); color: white; font-size:1rem; outline:none;">
+                <input type="text" id="username-input" class="wiki-input" placeholder="Votre Pseudo" value="${defaultName}" style="width:100%;">
                 
                 <button id="create-room-btn" class="btn-primary" style="width:100%; justify-content:center;">
                     <i class="fa-solid fa-plus"></i> Créer une Salle
@@ -152,12 +154,11 @@ function renderMultiplayerMenu(container) {
                 
                 <div style="position: relative; margin: 0.5rem 0;">
                     <hr style="border: 0; border-top: 1px solid var(--glass-border);">
-                    <span style="position: absolute; top: -9px; left: 50%; transform: translateX(-50%); background: var(--bg-dark); padding: 0 10px; color: var(--text-muted); font-size: 0.75rem;">OU</span>
+                    <span style="position: absolute; top: -9px; left: 50%; transform: translateX(-50%); background: white; padding: 0 10px; color: var(--text-muted); font-size: 0.75rem; font-weight: 700;">OU</span>
                 </div>
 
                 <div style="display: flex; gap: 8px;">
-                    <input type="text" id="room-code-input" placeholder="Code de salle" 
-                        style="flex:2; padding: 14px; border-radius: var(--radius-md); border: 1px solid var(--glass-border); background: rgba(0,0,0,0.3); color: white; text-transform: uppercase; font-size:1rem; outline:none;">
+                    <input type="text" id="room-code-input" class="wiki-input" placeholder="Code de salle" style="flex:2; text-transform: uppercase;">
                     <button id="join-room-btn" class="btn-accent" style="flex:1; padding: 12px; font-size: 0.9rem;">
                         Rejoindre
                     </button>

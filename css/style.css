@@ -438,8 +438,7 @@ body {
     gap: 8px;
 }
 
-#guess-input {
-    flex: 1;
+.wiki-input {
     background: white;
     border: 1px solid #ddd;
     padding: 0.8rem 1rem;
@@ -452,9 +451,13 @@ body {
     box-shadow: 0 2px 8px rgba(0,0,0,0.05);
 }
 
-#guess-input:focus {
+.wiki-input:focus {
     border-color: var(--accent);
     box-shadow: 0 0 0 3px rgba(243, 156, 18, 0.15);
+}
+
+#guess-input {
+    flex: 1;
 }
 
 #submit-guess {
