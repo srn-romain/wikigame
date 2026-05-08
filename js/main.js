@@ -94,7 +94,7 @@ function renderHome(container) {
                 </p>
             </div>
             
-            <p style="font-size: 1.1rem; color: var(--text-muted); max-width: 500px; margin: 0 auto 3rem; line-height: 1.8; text-align: center;">
+            <p style="font-size: 1.1rem; color: var(--text-muted); max-width: 520px; margin: 0 auto 3rem; line-height: 1.8; text-align: center;">
                 Saurez-vous identifier l'article caché derrière ses mots masqués ? 
                 Un défi de culture et de déduction logique.
             </p>
@@ -108,21 +108,21 @@ function renderHome(container) {
                 </button>
             </div>
 
-            <div class="feature-cards" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 2rem;">
+            <div class="feature-cards" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;">
                 <div class="feature-card" style="background: white; border: 1px solid #eee; padding: 2.5rem 1.5rem; border-radius: 12px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.03);">
                     <i class="fa-solid fa-brain" style="color: var(--primary); font-size: 2rem; margin-bottom: 1.5rem;"></i>
-                    <h3 style="color: var(--title-dark); font-size: 1.1rem; margin-bottom: 0.75rem; font-weight: 700;">Déduction</h3>
-                    <p style="font-size: 0.9rem; color: var(--text-muted); line-height: 1.6;">Analysez la structure et les connecteurs logiques pour percer le mystère.</p>
+                    <h3 style="color: var(--title-dark); font-size: 1rem; margin-bottom: 0.25rem; font-weight: 700;">Déduction</h3>
+                    <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.4; margin: 0;">Analysez la structure et les connecteurs logiques pour percer le mystère.</p>
                 </div>
                 <div class="feature-card" style="background: white; border: 1px solid #eee; padding: 2.5rem 1.5rem; border-radius: 12px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.03);">
                     <i class="fa-solid fa-magnifying-glass-chart" style="color: var(--accent); font-size: 2rem; margin-bottom: 1.5rem;"></i>
-                    <h3 style="color: var(--title-dark); font-size: 1.1rem; margin-bottom: 0.75rem; font-weight: 700;">Analyse</h3>
-                    <p style="font-size: 0.9rem; color: var(--text-muted);">Utilisez les indices de longueur de mots pour valider vos hypothèses.</p>
+                    <h3 style="color: var(--title-dark); font-size: 1rem; margin-bottom: 0.25rem; font-weight: 700;">Analyse</h3>
+                    <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0;">Utilisez les indices de longueur de mots pour valider vos hypothèses.</p>
                 </div>
                 <div class="feature-card" style="background: white; border: 1px solid #eee; padding: 2.5rem 1.5rem; border-radius: 12px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.03);">
                     <i class="fa-solid fa-ranking-star" style="color: #2563eb; font-size: 2rem; margin-bottom: 1.5rem;"></i>
-                    <h3 style="color: var(--title-dark); font-size: 1.1rem; margin-bottom: 0.75rem; font-weight: 700;">Compétition</h3>
-                    <p style="font-size: 0.9rem; color: var(--text-muted);">Mesurez votre rapidité face à la communauté sur l'article du jour.</p>
+                    <h3 style="color: var(--title-dark); font-size: 1rem; margin-bottom: 0.25rem; font-weight: 700;">Compétition</h3>
+                    <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0;">Mesurez votre rapidité face à la communauté sur l'article du jour.</p>
                 </div>
             </div>
         </div>

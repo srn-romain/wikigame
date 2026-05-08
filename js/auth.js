@@ -111,7 +111,7 @@ function renderProfileModal(container, user, userData) {
                 </div>
                 <div class="form-group">
                     <label>Bio (max 100 caractères)</label>
-                    <textarea id="profile-bio" maxlength="100" style="background:rgba(0,0,0,0.3); border:1px solid var(--glass-border); padding:0.8rem; border-radius:var(--radius-md); color:white; font-family:var(--font-ui); resize:none; height:60px;">${userData.bio || ''}</textarea>
+                    <textarea id="profile-bio" maxlength="100" style="background:#f9fafb; border:1px solid #e5e7eb; padding:0.8rem; border-radius:var(--radius-md); color:var(--text-main); font-family:var(--font-ui); resize:none; height:60px; outline:none;">${userData.bio || ''}</textarea>
                 </div>
                 
                 <button id="save-profile" class="btn-primary" style="justify-content:center;">
@@ -126,7 +126,7 @@ function renderProfileModal(container, user, userData) {
             <div class="divider" style="margin: 1.5rem 0 1rem;">Actions</div>
             
             <div style="display:flex; flex-direction:column; gap:8px;">
-                <button id="logout-btn" class="btn-primary" style="width:100%; background:rgba(255,255,255,0.05); color:white; border: 1px solid var(--glass-border); justify-content:center;">
+                <button id="logout-btn" class="btn-primary" style="width:100%; background:#f3f4f6; color:var(--text-main); border: 1px solid #e5e7eb; justify-content:center; box-shadow:none;">
                     <i class="fa-solid fa-right-from-bracket"></i> Déconnexion
                 </button>
                 <button id="delete-account-btn" style="color:#f87171; font-size:0.75rem; background:none; border:none; cursor:pointer; text-decoration:underline;">

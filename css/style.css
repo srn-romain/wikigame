@@ -4,7 +4,7 @@
     --accent: #F39C12;
     --link-blue: #2563EB;
     --danger: #E74C3C;
-    --title-dark: #2C3E50;
+    --title-dark: #ffffff;
     --text-main: #333333;
     --text-muted: #555555;
     --bg-white: #FFFFFF;
@@ -36,10 +36,14 @@ body {
 ══════════════════════════════════ */
 .glass {
     background: var(--bg-white);
-    color: var(--text-main);
+    color: var(--text-main); /* Texte sombre sur fond blanc */
     border: 1px solid var(--glass-border);
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
     border-radius: var(--radius-lg);
+}
+
+.glass h1, .glass h2, .glass h3, .glass h4, .glass p, .glass label {
+    color: var(--text-main) !important;
 }
 
 /* ══════════════════════════════════
@@ -344,28 +348,23 @@ body {
 .wiki-word.showing-count::after {
     content: attr(data-len);
     position: absolute;
-    inset: 0; /* Prend toute la place du rectangle */
-    background-color: #1e293b !important;
-    color: var(--text-main) !important;
+    inset: 0;
+    background-color: #000000 !important; /* Fond noir profond */
+    color: #ffffff !important; /* TEXTE BLANC PAR DEFAUT */
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.75em;
+    font-size: 0.8em;
     font-weight: 800;
     font-family: var(--font-mono);
     pointer-events: none;
     border-radius: 3px;
 }
 
-/* SHOWING LETTER COUNT — white text on the block */
+/* SHOWING LETTER COUNT — fallback or direct class use */
 .wiki-word.showing-count {
-    background-color: #1e293b !important;
-    color: var(--text-main) !important;
-    font-family: var(--font-mono);
-    font-size: 0.8em;
-    font-weight: 700;
-    padding: 1px 5px;
-    box-shadow: 0 0 8px rgba(79, 142, 247, 0.4);
+    background-color: #000000 !important;
+    color: #ffffff !important;
 }
 
 /* REVEALED WORD */
@@ -436,20 +435,21 @@ body {
 
 #guess-input {
     flex: 1;
-    background: rgba(0, 0, 0, 0.35);
-    border: 1px solid var(--glass-border);
+    background: white;
+    border: 1px solid #ddd;
     padding: 0.8rem 1rem;
     border-radius: var(--radius-md);
-    color: white;
+    color: var(--text-main);
     font-size: 1rem;
     font-family: var(--font-ui);
     outline: none;
-    transition: border-color 0.2s, box-shadow 0.2s;
+    transition: all 0.2s;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
 }
 
 #guess-input:focus {
-    border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(79, 142, 247, 0.15);
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(243, 156, 18, 0.15);
 }
 
 #submit-guess {
@@ -496,7 +496,7 @@ body {
 .home-hero p {
     font-size: 1.1rem;
     color: var(--text-muted);
-    max-width: 550px;
+    max-width: 850px;
     margin: 0 auto 2.5rem;
     line-height: 1.6;
 }
@@ -604,6 +604,30 @@ body {
     backdrop-filter: blur(4px);
 }
 
+.loading-screen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 40vh;
+    color: white !important;
+    gap: 1.5rem;
+    text-align: center;
+}
+
+.loading-spinner {
+    width: 48px;
+    height: 48px;
+    border: 5px solid rgba(255,255,255,0.15);
+    border-top: 5px solid var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
 /* ══════════════════════════════════
    UTILITIES
 ══════════════════════════════════ */
@@ -620,15 +644,15 @@ body {
 }
 
 .auth-modal {
-    background: var(--bg-card);
-    backdrop-filter: blur(20px);
-    border: 1px solid var(--glass-border);
+    background: white;
+    color: var(--text-main);
+    border: none;
     border-radius: var(--radius-lg);
-    width: 100%;
-    max-width: 400px;
-    padding: 2rem;
+    width: 95%; /* Responsive */
+    max-width: 550px;
+    padding: 3rem;
     position: relative;
-    box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+    box-shadow: 0 25px 60px rgba(0,0,0,0.3);
     animation: modalPop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
@@ -657,7 +681,7 @@ body {
 }
 
 .auth-tab.active {
-    color: var(--primary);
+    color: var(--accent);
 }
 
 .auth-tab.active::after {
@@ -666,9 +690,9 @@ body {
     bottom: -1px;
     left: 0;
     width: 100%;
-    height: 2px;
-    background: var(--primary);
-    box-shadow: 0 0 8px var(--primary-glow);
+    height: 3px;
+    background: var(--accent);
+    border-radius: 3px;
 }
 
 .auth-form {
@@ -690,17 +714,18 @@ body {
 }
 
 .form-group input {
-    background: rgba(0,0,0,0.3);
-    border: 1px solid var(--glass-border);
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
     padding: 0.8rem 1rem;
     border-radius: var(--radius-md);
-    color: white;
+    color: var(--text-main);
     outline: none;
-    transition: border-color 0.2s;
+    transition: all 0.2s;
 }
 
 .form-group input:focus {
     border-color: var(--primary);
+    background: white;
 }
 
 .auth-error {
@@ -732,7 +757,7 @@ body {
 .btn-google {
     background: white;
     color: #1f2937;
-    border: none;
+    border: 1px solid #e5e7eb;
     padding: 0.8rem;
     border-radius: var(--radius-md);
     font-weight: 700;
@@ -741,13 +766,17 @@ body {
     justify-content: center;
     gap: 10px;
     cursor: pointer;
-    transition: transform 0.2s;
-    width: 100%; /* Prend toute la largeur disponible pour être centré par rapport au formulaire */
-    max-width: 320px; /* Limite la largeur pour l'esthétique */
-    margin: 0 auto; /* Centre le bouton horizontalement */
+    transition: all 0.2s;
+    width: 100%; 
+    max-width: 320px;
+    margin: 0 auto;
 }
 
-.btn-google:hover { transform: translateY(-1px); }
+.btn-google:hover { 
+    background: #f9fafb;
+    transform: translateY(-1px); 
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
 
 .close-modal {
     position: absolute;
