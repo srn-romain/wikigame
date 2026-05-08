@@ -99,12 +99,15 @@ function renderHome(container) {
                 Un défi de culture et de déduction logique.
             </p>
 
-            <div class="home-btns" style="margin-bottom: 5rem; display: flex; justify-content: center; gap: 20px;">
-                <button class="btn-accent" style="padding: 1.1rem 2.8rem;" onclick="document.querySelector('[data-view=daily]').click()">
+            <div class="home-btns" style="margin-bottom: 5rem; display: flex; justify-content: center; gap: 15px; max-width: 750px; margin-left: auto; margin-right: auto;">
+                <button class="btn-accent" style="flex: 1; padding: 1.1rem 0; justify-content: center;" onclick="document.querySelector('[data-view=daily]').click()">
                     <i class="fa-solid fa-calendar-check"></i> Défi Quotidien
                 </button>
-                <button class="btn-primary" style="padding: 1.1rem 2.8rem;" onclick="document.querySelector('[data-view=solo]').click()">
+                <button class="btn-primary" style="flex: 1; padding: 1.1rem 0; justify-content: center;" onclick="document.querySelector('[data-view=solo]').click()">
                     <i class="fa-solid fa-play"></i> Mode Solo
+                </button>
+                <button class="btn-primary" style="flex: 1; padding: 1.1rem 0; justify-content: center; background: #2563eb; box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3);" onclick="document.querySelector('[data-view=multiplayer]').click()">
+                    <i class="fa-solid fa-users"></i> Compétition
                 </button>
             </div>
 
