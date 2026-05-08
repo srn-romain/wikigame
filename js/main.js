@@ -2,10 +2,12 @@ import { initGame, handleGuess } from './game.js';
 import { createRoom, joinRoom } from './multiplayer.js';
 import { db, waitForAuth, doc, getDoc, setDoc } from './firebase-app.js';
 import { fetchRandomArticle } from './wiki.js';
+import { openAuthModal } from './auth.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     setupNavigation();
     setupGameInputs();
+    setupAuthListeners();
     navigateTo('home');
 });
 
@@ -27,6 +29,20 @@ function setupNavigation() {
         document.querySelector('[data-view="home"]')?.classList.add('active');
         navigateTo('home');
     });
+}
+
+function setupAuthListeners() {
+    const profileBtn = document.getElementById('user-profile-btn');
+    const modalContainer = document.getElementById('modal-container');
+
+    profileBtn.onclick = () => openAuthModal('login');
+
+    // Close modal when clicking outside
+    modalContainer.onclick = (e) => {
+        if (e.target === modalContainer) {
+            modalContainer.classList.add('hidden');
+        }
+    };
 }
 
 async function navigateTo(view) {
