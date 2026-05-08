@@ -3,7 +3,7 @@ import { createRoom, joinRoom } from './multiplayer.js';
 import { db, waitForAuth, doc, getDoc, setDoc } from './firebase-app.js';
 import { fetchRandomArticle } from './wiki.js';
 import { openAuthModal } from './auth.js';
-import { getDailyArticleId, checkDailySolved, getCountdown } from './daily.js';
+import { getDailyArticleId, checkDailySolved, getCountdown, getDailySolversCount } from './daily.js';
 import { getCurrentUser } from './firebase-app.js';
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -186,28 +186,39 @@ async function loadDailyChallenge() {
     // 2. Check if the user already solved it today
     const isSolved = await checkDailySolved(user, articleId);
 
-    // 3. Start game (pass preSolved=true if already won)
+    // 3. Get total solvers count
+    const solversCount = await getDailySolversCount();
+
+    // 4. Start game (pass preSolved=true if already won)
     await initGame('daily', articleId, isSolved);
 
-    // 4. Inject Daily Header with Countdown
-    injectDailyHeader(container);
+    // 5. Inject Daily Header with Countdown and Solvers count
+    injectDailyHeader(container, solversCount);
 }
 
-function injectDailyHeader(container) {
+function injectDailyHeader(container, solversCount) {
     // Remove existing if any
     const existing = document.querySelector('.daily-header');
     if (existing) existing.remove();
 
     const header = document.createElement('div');
     header.className = 'daily-header glass';
-    header.style.cssText = "margin-bottom: 1.5rem; padding: 12px 20px; border-radius: var(--radius-md); display: flex; justify-content: space-between; align-items: center;";
+    header.style.cssText = "margin-bottom: 1.5rem; padding: 12px 20px; border-radius: var(--radius-md); display: flex; flex-direction:column; gap:8px;";
     header.innerHTML = `
-        <div style="display:flex; align-items:center; gap:10px;">
-            <i class="fa-solid fa-calendar-star" style="color:var(--accent);"></i>
-            <span style="font-weight:800; font-size:0.9rem; text-transform:uppercase; letter-spacing:0.05em;">Défi du Jour</span>
-        </div>
-        <div style="font-size:0.85rem; color:var(--text-muted);">
-            Nouveau défi dans : <span id="daily-countdown" style="font-family:var(--font-mono); color:var(--primary); font-weight:800; margin-left:5px;">--:--:--</span>
+        <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+            <div style="display:flex; align-items:center; gap:10px;">
+                <i class="fa-solid fa-calendar-star" style="color:var(--accent);"></i>
+                <span style="font-weight:800; font-size:0.9rem; text-transform:uppercase; letter-spacing:0.05em;">Défi du Jour</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:15px;">
+                <div style="font-size:0.85rem; color:white; background:rgba(255,255,255,0.1); padding:4px 10px; border-radius:20px; display:flex; align-items:center; gap:6px;">
+                    <i class="fa-solid fa-trophy" style="color:#fbbf24; font-size:0.75rem;"></i>
+                    <span style="font-weight:700;">${solversCount}</span> <span style="font-size:0.7rem; color:var(--text-muted);">gagnants</span>
+                </div>
+                <div style="font-size:0.85rem; color:var(--text-muted);">
+                    Reset : <span id="daily-countdown" style="font-family:var(--font-mono); color:var(--primary); font-weight:800; margin-left:5px;">--:--:--</span>
+                </div>
+            </div>
         </div>
     `;
     
