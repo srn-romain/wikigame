@@ -4,9 +4,9 @@ import { db, doc, updateDoc, increment, getCurrentUser, setDoc } from './firebas
 // ─────────────────────────────────────────────
 // REGEXES
 // ─────────────────────────────────────────────
-// Matches word characters (letters, digits, accented chars) OR non-word sequences
-const TOKEN_REGEX = /[a-zA-Z0-9àâäéèêëîïôöùûüçÀÂÄÉÈÊËÎÏÔÖÙÛÜÇ'-]+|[^a-zA-Z0-9àâäéèêëîïôöùûüçÀÂÄÉÈÊËÎÏÔÖÙÛÜÇ'-]+/g;
-const IS_WORD = /^[a-zA-Z0-9àâäéèêëîïôöùûüçÀÂÄÉÈÊËÎÏÔÖÙÛÜÇ'-]+$/;
+// Matches word characters (Unicode letters, digits, accented chars, hyphens) OR non-word sequences
+const TOKEN_REGEX = /[\p{L}0-9'-]+|[^\p{L}0-9'-]+/gu;
+const IS_WORD = /^[\p{L}0-9'-]+$/u;
 
 // ─────────────────────────────────────────────
 // GAME STATE

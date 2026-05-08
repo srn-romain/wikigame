@@ -7,32 +7,23 @@ import { fetchRandomArticle } from './wiki.js';
  */
 export async function getDailyArticleId() {
     const now = new Date();
-    const dailyRef = doc(db, "globals", "dailyChallenge");
-    
-    // Calculate the most recent 12:00 PM UTC (Noon)
-    const lastNoon = new Date();
-    lastNoon.setUTCHours(12, 0, 0, 0);
-    if (now < lastNoon) {
-        // If it's before 12:00 UTC today, the reset was yesterday
-        lastNoon.setUTCDate(lastNoon.getUTCDate() - 1);
+    const resetDate = new Date();
+    resetDate.setUTCHours(12, 0, 0, 0);
+    if (now < resetDate) {
+        resetDate.setUTCDate(resetDate.getUTCDate() - 1);
     }
+    
+    const dateId = resetDate.toISOString().split('T')[0]; // e.g. "2024-05-09"
+    const dailyRef = doc(db, "dailies", dateId);
 
     try {
         const snap = await getDoc(dailyRef);
         
         if (snap.exists()) {
-            const data = snap.data();
-            const lastUpdate = new Date(data.timestamp);
-            
-            // If the stored article was generated before the most recent Noon, rotate it
-            if (lastUpdate < lastNoon) {
-                return await rotateDailyArticle(lastNoon.getTime());
-            }
-            
-            return data.articleId;
+            return snap.data().articleId;
         } else {
-            // First time setup
-            return await rotateDailyArticle(lastNoon.getTime());
+            // No challenge found for this specific date, trigger rotation
+            return await rotateDailyArticle(resetDate.getTime(), dateId);
         }
     } catch (e) {
         console.error("Daily: Error fetching article ID:", e);
@@ -40,25 +31,21 @@ export async function getDailyArticleId() {
     }
 }
 
-async function rotateDailyArticle(timestamp) {
-    console.log("Daily: Attempting secured rotation...");
+async function rotateDailyArticle(timestamp, dateId) {
+    console.log(`Daily: Attempting rotation for ${dateId}...`);
     const article = await fetchRandomArticle();
     if (!article) return null;
 
     try {
         const articleId = await runTransaction(db, async (transaction) => {
-            const dailyRef = doc(db, "globals", "dailyChallenge");
+            const dailyRef = doc(db, "dailies", dateId);
             const snap = await transaction.get(dailyRef);
 
             if (snap.exists()) {
-                const data = snap.data();
-                if (data.timestamp >= timestamp) {
-                    console.log("Daily: Already rotated by another user.");
-                    return data.articleId;
-                }
+                return snap.data().articleId;
             }
 
-            // Apply new article and reset counter
+            // Apply new article to the specific date document
             transaction.set(dailyRef, {
                 articleId: article.id,
                 title: article.title,
@@ -66,13 +53,20 @@ async function rotateDailyArticle(timestamp) {
                 solversCount: 0
             });
 
-            console.log("Daily: Rotation successful:", article.title);
+            // Also update global pointer for convenience
+            const globalRef = doc(db, "globals", "dailyChallenge");
+            transaction.set(globalRef, {
+                currentDateId: dateId,
+                articleId: article.id,
+                timestamp: timestamp
+            }, { merge: true });
+
+            console.log(`Daily: Rotation successful for ${dateId}:`, article.title);
             return article.id;
         });
         return articleId;
     } catch (e) {
         console.error("Daily: Rotation transaction failed:", e);
-        // Fallback to the random article if transaction fails (better than nothing)
         return article.id;
     }
 }
@@ -100,9 +94,8 @@ export async function checkDailySolved(user, articleId) {
 export async function markDailyAsSolved(user, articleId) {
     if (!user || user.isAnonymous) return;
 
-    const solvedRef = doc(db, "users", user.uid, "dailySolved", articleId);
     try {
-        // Check if already solved to avoid double increment
+        const solvedRef = doc(db, "users", user.uid, "dailySolved", articleId);
         const snap = await getDoc(solvedRef);
         if (snap.exists()) return;
 
@@ -111,8 +104,14 @@ export async function markDailyAsSolved(user, articleId) {
             articleId: articleId
         });
 
-        // Increment global solver count
-        const dailyRef = doc(db, "globals", "dailyChallenge");
+        // Increment solver count in the specific daily document
+        const now = new Date();
+        const resetDate = new Date();
+        resetDate.setUTCHours(12, 0, 0, 0);
+        if (now < resetDate) resetDate.setUTCDate(resetDate.getUTCDate() - 1);
+        const dateId = resetDate.toISOString().split('T')[0];
+
+        const dailyRef = doc(db, "dailies", dateId);
         await setDoc(dailyRef, { solversCount: increment(1) }, { merge: true });
     } catch (e) {
         console.error("Daily: Error marking as solved:", e);
@@ -123,8 +122,14 @@ export async function markDailyAsSolved(user, articleId) {
  * Gets the number of people who solved the current challenge.
  */
 export async function getDailySolversCount() {
+    const now = new Date();
+    const resetDate = new Date();
+    resetDate.setUTCHours(12, 0, 0, 0);
+    if (now < resetDate) resetDate.setUTCDate(resetDate.getUTCDate() - 1);
+    const dateId = resetDate.toISOString().split('T')[0];
+
     try {
-        const dailyRef = doc(db, "globals", "dailyChallenge");
+        const dailyRef = doc(db, "dailies", dateId);
         const snap = await getDoc(dailyRef);
         return snap.exists() ? (snap.data().solversCount || 0) : 0;
     } catch (e) {
