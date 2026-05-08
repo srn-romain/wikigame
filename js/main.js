@@ -18,10 +18,25 @@ document.addEventListener('DOMContentLoaded', () => {
 // ─────────────────────────────────────────────
 function setupNavigation() {
     const buttons = document.querySelectorAll('.nav-btn[data-view]');
+    const navLinks = document.querySelector('.nav-links');
+    const toggle = document.getElementById('mobile-menu-toggle');
+
+    if (toggle) {
+        toggle.addEventListener('click', () => {
+            navLinks.classList.toggle('open');
+            toggle.classList.toggle('active');
+        });
+    }
+
     buttons.forEach(btn => {
         btn.addEventListener('click', () => {
             buttons.forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
+            
+            // Close mobile menu
+            navLinks.classList.remove('open');
+            toggle?.classList.remove('active');
+            
             navigateTo(btn.dataset.view);
         });
     });
@@ -29,6 +44,11 @@ function setupNavigation() {
     document.querySelector('.logo').addEventListener('click', () => {
         buttons.forEach(b => b.classList.remove('active'));
         document.querySelector('[data-view="home"]')?.classList.add('active');
+        
+        // Close mobile menu
+        navLinks.classList.remove('open');
+        toggle?.classList.remove('active');
+
         navigateTo('home');
     });
 }
@@ -83,8 +103,8 @@ async function navigateTo(view) {
 // ─────────────────────────────────────────────
 function renderHome(container) {
     container.innerHTML = `
-        <div class="glass home-hero" style="max-width: 960px; margin: 2rem auto; padding: 5rem 2rem; border: none; box-shadow: 0 20px 50px rgba(0,0,0,0.15);">
-            <div style="margin-bottom: 4rem; text-align: center;">
+        <div class="glass home-hero" style="max-width: 960px; margin: 2rem auto; padding: 3rem 2rem; border: none; box-shadow: 0 20px 50px rgba(0,0,0,0.15);">
+            <div style="margin-bottom: 0.5rem; text-align: center;">
                 <h1 style="font-size: 5rem; letter-spacing: -0.05em; margin-bottom: 0.5rem; line-height: 1; display: flex; align-items: center; justify-content: center; gap: 20px;">
                     <i class="fa-brands fa-wikipedia-w" style="color:#000000; font-size: 4rem;"></i>
                     <span><span style="color:var(--primary)">WIKI</span><span style="color:var(--accent)">GAME</span></span>
@@ -157,9 +177,9 @@ function renderMultiplayerMenu(container) {
                     <span style="position: absolute; top: -9px; left: 50%; transform: translateX(-50%); background: white; padding: 0 10px; color: var(--text-muted); font-size: 0.75rem; font-weight: 700;">OU</span>
                 </div>
 
-                <div style="display: flex; gap: 8px;">
-                    <input type="text" id="room-code-input" class="wiki-input" placeholder="Code de salle" style="flex:2; text-transform: uppercase;">
-                    <button id="join-room-btn" class="btn-accent" style="flex:1; padding: 12px; font-size: 0.9rem;">
+                <div style="display: flex; flex-direction: column; gap: 1rem;">
+                    <input type="text" id="room-code-input" class="wiki-input" placeholder="Code de salle" style="text-transform: uppercase; text-align: center;">
+                    <button id="join-room-btn" class="btn-accent" style="width: 100%;">
                         Rejoindre
                     </button>
                 </div>
