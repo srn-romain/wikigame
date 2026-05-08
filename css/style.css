@@ -868,6 +868,7 @@ body {
     border: 1px solid #eef2f6;
     border-radius: 6px;
     font-size: 0.75rem;
+    font-weight: 600; /* HOMOGENE POUR TOUS */
     color: var(--text-main);
     animation: slideInLeft 0.3s ease-out;
 }
@@ -880,16 +881,25 @@ body {
 .guess-item.hit {
     border-color: rgba(166, 216, 102, 0.4);
     background: rgba(166, 216, 102, 0.05);
-    font-weight: 600;
 }
 
-.guess-count {
-    background: var(--primary);
-    color: var(--bg-forest);
-    font-size: 0.65rem;
+.guess-badge {
+    background: #27ae60;
+    color: #ffffff !important;
+    font-size: 0.7rem;
     font-weight: 800;
-    padding: 2px 6px;
-    border-radius: 10px;
+    width: 22px;
+    height: 22px;
+    min-width: 22px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.guess-item.miss .guess-badge {
+    background: var(--danger);
 }
 
 .wiki-area {

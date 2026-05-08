@@ -451,10 +451,11 @@ function updateGuessesSidebar() {
     // Show latest first
     [...state.history].reverse().forEach(item => {
         const div = document.createElement('div');
-        div.className = `guess-item ${item.hits > 0 ? 'hit' : ''}`;
+        const isHit = item.hits > 0;
+        div.className = `guess-item ${isHit ? 'hit' : 'miss'}`;
         div.innerHTML = `
             <span>${item.word}</span>
-            <span class="guess-count">${item.hits}</span>
+            <span class="guess-badge">${isHit ? item.hits : ''}</span>
         `;
         list.appendChild(div);
     });
