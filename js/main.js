@@ -222,12 +222,12 @@ function injectDailyHeader(container, solversCount) {
                 <span style="font-weight:800; font-size:0.9rem; text-transform:uppercase; letter-spacing:0.05em;">Défi du Jour</span>
             </div>
             <div style="display:flex; align-items:center; gap:15px;">
-                <div style="font-size:0.85rem; color:white; background:rgba(255,255,255,0.1); padding:4px 10px; border-radius:20px; display:flex; align-items:center; gap:6px;">
-                    <i class="fa-solid fa-trophy" style="color:#fbbf24; font-size:0.75rem;"></i>
-                    <span style="font-weight:700;">${solversCount}</span> <span style="font-size:0.7rem; color:var(--text-muted);">gagnants</span>
+                <div style="font-size:0.85rem; color:var(--text-main); background:#f3f4f6; padding:4px 12px; border-radius:20px; display:flex; align-items:center; gap:6px; border:1px solid #e5e7eb;">
+                    <i class="fa-solid fa-trophy" style="color:#f39c12; font-size:0.75rem;"></i>
+                    <span style="font-weight:700;">${solversCount}</span> <span style="font-size:0.7rem; opacity:0.7;">gagnants</span>
                 </div>
                 <div style="font-size:0.85rem; color:var(--text-muted);">
-                    Reset : <span id="daily-countdown" style="font-family:var(--font-mono); color:var(--primary); font-weight:800; margin-left:5px;">--:--:--</span>
+                    Reset : <span id="daily-countdown" style="font-family:var(--font-mono); color:var(--accent); font-weight:800; margin-left:5px;">--:--:--</span>
                 </div>
             </div>
         </div>
