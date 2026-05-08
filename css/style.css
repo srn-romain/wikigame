@@ -625,9 +625,10 @@ body {
 
 .auth-tabs {
     display: flex;
-    gap: 1rem;
+    gap: 1.5rem;
     margin-bottom: 2rem;
     border-bottom: 1px solid var(--glass-border);
+    justify-content: center; /* Centre les onglets */
 }
 
 .auth-tab {
@@ -727,6 +728,9 @@ body {
     gap: 10px;
     cursor: pointer;
     transition: transform 0.2s;
+    width: 100%; /* Prend toute la largeur disponible pour être centré par rapport au formulaire */
+    max-width: 320px; /* Limite la largeur pour l'esthétique */
+    margin: 0 auto; /* Centre le bouton horizontalement */
 }
 
 .btn-google:hover { transform: translateY(-1px); }
