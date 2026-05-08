@@ -1,0 +1,282 @@
+:root {
+    --bg-dark: #0f172a;
+    --bg-card: rgba(30, 41, 59, 0.7);
+    --glass-border: rgba(255, 255, 255, 0.1);
+    --primary: #3b82f6;
+    --primary-glow: rgba(59, 130, 246, 0.5);
+    --accent: #10b981;
+    --text-main: #f8fafc;
+    --text-muted: #94a3b8;
+    --redaction-color: #020617;
+    /* Very dark for hidden words */
+    --font-heading: 'Outfit', sans-serif;
+    --font-ui: 'Outfit', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background-color: var(--bg-dark);
+    color: var(--text-main);
+    font-family: var(--font-ui);
+    overflow-x: hidden;
+    min-height: 100vh;
+    background-image:
+        radial-gradient(circle at 10% 20%, rgba(59, 130, 246, 0.1) 0%, transparent 40%),
+        radial-gradient(circle at 90% 80%, rgba(16, 185, 129, 0.1) 0%, transparent 40%);
+}
+
+/* Glassmorphism Utilities */
+.glass {
+    background: var(--bg-card);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+/* Navigation */
+.navbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 70px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 2rem;
+    z-index: 100;
+}
+
+.logo {
+    font-family: var(--font-heading);
+    font-weight: 800;
+    font-size: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    letter-spacing: -0.02em;
+}
+
+.logo .highlight {
+    color: var(--primary);
+}
+
+.nav-links {
+    display: flex;
+    gap: 1rem;
+}
+
+.nav-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-family: var(--font-ui);
+    font-weight: 600;
+    cursor: pointer;
+    padding: 0.5rem 1rem;
+    transition: all 0.3s ease;
+    border-radius: 8px;
+}
+
+.nav-btn:hover,
+.nav-btn.active {
+    color: var(--text-main);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.user-profile {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+}
+
+.avatar-placeholder {
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    background: var(--primary);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-shadow: 0 0 10px var(--primary-glow);
+}
+
+/* Main Container */
+#main-container {
+    padding-top: 90px;
+    padding-bottom: 120px;
+    /* Space for game controls */
+    max-width: 1000px;
+    margin: 0 auto;
+    min-height: 100vh;
+    padding-left: 1rem;
+    padding-right: 1rem;
+}
+
+/* Game Text Area */
+.wiki-content {
+    line-height: 1.8;
+    font-size: 1.1rem;
+    padding: 2rem;
+    border-radius: 16px;
+    margin-bottom: 2rem;
+    user-select: none;
+    /* Anti-cheat Global */
+    -webkit-user-select: none;
+}
+
+.wiki-word {
+    display: inline-block;
+    padding: 0 2px;
+    border-radius: 4px;
+    margin: 0 2px;
+    transition: background-color 0.3s ease;
+    cursor: pointer;
+}
+
+.wiki-word.hidden {
+    background-color: var(--text-main);
+    /* Changes to black/dark relative to theme */
+    color: transparent;
+    user-select: none;
+    min-width: 1em;
+    /* Ensure blocked out words have width */
+}
+
+/* Ensure the hidden text is really hidden visually */
+.wiki-word.hidden::selection {
+    background: transparent;
+    color: transparent;
+}
+
+.wiki-word.revealed {
+    background-color: transparent;
+    color: var(--text-main);
+    animation: revealPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes revealPop {
+    0% {
+        transform: scale(0.8);
+        opacity: 0;
+    }
+
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.wiki-word.highlight-match {
+    background-color: rgba(16, 185, 129, 0.3);
+    border-bottom: 2px solid var(--accent);
+}
+
+/* Headers in Wiki */
+.wiki-title {
+    font-size: 2.5rem;
+    font-weight: 800;
+    margin-bottom: 1.5rem;
+    font-family: var(--font-heading);
+}
+
+.wiki-h2 {
+    font-size: 1.8rem;
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid var(--glass-border);
+    padding-bottom: 0.5rem;
+}
+
+/* Game Controls */
+.game-controls {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 90%;
+    max-width: 600px;
+    padding: 1rem;
+    border-radius: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    z-index: 100;
+}
+
+.stats-bar {
+    display: flex;
+    justify-content: space-between;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    padding: 0 0.5rem;
+}
+
+.input-wrapper {
+    display: flex;
+    gap: 10px;
+}
+
+#guess-input {
+    flex: 1;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--glass-border);
+    padding: 1rem;
+    border-radius: 12px;
+    color: white;
+    font-size: 1rem;
+    outline: none;
+}
+
+#guess-input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 15px var(--primary-glow);
+}
+
+#submit-guess {
+    width: 60px;
+    background: var(--primary);
+    border: none;
+    border-radius: 12px;
+    color: white;
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+#submit-guess:active {
+    transform: scale(0.95);
+}
+
+/* Helpers */
+.hidden {
+    display: none !important;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .navbar {
+        padding: 0 1rem;
+    }
+
+    .nav-links {
+        display: none;
+        /* Mobile menu implementation later if needed */
+    }
+
+    .wiki-content {
+        padding: 1rem;
+    }
+
+    .wiki-title {
+        font-size: 1.8rem;
+    }
+}
