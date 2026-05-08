@@ -8,6 +8,8 @@
     --text-main: #333333;
     --text-muted: #555555;
     --bg-white: #FFFFFF;
+    --bg-card: #FFFFFF;
+    --bg-dark: #3a4a37; /* Un vert forêt plus sombre pour les fonds de texte */
     --glass-border: rgba(0, 0, 0, 0.1);
     
     --font-heading: 'Outfit', sans-serif;

@@ -155,7 +155,7 @@ function renderMultiplayerMenu(container) {
                 <div style="display: flex; gap: 8px;">
                     <input type="text" id="room-code-input" placeholder="Code de salle" 
                         style="flex:2; padding: 14px; border-radius: var(--radius-md); border: 1px solid var(--glass-border); background: rgba(0,0,0,0.3); color: white; text-transform: uppercase; font-size:1rem; outline:none;">
-                    <button id="join-room-btn" class="nav-btn" style="flex:1; background:var(--bg-card); border: 1px solid var(--glass-border); color:white;">
+                    <button id="join-room-btn" class="btn-accent" style="flex:1; padding: 12px; font-size: 0.9rem;">
                         Rejoindre
                     </button>
                 </div>
