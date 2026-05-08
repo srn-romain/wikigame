@@ -64,9 +64,9 @@ export async function fetchRandomArticle() {
         const totalCharCount = paragraphs.join('').length;
         console.log(`WikiAPI: Extracted ${paragraphs.length} paragraphs (Total: ${totalCharCount} chars).`);
 
-        // If we have at least 1 long paragraph or several short ones, it's playable
-        if (paragraphs.length === 0 || totalCharCount < 150) {
-            console.warn("WikiAPI: Content too short or empty. Retrying...");
+        // If we have at least 2 paragraphs and enough content
+        if (paragraphs.length < 2 || totalCharCount < 250) {
+            console.warn(`WikiAPI: Article too simple (${paragraphs.length} paragraphs, ${totalCharCount} chars). Retrying...`);
             await sleep(1000);
             return fetchRandomArticle();
         }
@@ -143,13 +143,19 @@ function processPlainText(text, minP, maxP) {
 
     console.log(`WikiAPI: Filtered down to ${filtered.length} usable segments.`);
 
-    // If we have very few segments, maybe we can split a very long segment by sentences?
-    // (Optional enhancement, but let's see if lowering the threshold helps first)
+    // Fallback: If we only have ONE very long paragraph, split it into two
+    if (filtered.length === 1 && filtered[0].length > 600) {
+        const sentences = filtered[0].match(/[^.!?]+[.!?]+(?:\s|$)/g) || [];
+        if (sentences.length >= 4) {
+            const mid = Math.ceil(sentences.length / 2);
+            return [
+                sentences.slice(0, mid).join('').trim(),
+                sentences.slice(mid).join('').trim()
+            ];
+        }
+    }
 
-    // Take between minP and maxP, but allow fewer if that's all we have
-    const result = filtered.slice(0, maxP);
-    
-    return result;
+    return filtered.slice(0, maxP);
 }
 
 
