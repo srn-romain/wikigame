@@ -1,4 +1,4 @@
-import { db, currentUser, collection, doc, setDoc, getDoc, updateDoc, onSnapshot } from './firebase-app.js';
+import { db, waitForAuth, getCurrentUser, collection, doc, setDoc, getDoc, updateDoc, onSnapshot } from './firebase-app.js';
 import { fetchRandomArticle } from './wiki.js';
 import { initGame } from './game.js';
 
@@ -6,15 +6,12 @@ let currentRoomSubscription = null;
 let currentRoomId = null;
 
 /**
- * UI References (Dynamically found)
- */
-const getLobbyUI = () => document.getElementById('lobby-ui');
-
-/**
- * Create a new Room
+ * Create a new Room.
+ * Waits for Firebase Auth before writing to Firestore.
  */
 export async function createRoom(username) {
-    if (!currentUser) { alert("Connexion en cours..."); return; }
+    const user = await waitForAuth();
+    if (!user) { alert("Erreur d'authentification."); return; }
 
     const roomId = generateRoomCode();
     currentRoomId = roomId;
@@ -22,32 +19,33 @@ export async function createRoom(username) {
     const roomRef = doc(db, "lobbies", roomId);
 
     await setDoc(roomRef, {
-        hostId: currentUser.uid,
-        state: "WAITING", // WAITING, PLAYING, FINISHED
+        hostId:    user.uid,
+        state:     "WAITING",
         createdAt: Date.now(),
         players: {
-            [currentUser.uid]: {
-                name: username || "Hôte",
-                score: 0,
+            [user.uid]: {
+                name:     username || "Hôte",
+                score:    0,
                 finished: false,
-                isHost: true
+                isHost:   true
             }
         },
-        articleId: null // Populated on start
+        articleId: null
     });
 
     subscribeToRoom(roomId);
 }
 
 /**
- * Join an existing Room
+ * Join an existing Room.
  */
 export async function joinRoom(roomId, username) {
-    if (!currentUser) return;
-    roomId = roomId.toUpperCase();
+    const user = await waitForAuth();
+    if (!user) return;
 
+    roomId = roomId.toUpperCase();
     const roomRef = doc(db, "lobbies", roomId);
-    const snap = await getDoc(roomRef);
+    const snap    = await getDoc(roomRef);
 
     if (!snap.exists()) {
         alert("Salle introuvable !");
@@ -59,13 +57,12 @@ export async function joinRoom(roomId, username) {
         return;
     }
 
-    // Add player
     await updateDoc(roomRef, {
-        [`players.${currentUser.uid}`]: {
-            name: username || `Joueur-${currentUser.uid.slice(0, 4)}`,
-            score: 0,
+        [`players.${user.uid}`]: {
+            name:     username || `Joueur-${user.uid.slice(0, 4)}`,
+            score:    0,
             finished: false,
-            isHost: false
+            isHost:   false
         }
     });
 
@@ -74,113 +71,107 @@ export async function joinRoom(roomId, username) {
 }
 
 /**
- * Listen to Room changes
+ * Listen to Room changes via Firestore real-time.
  */
 function subscribeToRoom(roomId) {
-    if (currentRoomSubscription) currentRoomSubscription(); // Unsub existing
+    if (currentRoomSubscription) currentRoomSubscription(); // Unsubscribe old listener
 
     const roomRef = doc(db, "lobbies", roomId);
 
-    currentRoomSubscription = onSnapshot(roomRef, (doc) => {
-        if (!doc.exists()) return;
-        const data = doc.data();
+    currentRoomSubscription = onSnapshot(roomRef, (snapshot) => {
+        if (!snapshot.exists()) return;
+        const data = snapshot.data();
 
         renderLobby(data, roomId);
 
-        // Check if game started
         if (data.state === "PLAYING" && !window.isInMpGame) {
-            window.isInMpGame = true; // Prevent re-trigger
+            window.isInMpGame = true;
             startMpGame(data.articleId);
         }
     });
 }
 
 /**
- * Host starts the game
+ * Host starts the match: fetches a shared article and updates room state.
  */
 export async function startMatch() {
     if (!currentRoomId) return;
 
-    // Fetch a random article ID to share
     const article = await fetchRandomArticle();
-    if (!article) return;
+    if (!article) { alert("Impossible de charger un article."); return; }
 
     const roomRef = doc(db, "lobbies", currentRoomId);
     await updateDoc(roomRef, {
-        state: "PLAYING",
+        state:     "PLAYING",
         articleId: article.id,
         startTime: Date.now()
     });
 }
 
 function startMpGame(articleId) {
-    // Switch View to Game
-    // We import initGame from game.js
-    // We need to inject a callback to report progress
-
-    // Set a global reporting hook
     window.mpReportProgress = (found, total, finished, attempts) => {
         reportProgress(found, total, finished, attempts);
     };
-
     initGame('multiplayer', articleId);
 }
 
 async function reportProgress(found, total, finished, attempts) {
-    if (!currentRoomId || !currentUser) return;
+    const user = getCurrentUser();
+    if (!currentRoomId || !user) return;
 
     const roomRef = doc(db, "lobbies", currentRoomId);
     await updateDoc(roomRef, {
-        [`players.${currentUser.uid}.score`]: found,
-        [`players.${currentUser.uid}.finished`]: finished,
-        [`players.${currentUser.uid}.attempts`]: attempts
+        [`players.${user.uid}.score`]:    found,
+        [`players.${user.uid}.finished`]: finished,
+        [`players.${user.uid}.attempts`]: attempts
     });
 }
 
 /**
- * Render Lobby UI
+ * Render the lobby waiting room.
  */
 function renderLobby(data, roomId) {
     const container = document.getElementById('main-container');
+    if (!container) return;
 
-    // If playing, we might show a sidebar or minimal scoreboard instead of full lobby
-    if (data.state === 'PLAYING') {
-        // Maybe render leaderboard in a modal or side div?
-        // For now, let's just log it or update a dedicated scoreboard element if it exists
-        return;
-    }
+    if (data.state === 'PLAYING') return; // Game UI takes over
 
-    const isHost = data.hostId === currentUser.uid;
+    const user   = getCurrentUser();
+    const isHost = user && data.hostId === user.uid;
 
-    let playersList = Object.values(data.players).map(p => `
-        <div class="glass" style="padding:10px; display:flex; justify-content:space-between; margin-bottom:5px;">
-            <span>${p.isHost ? '<i class="fa-solid fa-crown" style="color:gold;"></i> ' : ''}${p.name}</span>
-            <span style="color:var(--text-muted);">${p.finished ? 'Terminé' : 'Prêt'}</span>
+    const playersList = Object.values(data.players).map(p => `
+        <div class="glass" style="padding:10px 14px; display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; border-radius:10px;">
+            <span>${p.isHost ? '<i class="fa-solid fa-crown" style="color:gold; margin-right:6px;"></i>' : ''}${p.name}</span>
+            <span style="color:var(--text-muted); font-size:0.8rem;">${p.finished ? '✅ Terminé' : '⏳ Prêt'}</span>
         </div>
     `).join('');
 
     container.innerHTML = `
-        <div class="glass" style="padding: 2rem; max-width: 600px; margin: 2rem auto; border-radius: 16px;">
+        <div class="glass" style="padding: 2rem; max-width: 560px; margin: 2rem auto; border-radius: var(--radius-lg);">
             <div style="text-align: center; margin-bottom: 2rem;">
-                <h2 style="font-size: 2rem;">Salle d'attente</h2>
-                <div style="font-size: 3rem; font-family: var(--font-mono); color: var(--primary); letter-spacing: 5px; margin: 1rem 0;">
+                <i class="fa-solid fa-door-open" style="font-size:2rem; color:var(--accent); margin-bottom:0.75rem;"></i>
+                <h2>Salle d'attente</h2>
+                <div style="font-size: 2.5rem; font-family: var(--font-mono); color: var(--primary); letter-spacing: 6px; margin: 1rem 0; font-weight:700;">
                     ${roomId}
                 </div>
-                <p>Partagez ce code avec vos amis</p>
+                <p style="color:var(--text-muted); font-size:0.85rem;">Partagez ce code avec vos amis</p>
             </div>
 
-            <div style="margin-bottom: 2rem;">
-                <h3 style="margin-bottom: 1rem;">Joueurs (${Object.keys(data.players).length}/25)</h3>
+            <div style="margin-bottom: 1.5rem;">
+                <h3 style="margin-bottom: 0.75rem; font-size:0.9rem; text-transform:uppercase; letter-spacing:0.1em; color:var(--text-muted);">
+                    Joueurs (${Object.keys(data.players).length}/25)
+                </h3>
                 ${playersList}
             </div>
 
             ${isHost ? `
-                <button onclick="window.startMpMatch()" class="nav-btn" style="width:100%; background:var(--accent); color:white; padding:1.2rem; font-size:1.2rem;">
-                    Démarrer la partie
+                <button onclick="window.startMpMatch()" class="btn-accent" style="width:100%; justify-content:center; font-size:1rem;">
+                    <i class="fa-solid fa-play"></i> Démarrer la partie
                 </button>
             ` : `
-                <div style="text-align:center; color:var(--text-muted);">
-                    <i class="fa-solid fa-spinner fa-spin"></i> En attente de l'hôte...
+                <div style="text-align:center; color:var(--text-muted); padding:1rem;">
+                    <i class="fa-solid fa-spinner fa-spin" style="margin-right:6px;"></i>
+                    En attente que l'hôte lance la partie...
                 </div>
             `}
         </div>
@@ -191,5 +182,5 @@ function generateRoomCode() {
     return Math.random().toString(36).substring(2, 7).toUpperCase();
 }
 
-// Global Expose for HTML buttons
+// Expose for lobby HTML button
 window.startMpMatch = startMatch;

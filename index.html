@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WIKI REVEAL - Le Jeu de Découverte</title>
-    <meta name="description" content="Devinez la page Wikipédia cachée. Jeu solo, quotidien et multijoueur.">
+    <title>WIKI REVEAL - Retrouvez l'article mystère</title>
+    <meta name="description" content="Devinez la page Wikipédia cachée. Tous les mots sont masqués — tapez des mots pour les révéler et trouvez le titre de l'article.">
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -29,8 +29,8 @@
                 <button class="nav-btn" data-view="multiplayer">Compétition</button>
             </div>
             <div class="user-profile" id="user-profile-btn">
-                <span class="username">Invité</span>
-                <div class="avatar-placeholder"><i class="fa-solid fa-user"></i></div>
+                <span class="username" style="color:var(--text-muted); font-size:0.85rem;">Invité</span>
+                <div class="avatar-placeholder"><i class="fa-solid fa-user" style="font-size:0.8rem;"></i></div>
             </div>
         </nav>
 
@@ -39,16 +39,27 @@
             <!-- Dynamic Content Injected Here -->
         </main>
 
-        <!-- Floating Action / Input Area (Game Mode Only) -->
+        <!-- Floating Game Controls (visible during game) -->
         <div id="game-controls" class="game-controls glass hidden">
             <div class="stats-bar">
-                <div class="stat"><i class="fa-solid fa-bullseye"></i> <span id="accuracy">0%</span></div>
-                <div class="stat"><i class="fa-solid fa-font"></i> <span id="word-count">0/0</span></div>
-                <div class="stat timer hidden" id="game-timer"><i class="fa-solid fa-stopwatch"></i> <span>00:00</span></div>
+                <div class="stat">
+                    <i class="fa-solid fa-bullseye"></i>
+                    <span>Essais&nbsp;: <span class="stat-value" id="stat-attempts">0</span></span>
+                </div>
+                <div class="stat">
+                    <i class="fa-solid fa-font"></i>
+                    <span>Mots&nbsp;: <span class="stat-value" id="stat-words">0/0</span></span>
+                </div>
+                <div class="stat">
+                    <i class="fa-solid fa-stopwatch"></i>
+                    <span><span class="stat-value" id="stat-timer">00:00</span></span>
+                </div>
             </div>
             <div class="input-wrapper">
-                <input type="text" id="guess-input" placeholder="Tapez un mot..." autocomplete="off">
-                <button id="submit-guess"><i class="fa-solid fa-paper-plane"></i></button>
+                <input type="text" id="guess-input" placeholder="Tapez un mot et validez…" autocomplete="off" spellcheck="false">
+                <button id="submit-guess" title="Valider (Entrée)">
+                    <i class="fa-solid fa-paper-plane"></i>
+                </button>
             </div>
         </div>
 
@@ -58,8 +69,6 @@
         </div>
     </div>
 
-    <!-- Firebase SDKs (Modular) -->
-    <!-- We will use ES Modules in main.js -->
     <script type="module" src="js/main.js"></script>
 </body>
 </html>

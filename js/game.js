@@ -1,297 +1,410 @@
 import { fetchRandomArticle, fetchArticleById } from './wiki.js';
 
-// Game State
-let currentState = {
-    targetArticle: null,
-    words: [],      // Array of objects { text: "Word", clean: "word", revealed: false, id: 0 }
-    titleWords: [], // Array of cleaning title words
+// ─────────────────────────────────────────────
+// REGEXES
+// ─────────────────────────────────────────────
+// Matches word characters (letters, digits, accented chars) OR non-word sequences
+const TOKEN_REGEX = /[a-zA-Z0-9àâäéèêëîïôöùûüçÀÂÄÉÈÊËÎÏÔÖÙÛÜÇ'-]+|[^a-zA-Z0-9àâäéèêëîïôöùûüçÀÂÄÉÈÊËÎÏÔÖÙÛÜÇ'-]+/g;
+const IS_WORD = /^[a-zA-Z0-9àâäéèêëîïôöùûüçÀÂÄÉÈÊËÎÏÔÖÙÛÜÇ'-]+$/;
+
+// ─────────────────────────────────────────────
+// GAME STATE
+// ─────────────────────────────────────────────
+let state = {
+    article: null,
+    tokens: [],       // Array of token objects for ALL paragraphs
+    titleTokens: [],  // Normalized words from the title
     guesses: new Set(),
+    attempts: 0,
+    foundCount: 0,
+    totalWords: 0,
     startTime: 0,
-    mode: 'solo', // 'solo', 'daily', 'multiplayer'
-    stats: {
-        attempts: 0,
-        foundCount: 0
-    }
+    mode: 'solo',
+    won: false
 };
 
-// Common French stop words (optional, if we want to reveal them, but prompt says ALL masked. 
-// However, most games reveal very short words or simple connectors. We will stick to strict mode first).
-// We might auto-reveal punctuation.
+// ─────────────────────────────────────────────
+// NORMALIZATION
+// ─────────────────────────────────────────────
+function normalize(str) {
+    return str
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/['-]/g, '');
+}
 
-const WORD_REGEX = /[a-zA-Z0-9àâäéèêëîïôöùûüçÀÂÄÉÈÊËÎÏÔÖÙÛÜÇ]+|[^a-zA-Z0-9àâäéèêëîïôöùûüçÀÂÄÉÈÊËÎÏÔÖÙÛÜÇ]+/g;
-const ALPHANUMERIC = /^[a-zA-Z0-9àâäéèêëîïôöùûüçÀÂÄÉÈÊËÎÏÔÖÙÛÜÇ]+$/;
-
+// ─────────────────────────────────────────────
+// INIT
+// ─────────────────────────────────────────────
 export async function initGame(mode, articleId = null) {
-    currentState.mode = mode;
-    resetUI();
+    console.log(`Game: Initializing mode="${mode}" articleId=${articleId}`);
+    state.mode = mode;
+    state.won = false;
 
-    // Show Loading
-    document.getElementById('main-container').innerHTML = `<div class="glass wiki-content" style="text-align:center;">Chargement de la mission...</div>`;
+    // Show loading
+    const container = document.getElementById('main-container');
+    container.innerHTML = `
+        <div class="loading-screen">
+            <div class="loading-spinner"></div>
+            <p>Chargement d'un article Wikipedia aléatoire...</p>
+        </div>`;
+    document.getElementById('game-controls').classList.add('hidden');
 
-    let article;
-    if (mode === 'solo') {
+    let article = null;
+    if (articleId) {
+        console.log("Game: Fetching specific article by ID...");
+        article = await fetchArticleById(articleId);
+    } else {
+        console.log("Game: Fetching random article...");
         article = await fetchRandomArticle();
-    } else if (mode === 'daily') {
-        // In a real app, fetch ID from Firestore. Using a hash-based daily ID for demo without backend.
-        // For now, let's just fetch a random one to simulate logic or hardcode one for testing if requested.
-        // I will implement a 'fake' daily logical generator in main.js actually.
-        // If articleId is passed (from Main), use it.
-        if (articleId) {
-            article = await fetchArticleById(articleId);
-        } else {
-            // Fallback
-            article = await fetchRandomArticle();
-        }
     }
 
     if (!article) {
-        alert("Erreur de chargement. Réessayez.");
+        console.error("Game: Failed to load article (null).");
+        container.innerHTML = `<div class="glass wiki-content error-box">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            Impossible de charger un article. Vérifiez votre connexion.
+        </div>`;
         return;
     }
 
-    startLevel(article);
+    console.log("Game: Article loaded successfully:", article.title);
+    startGame(article);
 }
 
-function startLevel(article) {
-    currentState.targetArticle = article;
-    currentState.guesses = new Set();
-    currentState.stats = { attempts: 0, foundCount: 0 };
-    currentState.startTime = Date.now();
+// ─────────────────────────────────────────────
+// START
+// ─────────────────────────────────────────────
+function startGame(article) {
+    console.log("Game: Starting Level with article:", article);
+    state.article = article;
 
-    // Process Title
-    currentState.titleWords = article.title.match(WORD_REGEX)
-        .filter(w => ALPHANUMERIC.test(w))
-        .map(w => normalize(w));
+    state.guesses = new Set();
+    state.attempts = 0;
+    state.foundCount = 0;
+    state.startTime = Date.now();
+    state.won = false;
 
-    // Process Text
-    const rawTokens = article.text.match(WORD_REGEX) || [];
-    currentState.words = rawTokens.map((token, index) => {
-        const isWord = ALPHANUMERIC.test(token);
-        return {
-            id: index,
-            text: token,
-            clean: isWord ? normalize(token) : null,
-            isWord: isWord,
-            revealed: !isWord // Punctuation always revealed
-        };
+    // Tokenize title
+    state.titleTokens = (article.title.match(TOKEN_REGEX) || [])
+        .filter(t => IS_WORD.test(t))
+        .map(normalize);
+
+    // Tokenize all paragraphs (flatten with paragraph separators)
+    state.tokens = [];
+    article.paragraphs.forEach((para, pIdx) => {
+        const raw = para.match(TOKEN_REGEX) || [];
+        raw.forEach(token => {
+            const isWord = IS_WORD.test(token);
+            state.tokens.push({
+                text: token,
+                clean: isWord ? normalize(token) : null,
+                isWord,
+                revealed: !isWord // punctuation is always visible
+            });
+        });
+        // Add paragraph separator (double newline token)
+        if (pIdx < article.paragraphs.length - 1) {
+            state.tokens.push({ text: '\n\n', clean: null, isWord: false, revealed: true, isParagraphBreak: true });
+        }
     });
+
+    state.totalWords = state.tokens.filter(t => t.isWord).length;
 
     renderGame();
     document.getElementById('game-controls').classList.remove('hidden');
 
-    // Start Timer UI Update
-    if (window.gameTimer) clearInterval(window.gameTimer);
-    window.gameTimer = setInterval(updateTimer, 1000);
+    // Timer
+    if (window._gameTimer) clearInterval(window._gameTimer);
+    window._gameTimer = setInterval(updateTimer, 1000);
 }
 
-function normalize(str) {
-    return str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-}
-
+// ─────────────────────────────────────────────
+// RENDER
+// ─────────────────────────────────────────────
 function renderGame() {
     const container = document.getElementById('main-container');
     container.innerHTML = '';
 
-    // Title Section (Hiddden)
-    const titleEl = document.createElement('h1');
-    titleEl.className = 'wiki-title';
-    // We mask the title logic separately or treat it as special. 
-    // Usually game hides title completely or shows masked version.
-    // Let's Mask it.
-    titleEl.innerHTML = currentState.targetArticle.title.split(' ').map(word => {
-        const isWord = ALPHANUMERIC.test(word);
-        if (!isWord) return word;
+    // ── Title ──
+    const titleEl = document.createElement('div');
+    titleEl.className = 'wiki-title-wrapper';
 
-        // Check if revealed (if all title words found, or specific word found)
-        // For strict game: Title is revealed only at the end.
-        // OR: Title shares words with body? Usually yes.
-        // Let's check if this word has been guessed.
-        const clean = normalize(word);
-        const isRevealed = currentState.guesses.has(clean);
+    const titleLabel = document.createElement('div');
+    titleLabel.className = 'wiki-title-label';
+    titleLabel.textContent = 'Article mystère';
+    titleEl.appendChild(titleLabel);
 
-        return isRevealed
-            ? `<span class="wiki-word revealed">${word}</span>`
-            : `<span class="wiki-word hidden" data-len="${word.length}">????</span>`; // Use placeholder to keep layout stable-ish or blocks
-    }).join(' ');
-    container.appendChild(titleEl);
+    const titleWords = document.createElement('h1');
+    titleWords.className = 'wiki-title';
+    titleWords.id = 'wiki-title';
 
-    // Body Text
-    const contentBox = document.createElement('div');
-    contentBox.className = 'glass wiki-content';
-
-    // Fragment for performance
-    const fragment = document.createDocumentFragment();
-
-    currentState.words.forEach(wordObj => {
-        const span = document.createElement('span');
-
-        if (!wordObj.isWord) {
-            span.textContent = wordObj.text;
-        } else {
-            if (wordObj.revealed) {
-                span.textContent = wordObj.text;
-                span.className = 'wiki-word revealed';
-            } else {
-                span.className = 'wiki-word hidden';
-                span.textContent = 'x'.repeat(wordObj.text.length); // Visual placeholder
-                span.dataset.clean = wordObj.clean;
-                span.dataset.len = wordObj.text.length;
-                span.onclick = handleWordClick;
-            }
+    const titleTokens = state.article.title.match(TOKEN_REGEX) || [];
+    titleTokens.forEach(token => {
+        const isWord = IS_WORD.test(token);
+        if (!isWord) {
+            const punct = document.createElement('span');
+            punct.className = 'wiki-punctuation';
+            punct.textContent = token;
+            titleWords.appendChild(punct);
+            return;
         }
-        fragment.appendChild(span);
+        const clean = normalize(token);
+        const isRevealed = state.guesses.has(clean) || state.won;
+
+        const span = document.createElement('span');
+        span.dataset.original = token;
+
+        if (isRevealed) {
+            span.className = 'wiki-word revealed';
+            span.textContent = token;
+        } else {
+            span.className = 'wiki-word hidden';
+            span.dataset.len = token.length;
+            span.dataset.clean = clean;
+            span.textContent = token; // MASQUED BY CSS (color = background)
+            span.addEventListener('click', handleWordClick);
+        }
+        titleWords.appendChild(span);
     });
 
-    contentBox.appendChild(fragment);
-    container.appendChild(contentBox);
 
+    titleEl.appendChild(titleWords);
+    container.appendChild(titleEl);
+
+    // ── Win banner ──
+    if (state.won) {
+        const winBanner = document.createElement('div');
+        winBanner.className = 'win-banner glass';
+        winBanner.innerHTML = `
+            <div class="win-content">
+                <i class="fa-solid fa-trophy"></i>
+                <div>
+                    <h2>Bravo ! Article trouvé !</h2>
+                    <p>En ${state.attempts} tentatives</p>
+                </div>
+                <a href="${state.article.url}" target="_blank" class="wiki-link-btn">
+                    <i class="fa-brands fa-wikipedia-w"></i>
+                    Voir l'article
+                </a>
+            </div>
+        `;
+        container.appendChild(winBanner);
+    }
+
+    // ── Content ──
+    const contentBox = document.createElement('div');
+    contentBox.className = 'glass wiki-content';
+    contentBox.id = 'wiki-body';
+
+    let paragraphDiv = createParagraphDiv();
+    contentBox.appendChild(paragraphDiv);
+
+    state.tokens.forEach(tokenObj => {
+        if (tokenObj.isParagraphBreak) {
+            // Start a new paragraph div
+            paragraphDiv = createParagraphDiv();
+            contentBox.appendChild(paragraphDiv);
+            return;
+        }
+
+        if (!tokenObj.isWord) {
+            const punct = document.createElement('span');
+            punct.className = 'wiki-punctuation';
+            punct.textContent = tokenObj.text;
+            paragraphDiv.appendChild(punct);
+            return;
+        }
+
+        const span = document.createElement('span');
+        span.dataset.original = tokenObj.text; // Store original for restoration
+
+        if (tokenObj.revealed || state.won) {
+            span.className = 'wiki-word revealed';
+            span.textContent = tokenObj.text;
+        } else {
+            span.className = 'wiki-word hidden';
+            span.dataset.len = tokenObj.text.length;
+            span.dataset.clean = tokenObj.clean;
+            
+            // Set word text (masked by CSS)
+            span.textContent = tokenObj.text;
+
+            const isClose = checkCloseMatch(tokenObj.clean);
+            if (isClose) span.classList.add('close-match');
+
+            span.addEventListener('click', handleWordClick);
+        }
+
+
+
+        paragraphDiv.appendChild(span);
+    });
+
+    container.appendChild(contentBox);
     updateStats();
 }
 
-/**
- * Handle user click on a hidden word (Help feature)
- */
-function handleWordClick(e) {
-    const span = e.target;
-    if (span.classList.contains('revealed')) return;
-
-    const len = span.dataset.len;
-    const originalText = span.textContent;
-
-    // Show length temporarily
-    span.textContent = `${len}`;
-    span.style.color = 'var(--accent)';
-    span.style.background = 'white';
-
-    setTimeout(() => {
-        if (!span.classList.contains('revealed')) {
-            span.textContent = originalText;
-            span.style.color = '';
-            span.style.background = '';
-        }
-    }, 3000);
+function createParagraphDiv() {
+    const div = document.createElement('p');
+    div.className = 'wiki-paragraph';
+    return div;
 }
 
 /**
- * Handle Guess Submission
+ * Check if a hidden word has a "close" match with any guessed word.
+ * Close = the guessed word is a substring of the hidden word or vice versa (min 3 chars).
  */
+function checkCloseMatch(cleanWord) {
+    if (!cleanWord || cleanWord.length < 3) return false;
+    for (const guess of state.guesses) {
+        if (guess.length < 3) continue;
+        if (cleanWord.includes(guess) || guess.includes(cleanWord)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+// ─────────────────────────────────────────────
+// CLICK ON HIDDEN WORD → show letter count
+// ─────────────────────────────────────────────
+function handleWordClick(e) {
+    const span = e.currentTarget;
+    if (span.classList.contains('revealed')) return;
+    if (span.classList.contains('showing-count')) return;
+
+    const len = parseInt(span.dataset.len, 10);
+    const originalText = span.dataset.original;
+
+    span.classList.add('showing-count');
+
+    setTimeout(() => {
+        if (!span.classList.contains('revealed')) {
+            span.classList.remove('showing-count');
+        }
+    }, 2500);
+}
+
+// ─────────────────────────────────────────────
+// GUESS HANDLING
+// ─────────────────────────────────────────────
 export function handleGuess(rawInput) {
-    if (!rawInput || !currentState.targetArticle) return;
+    if (!rawInput || !state.article || state.won) return;
 
     const cleanInput = normalize(rawInput.trim());
     if (cleanInput.length === 0) return;
 
-    // Check if already guessed
-    if (currentState.guesses.has(cleanInput)) {
-        // Maybe highlight existing words?
-        highlightWords(cleanInput);
-        return;
-    }
-
-    currentState.guesses.add(cleanInput);
-    currentState.stats.attempts++;
+    state.attempts++;
 
     let hitCount = 0;
-    let newReveal = false;
 
-    // Check Body Words
-    currentState.words.forEach(w => {
-        if (w.isWord && w.clean === cleanInput && !w.revealed) {
-            w.revealed = true;
+    // Reveal matching tokens
+    state.tokens.forEach(t => {
+        if (t.isWord && t.clean === cleanInput && !t.revealed) {
+            t.revealed = true;
             hitCount++;
-            currentState.stats.foundCount++;
-            newReveal = true;
+            state.foundCount++;
         }
     });
 
-    // Check Title Match (Winning Condition Check)
-    // If input matches the FULL title normalized
-    const cleanTitle = normalize(currentState.targetArticle.title);
-    if (cleanInput === cleanTitle || checkAllTitleWordsFound()) {
-        winGame();
+    state.guesses.add(cleanInput);
+
+    // Check win condition: all title words guessed
+    if (checkTitleFound(cleanInput)) {
+        triggerWin();
         return;
     }
 
-    // Check partial title match
-    const titleWords = currentState.targetArticle.title.match(WORD_REGEX);
-    // (Logic for title reveal handles itself in render if we map consistency)
-
-    if (newReveal) {
-        renderGame(); // Re-render to show new words
-        // Highlight logic
-        setTimeout(() => highlightWords(cleanInput), 100);
+    // Partial re-render (only update spans instead of full re-render for performance)
+    if (hitCount > 0) {
+        // Reveal found words in DOM
+        revealWordInDOM(cleanInput, hitCount);
     }
 
+    // Update close-matches for ALL hidden words (might now have new close matches)
+    updateCloseMatches();
+
     updateStats();
-    return { hitCount, newReveal };
+    return { hitCount };
 }
 
-function checkAllTitleWordsFound() {
-    // Simple check: are all title words in guesses?
-    return currentState.titleWords.every(w => currentState.guesses.has(w));
+function checkTitleFound(latestGuess) {
+    // Check if all title words are now guessed
+    return state.titleTokens.every(w => state.guesses.has(w));
 }
 
-function highlightWords(cleanWord) {
-    const elements = document.querySelectorAll('.wiki-word.revealed');
-    elements.forEach(el => {
-        if (normalize(el.textContent) === cleanWord) {
-            el.classList.add('highlight-match');
-            setTimeout(() => el.classList.remove('highlight-match'), 1500);
+function revealWordInDOM(cleanWord, count) {
+    // Reveal in body
+    const hiddenSpans = document.querySelectorAll('#wiki-body .wiki-word.hidden');
+    hiddenSpans.forEach(span => {
+        if (span.dataset.clean === cleanWord) {
+            span.className = 'wiki-word revealed';
+            span.textContent = span.dataset.original; // USE STORED ORIGINAL
+            span.removeEventListener('click', handleWordClick);
+            span.classList.add('just-revealed');
+            setTimeout(() => span.classList.remove('just-revealed'), 600);
+        }
+    });
+
+    // Reveal in title
+    const titleSpans = document.querySelectorAll('#wiki-title .wiki-word.hidden');
+    titleSpans.forEach(span => {
+        if (span.dataset.clean === cleanWord) {
+            span.className = 'wiki-word revealed';
+            span.textContent = span.dataset.original;
+            span.removeEventListener('click', handleWordClick);
         }
     });
 }
 
-function winGame() {
-    // Reveal Everything
-    currentState.words.forEach(w => w.revealed = true);
-    renderGame();
 
-    // Show Win Modal
-    document.getElementById('game-timer').classList.add('hidden');
-    const timeTaken = Math.floor((Date.now() - currentState.startTime) / 1000);
-
-    // Add link to title
-    const titleEl = document.querySelector('.wiki-title');
-    titleEl.innerHTML = `<a href="${currentState.targetArticle.url}" target="_blank" style="color:var(--accent); text-decoration:none;">${currentState.targetArticle.title} <i class="fa-solid fa-external-link-alt" style="font-size:0.5em;"></i></a>`;
-
-    alert(`VICTOIRE ! \nPage trouvée : ${currentState.targetArticle.title}\nTemps : ${formatTime(timeTaken)}\nTentatives : ${currentState.stats.attempts}`);
-
-    // Here we would save stats to Firebase
-    // saveStats(timeTaken, currentState.stats.attempts);
-
-    // Multiplayer Hook
-    if (currentState.mode === 'multiplayer' && typeof window.mpReportProgress === 'function') {
-        // Calculate Total Words
-        const totalWords = currentState.words.filter(w => w.isWord).length;
-        window.mpReportProgress(totalWords, totalWords, true, currentState.stats.attempts);
-    }
+function findOriginalText(cleanWord, span) {
+    // Find original casing from state.tokens
+    const token = state.tokens.find(t => t.isWord && t.clean === cleanWord);
+    return token ? token.text : cleanWord;
 }
 
-function updateStats() {
-    document.getElementById('accuracy').innerText = currentState.stats.attempts; // Using target icon for attempts
-    const totalWords = currentState.words.filter(w => w.isWord).length;
-    document.getElementById('word-count').innerText = `${currentState.stats.foundCount}/${totalWords}`;
+function updateCloseMatches() {
+    const hiddenSpans = document.querySelectorAll('#wiki-body .wiki-word.hidden');
+    hiddenSpans.forEach(span => {
+        const clean = span.dataset.clean;
+        if (checkCloseMatch(clean)) {
+            span.classList.add('close-match');
+        } else {
+            span.classList.remove('close-match');
+        }
+    });
+}
 
-    // Multiplayer Hook
-    if (currentState.mode === 'multiplayer' && typeof window.mpReportProgress === 'function') {
-        window.mpReportProgress(currentState.stats.foundCount, totalWords, false, currentState.stats.attempts);
-    }
+// ─────────────────────────────────────────────
+// WIN
+// ─────────────────────────────────────────────
+function triggerWin() {
+    state.won = true;
+    state.tokens.forEach(t => { if (t.isWord) t.revealed = true; });
+
+    if (window._gameTimer) clearInterval(window._gameTimer);
+
+    renderGame(); // Full re-render with win state
+}
+
+// ─────────────────────────────────────────────
+// STATS & TIMER
+// ─────────────────────────────────────────────
+function updateStats() {
+    const attemptsEl = document.getElementById('stat-attempts');
+    const wordsEl = document.getElementById('stat-words');
+    if (attemptsEl) attemptsEl.textContent = state.attempts;
+    if (wordsEl) wordsEl.textContent = `${state.foundCount}/${state.totalWords}`;
 }
 
 function updateTimer() {
-    const elapsed = Math.floor((Date.now() - currentState.startTime) / 1000);
-    const timerEl = document.getElementById('game-timer');
-    timerEl.querySelector('span').innerText = formatTime(elapsed);
-    timerEl.classList.remove('hidden');
-}
-
-function formatTime(sec) {
-    const m = Math.floor(sec / 60).toString().padStart(2, '0');
-    const s = (sec % 60).toString().padStart(2, '0');
-    return `${m}:${s}`;
-}
-
-function resetUI() {
-    document.getElementById('game-controls').classList.add('hidden');
-    document.getElementById('main-container').innerHTML = '';
+    const el = document.getElementById('stat-timer');
+    if (!el) return;
+    const elapsed = Math.floor((Date.now() - state.startTime) / 1000);
+    const m = Math.floor(elapsed / 60).toString().padStart(2, '0');
+    const s = (elapsed % 60).toString().padStart(2, '0');
+    el.textContent = `${m}:${s}`;
 }

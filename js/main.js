@@ -1,21 +1,19 @@
 import { initGame, handleGuess } from './game.js';
 import { createRoom, joinRoom } from './multiplayer.js';
-import { db, doc, getDoc, setDoc } from './firebase-app.js';
+import { db, waitForAuth, doc, getDoc, setDoc } from './firebase-app.js';
 import { fetchRandomArticle } from './wiki.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     setupNavigation();
     setupGameInputs();
-
-    // Default View
     navigateTo('home');
 });
 
-/**
- * Navigation Logic
- */
+// ─────────────────────────────────────────────
+// NAVIGATION
+// ─────────────────────────────────────────────
 function setupNavigation() {
-    const buttons = document.querySelectorAll('.nav-btn');
+    const buttons = document.querySelectorAll('.nav-btn[data-view]');
     buttons.forEach(btn => {
         btn.addEventListener('click', () => {
             buttons.forEach(b => b.classList.remove('active'));
@@ -24,14 +22,19 @@ function setupNavigation() {
         });
     });
 
-    document.querySelector('.logo').addEventListener('click', () => navigateTo('home'));
+    document.querySelector('.logo').addEventListener('click', () => {
+        buttons.forEach(b => b.classList.remove('active'));
+        document.querySelector('[data-view="home"]')?.classList.add('active');
+        navigateTo('home');
+    });
 }
 
 async function navigateTo(view) {
+    console.log(`Main: Navigating to view="${view}"`);
     const container = document.getElementById('main-container');
     const controls = document.getElementById('game-controls');
     controls.classList.add('hidden');
-    window.isInMpGame = false; // Reset MP flag
+    window.isInMpGame = false;
 
     switch (view) {
         case 'home':
@@ -39,10 +42,12 @@ async function navigateTo(view) {
             break;
 
         case 'solo':
-            initGame('solo');
+            console.log("Main: Initializing solo game...");
+            await initGame('solo');
             break;
 
         case 'daily':
+            console.log("Main: Loading daily challenge...");
             await loadDailyChallenge();
             break;
 
@@ -52,65 +57,79 @@ async function navigateTo(view) {
     }
 }
 
+
+// ─────────────────────────────────────────────
+// HOME PAGE
+// ─────────────────────────────────────────────
 function renderHome(container) {
     container.innerHTML = `
-        <div class="glass" style="padding: 3rem; text-align: center; border-radius: 20px; margin-top: 2rem;">
-            <h1 style="font-size: 3rem; margin-bottom: 1rem; font-family: var(--font-heading);">
-                Bienvenue sur <span style="color:var(--primary);">WIKI</span><span style="color:white;">REVEAL</span>
+        <div class="glass home-hero">
+            <h1>
+                <span style="color:var(--primary)">WIKI</span><span style="color:white">REVEAL</span>
             </h1>
-            <p style="font-size: 1.2rem; color: var(--text-muted); margin-bottom: 2rem; max-width: 600px; margin: 0 auto;">
-                Le jeu de déduction ultime. Une page Wikipédia a été censurée. 
-                Retrouvez les mots cachés pour révéler le sujet de l'article.
+            <p>
+                Un article Wikipédia a été censuré.<br>
+                Retrouvez les mots cachés un par un pour révéler le sujet secret.
             </p>
-            
-            <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
-                <button class="nav-btn" style="background: var(--primary); color: white; padding: 1rem 2rem; font-size: 1.1rem;" onclick="document.querySelector('[data-view=solo]').click()">
-                    <i class="fa-solid fa-play"></i> Mode Solo
+            <div class="home-btns">
+                <button class="btn-primary" onclick="document.querySelector('[data-view=solo]').click()">
+                    <i class="fa-solid fa-shuffle"></i> Article Aléatoire
                 </button>
-                <button class="nav-btn" style="background: var(--accent); color: white; padding: 1rem 2rem; font-size: 1.1rem;" onclick="document.querySelector('[data-view=daily]').click()">
+                <button class="btn-accent" onclick="document.querySelector('[data-view=daily]').click()">
                     <i class="fa-solid fa-calendar-day"></i> Défi du Jour
                 </button>
             </div>
-            
-             <div style="margin-top: 3rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem;">
-                <div style="padding: 1.5rem; background: rgba(0,0,0,0.2); border-radius: 12px; text-align: left;">
-                    <i class="fa-solid fa-earth-europe" style="font-size: 2rem; color: var(--primary); margin-bottom: 10px;"></i>
-                    <h3>Culture Générale</h3>
-                    <p style="font-size: 0.9rem; color: var(--text-muted);">Explorez des milliers d'articles au hasard.</p>
+            <div class="feature-cards">
+                <div class="feature-card">
+                    <i class="fa-solid fa-eye-slash" style="color: var(--primary)"></i>
+                    <h3>Mots Masqués</h3>
+                    <p>Tous les mots sont cachés. Tapez un mot pour le révéler dans tout l'article.</p>
                 </div>
-                <div style="padding: 1.5rem; background: rgba(0,0,0,0.2); border-radius: 12px; text-align: left;">
-                    <i class="fa-solid fa-users" style="font-size: 2rem; color: var(--accent); margin-bottom: 10px;"></i>
-                    <h3>Multijoueur</h3>
-                    <p style="font-size: 0.9rem; color: var(--text-muted);">Affrontez vos amis en temps réel.</p>
+                <div class="feature-card">
+                    <i class="fa-solid fa-circle-question" style="color: var(--orange)"></i>
+                    <h3>Indice au Clic</h3>
+                    <p>Cliquez sur un bloc noir pour afficher le nombre de lettres du mot caché.</p>
+                </div>
+                <div class="feature-card">
+                    <i class="fa-solid fa-fire" style="color: var(--accent)"></i>
+                    <h3>Mots Proches</h3>
+                    <p>Les blocs orange indiquent un mot similaire à l'un de vos essais.</p>
                 </div>
             </div>
         </div>
     `;
 }
 
+// ─────────────────────────────────────────────
+// MULTIPLAYER
+// ─────────────────────────────────────────────
 function renderMultiplayerMenu(container) {
     container.innerHTML = `
-        <div class="glass" style="padding: 2rem; text-align: center; border-radius: 16px; margin-top:2rem; max-width: 600px; margin-left: auto; margin-right: auto;">
+        <div class="glass" style="padding: 2rem; text-align: center; border-radius: var(--radius-lg); margin-top:1rem; max-width: 540px; margin-left: auto; margin-right: auto;">
             <i class="fa-solid fa-users-line" style="font-size: 3rem; color: var(--accent); margin-bottom: 1rem;"></i>
-            <h2>Mode Compétition</h2>
-            <p style="margin-bottom: 2rem; color: var(--text-muted);">Créez un salon ou rejoignez une partie existante avec un code.</p>
+            <h2 style="margin-bottom:0.5rem;">Mode Compétition</h2>
+            <p style="margin-bottom: 2rem; color: var(--text-muted);">Créez un salon ou rejoignez une partie existante.</p>
             
             <div id="lobby-ui" style="display: flex; flex-direction: column; gap: 1rem;">
-                 <input type="text" id="username-input" placeholder="Votre Pseudo" style="padding: 15px; border-radius: 12px; border: 1px solid var(--glass-border); background: rgba(0,0,0,0.3); color: white;">
-                 
-                 <div style="display: flex; gap: 10px;">
-                     <button id="create-room-btn" class="nav-btn" style="flex: 1; background:var(--primary); color:white; padding: 1rem;">Créer une Salle</button>
-                 </div>
-                 
-                 <div style="position: relative; margin: 1rem 0;">
+                <input type="text" id="username-input" placeholder="Votre Pseudo" 
+                    style="padding: 14px; border-radius: var(--radius-md); border: 1px solid var(--glass-border); background: rgba(0,0,0,0.3); color: white; font-size:1rem; outline:none;">
+                
+                <button id="create-room-btn" class="btn-primary" style="width:100%; justify-content:center;">
+                    <i class="fa-solid fa-plus"></i> Créer une Salle
+                </button>
+                
+                <div style="position: relative; margin: 0.5rem 0;">
                     <hr style="border: 0; border-top: 1px solid var(--glass-border);">
-                    <span style="position: absolute; top: -10px; left: 50%; transform: translateX(-50%); background: var(--bg-dark); padding: 0 10px; color: var(--text-muted); font-size: 0.8rem;">OU</span>
-                 </div>
+                    <span style="position: absolute; top: -9px; left: 50%; transform: translateX(-50%); background: var(--bg-dark); padding: 0 10px; color: var(--text-muted); font-size: 0.75rem;">OU</span>
+                </div>
 
-                 <div style="display: flex; gap: 10px;">
-                     <input type="text" id="room-code-input" placeholder="Code de la salle" style="flex: 2; padding: 15px; border-radius: 12px; border: 1px solid var(--glass-border); background: rgba(0,0,0,0.3); color: white; text-transform: uppercase;">
-                     <button id="join-room-btn" class="nav-btn" style="flex: 1; background:var(--bg-card); border: 1px solid var(--glass-border); color:white;">Rejoindre</button>
-                 </div>
+                <div style="display: flex; gap: 8px;">
+                    <input type="text" id="room-code-input" placeholder="Code de salle" 
+                        style="flex:2; padding: 14px; border-radius: var(--radius-md); border: 1px solid var(--glass-border); background: rgba(0,0,0,0.3); color: white; text-transform: uppercase; font-size:1rem; outline:none;">
+                    <button id="join-room-btn" class="nav-btn" style="flex:1; background:var(--bg-card); border: 1px solid var(--glass-border); color:white;">
+                        Rejoindre
+                    </button>
+                </div>
             </div>
         </div>
     `;
@@ -129,81 +148,82 @@ function renderMultiplayerMenu(container) {
     };
 }
 
+// ─────────────────────────────────────────────
+// DAILY CHALLENGE
+// ─────────────────────────────────────────────
 async function loadDailyChallenge() {
+    console.log("Daily: Starting loadDailyChallenge...");
     const container = document.getElementById('main-container');
-    container.innerHTML = `<div class="glass wiki-content" style="text-align:center;">Chargement du défi du jour...</div>`;
+    container.innerHTML = `<div class="loading-screen"><div class="loading-spinner"></div><p>Chargement du défi du jour...</p></div>`;
 
-    // 1. Get Today's Date String (YYYY-MM-DD)
+    // Wait for Firebase Auth before accessing Firestore
+    console.log("Daily: Waiting for auth...");
+    await waitForAuth();
+    console.log("Daily: Auth ready.");
+
     const today = new Date().toISOString().split('T')[0];
     const dailyRef = doc(db, "dailies", today);
 
     try {
+        console.log(`Daily: Checking Firestore for date: ${today}`);
         const snap = await getDoc(dailyRef);
         let articleId;
 
         if (snap.exists()) {
             articleId = snap.data().articleId;
+            console.log("Daily: Existing challenge found:", articleId);
         } else {
-            // Be the first to generate it!
+            console.log("Daily: No challenge for today. Generating new one...");
             let article;
             let attempts = 0;
             let valid = false;
 
             while (!valid && attempts < 5) {
+                console.log(`Daily: Generation attempt ${attempts + 1}/5`);
                 article = await fetchRandomArticle();
                 if (!article) break;
 
-                // Check redundancy (Optimized for Firestore Free Tier)
-                // We check a separate doc tracking usage
                 const historyRef = doc(db, "used_articles", article.id);
                 const historySnap = await getDoc(historyRef);
 
                 if (historySnap.exists()) {
-                    const lastUsed = historySnap.data().lastUsed; // Timestamp
-                    const diffDays = (Date.now() - lastUsed) / (1000 * 60 * 60 * 24);
-                    if (diffDays < 300) {
-                        console.log("Article duplicated within 300 days, retrying...");
-                        attempts++;
-                        continue;
-                    }
+                    console.log("Daily: Article already used recently. Retrying...");
+                    attempts++;
+                    continue;
                 }
                 valid = true;
             }
 
             if (!article) throw new Error("Impossible de récupérer un article valide.");
 
-            // Transaction-like write (Batched)
-            await setDoc(dailyRef, {
-                articleId: article.id,
-                title: article.title,
-                createdAt: Date.now()
-            });
-
-            // Mark as used
-            await setDoc(doc(db, "used_articles", article.id), {
-                lastUsed: Date.now()
-            });
-
+            console.log("Daily: Saving new challenge to Firestore:", article.id);
+            await setDoc(dailyRef, { articleId: article.id, title: article.title, createdAt: Date.now() });
+            await setDoc(doc(db, "used_articles", article.id), { lastUsed: Date.now() });
             articleId = article.id;
         }
 
-        initGame('daily', articleId);
+        console.log("Daily: Initializing game with articleId:", articleId);
+        await initGame('daily', articleId);
+
 
     } catch (e) {
         console.error(e);
-        container.innerHTML = `<div class="glass wiki-content" style="text-align:center; color: red;">Erreur chargement défi quotidien.<br>${e.message}</div>`;
+        container.innerHTML = `<div class="glass error-box">
+            <i class="fa-solid fa-triangle-exclamation" style="font-size:2rem;"></i><br>
+            Erreur chargement défi quotidien.<br><small>${e.message}</small>
+        </div>`;
     }
 }
 
-/**
- * Game Inputs
- */
+// ─────────────────────────────────────────────
+// GAME INPUTS (bottom bar)
+// ─────────────────────────────────────────────
 function setupGameInputs() {
     const input = document.getElementById('guess-input');
     const btn = document.getElementById('submit-guess');
 
     const submit = () => {
-        const val = input.value;
+        const val = input.value.trim();
         if (val) {
             handleGuess(val);
             input.value = '';

@@ -12,15 +12,30 @@ const auth = getAuth(app);
 // Simple User Management
 let currentUser = null;
 
+// Resolves once auth state is known (user logged in)
+let _authResolve;
+const authReady = new Promise(resolve => { _authResolve = resolve; });
+
 onAuthStateChanged(auth, (user) => {
     if (user) {
         currentUser = user;
-        console.log("Logged in:", user.uid);
+        console.log("Auth: Logged in successfully. UID:", user.uid);
         updateUserProfile(user);
+        console.log("Auth: Resolving authReady promise.");
+        _authResolve(user);
     } else {
-        signInAnonymously(auth).catch(console.error);
+        console.log("Auth: No user detected. Attempting anonymous sign-in...");
+        signInAnonymously(auth).catch(err => {
+            console.error("Auth: Anonymous sign-in error:", err);
+        });
     }
 });
+
+/** Returns the current Firebase user (may be null if auth not ready yet) */
+export function getCurrentUser() { return currentUser; }
+
+/** Waits until Firebase Auth has resolved (anonymous sign-in complete) */
+export function waitForAuth() { return authReady; }
 
 function updateUserProfile(user) {
     const btn = document.getElementById('user-profile-btn');
