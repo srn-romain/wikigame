@@ -79,7 +79,7 @@ body {
     color: white;
 }
 
-.logo i { color: var(--accent); }
+.logo i { color: #000000; }
 .logo .highlight { color: white; }
 
 .nav-links {
@@ -187,10 +187,11 @@ body {
 
 .wiki-title-label {
     font-size: 0.7rem;
-    font-weight: 700;
+    font-weight: 800;
     text-transform: uppercase;
     letter-spacing: 0.15em;
-    color: var(--text-muted);
+    color: #ffffff; /* BLANC POUR VISIBILITE */
+    opacity: 0.9;
     margin-bottom: 0.5rem;
 }
 
@@ -250,16 +251,16 @@ body {
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    background: linear-gradient(135deg, var(--accent), #0ea5e9);
+    background: var(--accent); /* Orange uni */
     color: white;
     text-decoration: none;
     font-weight: 700;
     padding: 0.6rem 1.25rem;
     border-radius: var(--radius-md);
     font-size: 0.9rem;
-    transition: transform 0.2s, box-shadow 0.2s;
+    transition: all 0.2s;
     margin-left: auto;
-    box-shadow: 0 4px 15px var(--accent-glow);
+    box-shadow: 0 4px 12px rgba(243, 156, 18, 0.3);
 }
 
 .wiki-link-btn:hover {
@@ -367,13 +368,11 @@ body {
     color: #ffffff !important;
 }
 
-/* REVEALED WORD */
 .wiki-word.revealed {
     background-color: transparent;
-    color: var(--link-blue);
+    color: #000000; /* Noir classique */
     font-weight: 700;
     cursor: default;
-    border-bottom: 2px solid rgba(37, 99, 235, 0.1);
 }
 
 /* Just-revealed pop animation */

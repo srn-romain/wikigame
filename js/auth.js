@@ -114,23 +114,25 @@ function renderProfileModal(container, user, userData) {
                     <textarea id="profile-bio" maxlength="100" style="background:#f9fafb; border:1px solid #e5e7eb; padding:0.8rem; border-radius:var(--radius-md); color:var(--text-main); font-family:var(--font-ui); resize:none; height:60px; outline:none;">${userData.bio || ''}</textarea>
                 </div>
                 
-                <button id="save-profile" class="btn-primary" style="justify-content:center;">
-                    Sauvegarder les modifications
-                </button>
+                <div style="display:flex; flex-direction:column; gap:8px; margin-top: 0.5rem;">
+                    <button id="save-profile" class="btn-primary" style="justify-content:center; width:100%;">
+                        <i class="fa-solid fa-floppy-disk"></i> Sauvegarder les modifications
+                    </button>
 
-                <button id="reset-pwd-profile" style="background:none; border:none; color:var(--primary); font-size:0.8rem; cursor:pointer; margin-top:0.5rem; text-decoration:underline;">
-                    Réinitialiser mon mot de passe
-                </button>
+                    <button id="reset-pwd-profile" class="btn-accent" style="justify-content:center; width:100%;">
+                        <i class="fa-solid fa-key"></i> Réinitialiser le mot de passe
+                    </button>
+                </div>
             </div>
 
-            <div class="divider" style="margin: 1.5rem 0 1rem;">Actions</div>
+            <div class="divider" style="margin: 2rem 0 1rem;">Zone de danger</div>
             
             <div style="display:flex; flex-direction:column; gap:8px;">
-                <button id="logout-btn" class="btn-primary" style="width:100%; background:#f3f4f6; color:var(--text-main); border: 1px solid #e5e7eb; justify-content:center; box-shadow:none;">
+                <button id="logout-btn" class="btn-accent" style="width:100%; background:var(--danger); color:white; justify-content:center; box-shadow: 0 4px 12px rgba(231, 76, 60, 0.2);">
                     <i class="fa-solid fa-right-from-bracket"></i> Déconnexion
                 </button>
-                <button id="delete-account-btn" style="color:#f87171; font-size:0.75rem; background:none; border:none; cursor:pointer; text-decoration:underline;">
-                    Supprimer mon compte
+                <button id="delete-account-btn" class="btn-accent" style="width:100%; background:var(--danger); justify-content:center; box-shadow: 0 4px 12px rgba(231, 76, 60, 0.2);">
+                    <i class="fa-solid fa-trash-can"></i> Supprimer le compte
                 </button>
             </div>
         </div>
@@ -154,9 +156,10 @@ function setupProfileEvents(container, user, userData) {
             await sendPasswordResetEmail(auth, user.email);
             msgEl.textContent = "Email de réinitialisation envoyé !";
             msgEl.style.display = 'block';
+            msgEl.style.color = "var(--primary)";
         } catch (e) {
             msgEl.textContent = "Erreur : " + e.message;
-            msgEl.style.color = "#f87171";
+            msgEl.style.color = "var(--danger)";
             msgEl.style.display = 'block';
         }
     };
@@ -168,23 +171,15 @@ function setupProfileEvents(container, user, userData) {
         saveBtn.textContent = "Enregistrement...";
 
         try {
-            // Update Auth profile
             await updateProfile(user, { displayName: pseudo });
-            
-            // Update Firestore document
-            await setDoc(doc(db, "users", user.uid), {
-                pseudo,
-                bio,
-                updatedAt: Date.now()
-            }, { merge: true });
-
+            await setDoc(doc(db, "users", user.uid), { pseudo, bio, updatedAt: Date.now() }, { merge: true });
             msgEl.textContent = "Profil mis à jour !";
             msgEl.style.display = 'block';
+            msgEl.style.color = "var(--primary)";
             setTimeout(() => msgEl.style.display = 'none', 3000);
         } catch (e) {
-            console.error(e);
             msgEl.textContent = "Erreur lors de la sauvegarde.";
-            msgEl.style.color = "#f87171";
+            msgEl.style.color = "var(--danger)";
             msgEl.style.display = 'block';
         } finally {
             saveBtn.disabled = false;
@@ -197,16 +192,52 @@ function setupProfileEvents(container, user, userData) {
         container.classList.add('hidden');
     };
 
-    deleteBtn.onclick = async () => {
-        if (!confirm("Supprimer votre compte définitivement ?")) return;
-        try {
-            await deleteUser(user);
-            container.classList.add('hidden');
-        } catch (e) {
-            msgEl.textContent = "Action récente requise. Reconnectez-vous.";
-            msgEl.style.color = "#f87171";
-            msgEl.style.display = 'block';
-        }
+    deleteBtn.onclick = () => {
+        showConfirmModal(
+            "Supprimer le compte ?", 
+            "Toutes vos statistiques et votre progression seront définitivement supprimées.",
+            "Continuer",
+            () => {
+                showConfirmModal(
+                    "Dernière confirmation",
+                    "Cette action est irréversible. Êtes-vous certain de vouloir tout effacer ?",
+                    "Supprimer définitivement",
+                    async () => {
+                        try {
+                            await deleteUser(user);
+                            container.classList.add('hidden');
+                        } catch (e) {
+                            msgEl.textContent = "Action récente requise. Reconnectez-vous.";
+                            msgEl.style.color = "var(--danger)";
+                            msgEl.style.display = 'block';
+                        }
+                    }
+                );
+            }
+        );
+    };
+}
+
+function showConfirmModal(title, text, confirmBtnText, onConfirm) {
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    overlay.style.zIndex = "1000";
+    overlay.innerHTML = `
+        <div class="auth-modal" style="max-width: 400px; text-align: center;">
+            <h2 style="margin-bottom: 1rem; color: var(--text-main)!important;">${title}</h2>
+            <p style="margin-bottom: 2rem; color: var(--text-muted)!important;">${text}</p>
+            <div style="display: flex; gap: 10px; justify-content: center;">
+                <button class="btn-primary" style="background: #f3f4f6; color: var(--text-main); border: 1px solid #ddd; box-shadow: none;" id="cancel-confirm">Annuler</button>
+                <button class="btn-accent" style="background: var(--danger); color:white; box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);" id="exec-confirm">${confirmBtnText}</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(overlay);
+    
+    overlay.querySelector('#cancel-confirm').onclick = () => overlay.remove();
+    overlay.querySelector('#exec-confirm').onclick = () => {
+        overlay.remove();
+        onConfirm();
     };
 }
 

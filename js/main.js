@@ -86,7 +86,7 @@ function renderHome(container) {
         <div class="glass home-hero" style="max-width: 960px; margin: 2rem auto; padding: 5rem 2rem; border: none; box-shadow: 0 20px 50px rgba(0,0,0,0.15);">
             <div style="margin-bottom: 4rem; text-align: center;">
                 <h1 style="font-size: 5rem; letter-spacing: -0.05em; margin-bottom: 0.5rem; line-height: 1; display: flex; align-items: center; justify-content: center; gap: 20px;">
-                    <i class="fa-brands fa-wikipedia-w" style="color:var(--accent); font-size: 4rem;"></i>
+                    <i class="fa-brands fa-wikipedia-w" style="color:#000000; font-size: 4rem;"></i>
                     <span><span style="color:var(--primary)">WIKI</span><span style="color:var(--accent)">GAME</span></span>
                 </h1>
                 <p style="font-size: 1.25rem; color: var(--title-dark); font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.8;">

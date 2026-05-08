@@ -1,4 +1,4 @@
-import { db, doc, getDoc, setDoc, waitForAuth, increment } from './firebase-app.js';
+import { db, doc, getDoc, setDoc, waitForAuth, increment, runTransaction } from './firebase-app.js';
 import { fetchRandomArticle } from './wiki.js';
 
 /**
@@ -9,12 +9,12 @@ export async function getDailyArticleId() {
     const now = new Date();
     const dailyRef = doc(db, "globals", "dailyChallenge");
     
-    // Calculate the most recent 12:00 PM (Noon)
+    // Calculate the most recent 12:00 PM UTC (Noon)
     const lastNoon = new Date();
-    lastNoon.setHours(12, 0, 0, 0);
+    lastNoon.setUTCHours(12, 0, 0, 0);
     if (now < lastNoon) {
-        // If it's before Noon today, the reset was Noon yesterday
-        lastNoon.setDate(lastNoon.getDate() - 1);
+        // If it's before 12:00 UTC today, the reset was yesterday
+        lastNoon.setUTCDate(lastNoon.getUTCDate() - 1);
     }
 
     try {
@@ -41,20 +41,39 @@ export async function getDailyArticleId() {
 }
 
 async function rotateDailyArticle(timestamp) {
-    console.log("Daily: Rotating article...");
+    console.log("Daily: Attempting secured rotation...");
     const article = await fetchRandomArticle();
     if (!article) return null;
 
     try {
-        await setDoc(doc(db, "globals", "dailyChallenge"), {
-            articleId: article.id,
-            title: article.title,
-            timestamp: timestamp // Use the exact Noon timestamp for consistency
+        const articleId = await runTransaction(db, async (transaction) => {
+            const dailyRef = doc(db, "globals", "dailyChallenge");
+            const snap = await transaction.get(dailyRef);
+
+            if (snap.exists()) {
+                const data = snap.data();
+                if (data.timestamp >= timestamp) {
+                    console.log("Daily: Already rotated by another user.");
+                    return data.articleId;
+                }
+            }
+
+            // Apply new article and reset counter
+            transaction.set(dailyRef, {
+                articleId: article.id,
+                title: article.title,
+                timestamp: timestamp,
+                solversCount: 0
+            });
+
+            console.log("Daily: Rotation successful:", article.title);
+            return article.id;
         });
-        return article.id;
+        return articleId;
     } catch (e) {
-        console.error("Daily: Error rotating article:", e);
-        return article.id; // Return anyway so user can play, even if sync failed
+        console.error("Daily: Rotation transaction failed:", e);
+        // Fallback to the random article if transaction fails (better than nothing)
+        return article.id;
     }
 }
 
@@ -120,11 +139,10 @@ export async function getDailySolversCount() {
 export function getNextResetTime() {
     const now = new Date();
     const nextNoon = new Date();
-    nextNoon.setHours(12, 0, 0, 0);
+    nextNoon.setUTCHours(12, 0, 0, 0);
     
-    // If it's already past Noon today, the next reset is Noon tomorrow
     if (now >= nextNoon) {
-        nextNoon.setDate(nextNoon.getDate() + 1);
+        nextNoon.setUTCDate(nextNoon.getUTCDate() + 1);
     }
     return nextNoon;
 }

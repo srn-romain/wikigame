@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, collection, doc, setDoc, getDoc, updateDoc, onSnapshot, arrayUnion, increment } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getFirestore, collection, doc, setDoc, getDoc, updateDoc, onSnapshot, arrayUnion, increment, serverTimestamp, runTransaction } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { 
     getAuth, 
     signInAnonymously, 
@@ -53,8 +53,8 @@ onAuthStateChanged(auth, async (user) => {
     }
 });
 
-export function getCurrentUser() { return currentUser; }
-export function waitForAuth() { return authReady; }
+function getCurrentUser() { return currentUser; }
+function waitForAuth() { return authReady; }
 
 function updateUserProfile(user) {
     const btn = document.getElementById('user-profile-btn');
@@ -79,5 +79,6 @@ export {
     db, auth, googleProvider, 
     signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, signOut, updateProfile,
     sendPasswordResetEmail, deleteUser,
-    collection, doc, setDoc, getDoc, updateDoc, onSnapshot, arrayUnion, increment 
+    collection, doc, setDoc, getDoc, updateDoc, onSnapshot, arrayUnion, increment,
+    serverTimestamp, runTransaction, waitForAuth, getCurrentUser
 };
