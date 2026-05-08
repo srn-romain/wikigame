@@ -16,6 +16,7 @@ let state = {
     tokens: [],       // Array of token objects for ALL paragraphs
     titleTokens: [],  // Normalized words from the title
     guesses: new Set(),
+    history: [],      // [{word: 'manger', hits: 5}, ...]
     attempts: 0,
     foundCount: 0,
     totalWords: 0,
@@ -132,7 +133,38 @@ function renderGame() {
     const container = document.getElementById('main-container');
     container.innerHTML = '';
 
-    // ── Title ──
+    // ── Main Layout (Sidebar + Content) ──
+    const layout = document.createElement('div');
+    layout.className = 'game-layout';
+    
+    // ── Left Sidebar (History) ──
+    const sidebar = document.createElement('aside');
+    sidebar.className = 'guesses-sidebar glass';
+    sidebar.id = 'guesses-sidebar';
+    sidebar.innerHTML = `
+        <div class="sidebar-header">
+            <i class="fa-solid fa-list-check"></i> Historique
+        </div>
+        <div id="guesses-list" class="guesses-list"></div>
+    `;
+    layout.appendChild(sidebar);
+
+    // ── Main Content Area ──
+    const contentArea = document.createElement('section');
+    contentArea.className = 'wiki-area';
+    layout.appendChild(contentArea);
+    
+    container.appendChild(layout);
+
+    // Render components inside contentArea instead of container
+    renderTitle(contentArea);
+    if (state.won) renderWinBanner(contentArea);
+    renderContent(contentArea);
+
+    updateGuessesSidebar();
+}
+
+function renderTitle(target) {
     const titleEl = document.createElement('div');
     titleEl.className = 'wiki-title-wrapper';
 
@@ -176,29 +208,29 @@ function renderGame() {
 
 
     titleEl.appendChild(titleWords);
-    container.appendChild(titleEl);
+    target.appendChild(titleEl);
+}
 
-    // ── Win banner ──
-    if (state.won) {
-        const winBanner = document.createElement('div');
-        winBanner.className = 'win-banner glass';
-        winBanner.innerHTML = `
-            <div class="win-content">
-                <i class="fa-solid fa-trophy"></i>
-                <div>
-                    <h2>Bravo ! Article trouvé !</h2>
-                    <p>En ${state.attempts} tentatives</p>
-                </div>
-                <a href="${state.article.url}" target="_blank" class="wiki-link-btn">
-                    <i class="fa-brands fa-wikipedia-w"></i>
-                    Voir l'article
-                </a>
+function renderWinBanner(target) {
+    const winBanner = document.createElement('div');
+    winBanner.className = 'win-banner glass';
+    winBanner.innerHTML = `
+        <div class="win-content">
+            <i class="fa-solid fa-trophy"></i>
+            <div>
+                <h2>Bravo ! Article trouvé !</h2>
+                <p>En ${state.attempts} tentatives</p>
             </div>
-        `;
-        container.appendChild(winBanner);
-    }
+            <a href="${state.article.url}" target="_blank" class="wiki-link-btn">
+                <i class="fa-brands fa-wikipedia-w"></i>
+                Voir l'article
+            </a>
+        </div>
+    `;
+    target.appendChild(winBanner);
+}
 
-    // ── Content ──
+function renderContent(target) {
     const contentBox = document.createElement('div');
     contentBox.className = 'glass wiki-content';
     contentBox.id = 'wiki-body';
@@ -208,7 +240,6 @@ function renderGame() {
 
     state.tokens.forEach(tokenObj => {
         if (tokenObj.isParagraphBreak) {
-            // Start a new paragraph div
             paragraphDiv = createParagraphDiv();
             contentBox.appendChild(paragraphDiv);
             return;
@@ -223,7 +254,7 @@ function renderGame() {
         }
 
         const span = document.createElement('span');
-        span.dataset.original = tokenObj.text; // Store original for restoration
+        span.dataset.original = tokenObj.text;
 
         if (tokenObj.revealed || state.won) {
             span.className = 'wiki-word revealed';
@@ -232,8 +263,6 @@ function renderGame() {
             span.className = 'wiki-word hidden';
             span.dataset.len = tokenObj.text.length;
             span.dataset.clean = tokenObj.clean;
-            
-            // Set word text (masked by CSS)
             span.textContent = tokenObj.text;
 
             const isClose = checkCloseMatch(tokenObj.clean);
@@ -241,13 +270,10 @@ function renderGame() {
 
             span.addEventListener('click', handleWordClick);
         }
-
-
-
         paragraphDiv.appendChild(span);
     });
 
-    container.appendChild(contentBox);
+    target.appendChild(contentBox);
     updateStats();
 }
 
@@ -316,6 +342,12 @@ export function handleGuess(rawInput) {
 
     state.guesses.add(cleanInput);
 
+    // Track history for sidebar
+    const alreadyGuessed = state.history.find(h => h.clean === cleanInput);
+    if (!alreadyGuessed) {
+        state.history.push({ word: rawInput.trim(), clean: cleanInput, hits: hitCount });
+    }
+
     // Check win condition: all title words guessed
     if (checkTitleFound(cleanInput)) {
         triggerWin();
@@ -324,13 +356,11 @@ export function handleGuess(rawInput) {
 
     // Partial re-render (only update spans instead of full re-render for performance)
     if (hitCount > 0) {
-        // Reveal found words in DOM
         revealWordInDOM(cleanInput, hitCount);
     }
 
-    // Update close-matches for ALL hidden words (might now have new close matches)
     updateCloseMatches();
-
+    updateGuessesSidebar();
     updateStats();
     return { hitCount };
 }
@@ -396,26 +426,38 @@ async function triggerWin(skipSave = false) {
     const user = getCurrentUser();
     if (user && !user.isAnonymous && !skipSave) {
         try {
-            const updates = {
-                gamesPlayed: increment(1)
-            };
+            const updates = { gamesPlayed: increment(1) };
             if (state.mode === 'daily') {
                 updates.dailySolved = increment(1);
-                
-                // Import dynamic only when needed to avoid circular dep if any
                 const { markDailyAsSolved } = await import('./daily.js');
                 await markDailyAsSolved(user, state.article.id);
             }
             
             const userRef = doc(db, "users", user.uid);
             await setDoc(userRef, updates, { merge: true });
-            console.log("Stats updated successfully.");
         } catch (e) {
             console.error("Failed to update stats:", e);
         }
     }
 
     renderGame(); // Full re-render with win state
+}
+
+function updateGuessesSidebar() {
+    const list = document.getElementById('guesses-list');
+    if (!list) return;
+
+    list.innerHTML = '';
+    // Show latest first
+    [...state.history].reverse().forEach(item => {
+        const div = document.createElement('div');
+        div.className = `guess-item ${item.hits > 0 ? 'hit' : ''}`;
+        div.innerHTML = `
+            <span>${item.word}</span>
+            <span class="guess-count">${item.hits}</span>
+        `;
+        list.appendChild(div);
+    });
 }
 
 // ─────────────────────────────────────────────

@@ -64,6 +64,7 @@ body {
     color: white; /* Texte blanc par défaut */
     box-shadow: 0 4px 20px rgba(0,0,0,0.1);
     border-bottom: 1px solid rgba(255,255,255,0.1);
+    border-radius: 0 !important; /* SUPPRESSION DES ARRONDIS */
 }
 
 .logo {
@@ -272,11 +273,14 @@ body {
    WIKI CONTENT AREA
 ══════════════════════════════════ */
 .wiki-content {
+    background: white;
+    border: 1px solid #eee;
     border-radius: var(--radius-lg);
     padding: 2rem 2.5rem;
     margin-bottom: 1rem;
     user-select: none;
     -webkit-user-select: none;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.05);
 }
 
 .wiki-paragraph {
@@ -371,7 +375,7 @@ body {
 .wiki-word.revealed {
     background-color: transparent;
     color: #000000; /* Noir classique */
-    font-weight: 700;
+    font-weight: 600;
     cursor: default;
 }
 
@@ -807,8 +811,105 @@ body {
 }
 
 /* ══════════════════════════════════
+   GAME LAYOUT & SIDEBAR
+══════════════════════════════════ */
+.game-layout {
+    display: flex;
+    gap: 2rem;
+    align-items: flex-start;
+    margin-top: 1.5rem;
+    padding-bottom: 100px;
+}
+
+.guesses-sidebar {
+    width: 190px; /* Légèrement plus large pour le confort */
+    position: fixed;
+    left: 15px;
+    top: 100px;
+    bottom: 120px;
+    display: flex;
+    flex-direction: column;
+    padding: 1rem;
+    background: white;
+    border: 1px solid #eee;
+    box-shadow: 0 4px 25px rgba(0,0,0,0.1);
+    border-radius: 12px;
+    z-index: 10;
+    overflow-x: auto;
+}
+
+.sidebar-header {
+    font-weight: 800;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+    color: var(--accent);
+    margin-bottom: 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-bottom: 1px solid #f0f0f0;
+    padding-bottom: 0.75rem;
+}
+
+.guesses-list {
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.guess-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.35rem 0.5rem;
+    background: #f8fafc;
+    border: 1px solid #eef2f6;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    color: var(--text-main);
+    animation: slideInLeft 0.3s ease-out;
+}
+
+@keyframes slideInLeft {
+    from { opacity: 0; transform: translateX(-15px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+.guess-item.hit {
+    border-color: rgba(166, 216, 102, 0.4);
+    background: rgba(166, 216, 102, 0.05);
+    font-weight: 600;
+}
+
+.guess-count {
+    background: var(--primary);
+    color: var(--bg-forest);
+    font-size: 0.65rem;
+    font-weight: 800;
+    padding: 2px 6px;
+    border-radius: 10px;
+}
+
+.wiki-area {
+    flex: 1;
+    min-width: 0;
+}
+
+@media (max-width: 1024px) {
+    .game-layout { flex-direction: column; }
+    .guesses-sidebar { width: 100%; position: relative; top: 0; max-height: 250px; }
+}
+
+/* ══════════════════════════════════
    RESPONSIVE
 ══════════════════════════════════ */
+@media (max-width: 1100px) {
+    .guesses-sidebar { 
+        display: none; 
+    }
+}
 @media (max-width: 640px) {
     .navbar { padding: 0 1rem; }
     .nav-links { display: none; }
