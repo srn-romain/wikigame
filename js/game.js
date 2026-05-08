@@ -38,7 +38,7 @@ function normalize(str) {
 // ─────────────────────────────────────────────
 // INIT
 // ─────────────────────────────────────────────
-export async function initGame(mode, articleId = null) {
+export async function initGame(mode, articleId = null, preSolved = false) {
     console.log(`Game: Initializing mode="${mode}" articleId=${articleId}`);
     state.mode = mode;
     state.won = false;
@@ -71,13 +71,13 @@ export async function initGame(mode, articleId = null) {
     }
 
     console.log("Game: Article loaded successfully:", article.title);
-    startGame(article);
+    startGame(article, preSolved);
 }
 
 // ─────────────────────────────────────────────
 // START
 // ─────────────────────────────────────────────
-function startGame(article) {
+function startGame(article, preSolved = false) {
     console.log("Game: Starting Level with article:", article);
     state.article = article;
 
@@ -119,6 +119,10 @@ function startGame(article) {
     // Timer
     if (window._gameTimer) clearInterval(window._gameTimer);
     window._gameTimer = setInterval(updateTimer, 1000);
+
+    if (preSolved) {
+        triggerWin(true); // pass true to skip re-saving stats
+    }
 }
 
 // ─────────────────────────────────────────────
@@ -382,7 +386,7 @@ function updateCloseMatches() {
 // ─────────────────────────────────────────────
 // WIN
 // ─────────────────────────────────────────────
-async function triggerWin() {
+async function triggerWin(skipSave = false) {
     state.won = true;
     state.tokens.forEach(t => { if (t.isWord) t.revealed = true; });
 
@@ -390,13 +394,17 @@ async function triggerWin() {
 
     // Update User Stats in Firestore
     const user = getCurrentUser();
-    if (user && !user.isAnonymous) {
+    if (user && !user.isAnonymous && !skipSave) {
         try {
             const updates = {
                 gamesPlayed: increment(1)
             };
             if (state.mode === 'daily') {
                 updates.dailySolved = increment(1);
+                
+                // Import dynamic only when needed to avoid circular dep if any
+                const { markDailyAsSolved } = await import('./daily.js');
+                await markDailyAsSolved(user, state.article.id);
             }
             
             const userRef = doc(db, "users", user.uid);

@@ -3,6 +3,8 @@ import { createRoom, joinRoom } from './multiplayer.js';
 import { db, waitForAuth, doc, getDoc, setDoc } from './firebase-app.js';
 import { fetchRandomArticle } from './wiki.js';
 import { openAuthModal } from './auth.js';
+import { getDailyArticleId, checkDailySolved, getCountdown } from './daily.js';
+import { getCurrentUser } from './firebase-app.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     setupNavigation();
@@ -168,67 +170,61 @@ function renderMultiplayerMenu(container) {
 // DAILY CHALLENGE
 // ─────────────────────────────────────────────
 async function loadDailyChallenge() {
-    console.log("Daily: Starting loadDailyChallenge...");
     const container = document.getElementById('main-container');
-    container.innerHTML = `<div class="loading-screen"><div class="loading-spinner"></div><p>Chargement du défi du jour...</p></div>`;
+    container.innerHTML = `<div class="loading-screen"><div class="loading-spinner"></div><p>Initialisation du défi quotidien...</p></div>`;
 
-    // Wait for Firebase Auth before accessing Firestore
-    console.log("Daily: Waiting for auth...");
     await waitForAuth();
-    console.log("Daily: Auth ready.");
+    const user = getCurrentUser();
 
-    const today = new Date().toISOString().split('T')[0];
-    const dailyRef = doc(db, "dailies", today);
-
-    try {
-        console.log(`Daily: Checking Firestore for date: ${today}`);
-        const snap = await getDoc(dailyRef);
-        let articleId;
-
-        if (snap.exists()) {
-            articleId = snap.data().articleId;
-            console.log("Daily: Existing challenge found:", articleId);
-        } else {
-            console.log("Daily: No challenge for today. Generating new one...");
-            let article;
-            let attempts = 0;
-            let valid = false;
-
-            while (!valid && attempts < 5) {
-                console.log(`Daily: Generation attempt ${attempts + 1}/5`);
-                article = await fetchRandomArticle();
-                if (!article) break;
-
-                const historyRef = doc(db, "used_articles", article.id);
-                const historySnap = await getDoc(historyRef);
-
-                if (historySnap.exists()) {
-                    console.log("Daily: Article already used recently. Retrying...");
-                    attempts++;
-                    continue;
-                }
-                valid = true;
-            }
-
-            if (!article) throw new Error("Impossible de récupérer un article valide.");
-
-            console.log("Daily: Saving new challenge to Firestore:", article.id);
-            await setDoc(dailyRef, { articleId: article.id, title: article.title, createdAt: Date.now() });
-            await setDoc(doc(db, "used_articles", article.id), { lastUsed: Date.now() });
-            articleId = article.id;
-        }
-
-        console.log("Daily: Initializing game with articleId:", articleId);
-        await initGame('daily', articleId);
-
-
-    } catch (e) {
-        console.error(e);
-        container.innerHTML = `<div class="glass error-box">
-            <i class="fa-solid fa-triangle-exclamation" style="font-size:2rem;"></i><br>
-            Erreur chargement défi quotidien.<br><small>${e.message}</small>
-        </div>`;
+    // 1. Get the common daily article ID (rotates at Noon)
+    const articleId = await getDailyArticleId();
+    if (!articleId) {
+        container.innerHTML = `<div class="glass error-box">Erreur de synchronisation du défi.</div>`;
+        return;
     }
+
+    // 2. Check if the user already solved it today
+    const isSolved = await checkDailySolved(user, articleId);
+
+    // 3. Start game (pass preSolved=true if already won)
+    await initGame('daily', articleId, isSolved);
+
+    // 4. Inject Daily Header with Countdown
+    injectDailyHeader(container);
+}
+
+function injectDailyHeader(container) {
+    // Remove existing if any
+    const existing = document.querySelector('.daily-header');
+    if (existing) existing.remove();
+
+    const header = document.createElement('div');
+    header.className = 'daily-header glass';
+    header.style.cssText = "margin-bottom: 1.5rem; padding: 12px 20px; border-radius: var(--radius-md); display: flex; justify-content: space-between; align-items: center;";
+    header.innerHTML = `
+        <div style="display:flex; align-items:center; gap:10px;">
+            <i class="fa-solid fa-calendar-star" style="color:var(--accent);"></i>
+            <span style="font-weight:800; font-size:0.9rem; text-transform:uppercase; letter-spacing:0.05em;">Défi du Jour</span>
+        </div>
+        <div style="font-size:0.85rem; color:var(--text-muted);">
+            Nouveau défi dans : <span id="daily-countdown" style="font-family:var(--font-mono); color:var(--primary); font-weight:800; margin-left:5px;">--:--:--</span>
+        </div>
+    `;
+    
+    // Injected at the top of the wiki-container if possible, or main-container
+    const target = document.querySelector('.wiki-container') || container;
+    target.prepend(header);
+
+    // Real-time countdown
+    if (window._dailyInterval) clearInterval(window._dailyInterval);
+    window._dailyInterval = setInterval(() => {
+        const el = document.getElementById('daily-countdown');
+        if (!el) {
+            clearInterval(window._dailyInterval);
+            return;
+        }
+        el.textContent = getCountdown();
+    }, 1000);
 }
 
 // ─────────────────────────────────────────────

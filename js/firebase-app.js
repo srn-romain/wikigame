@@ -28,11 +28,24 @@ let currentUser = null;
 let _authResolve;
 const authReady = new Promise(resolve => { _authResolve = resolve; });
 
-onAuthStateChanged(auth, (user) => {
+onAuthStateChanged(auth, async (user) => {
     currentUser = user;
     if (user) {
         console.log("Auth: State change -> Logged in. UID:", user.uid);
         updateUserProfile(user);
+        
+        // Update user metadata in Firestore
+        try {
+            const userRef = doc(db, "users", user.uid);
+            await setDoc(userRef, {
+                lastLoginAt: serverTimestamp(),
+                // Only set createdAt if it doesn't exist yet
+                createdAt: user.metadata.creationTime ? new Date(user.metadata.creationTime).getTime() : serverTimestamp()
+            }, { merge: true });
+        } catch (e) {
+            console.error("Auth: Error updating metadata:", e);
+        }
+
         if (_authResolve) _authResolve(user);
     } else {
         console.log("Auth: State change -> No user detected. Attempting anonymous sign-in...");
