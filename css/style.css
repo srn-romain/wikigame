@@ -1065,7 +1065,6 @@ body {
     .wiki-title { font-size: 1.4rem; }
     .wiki-content { padding: 1.25rem; }
     .home-hero h1 { font-size: 2rem; }
-    .game-controls { bottom: 8px; padding: 0.75rem; width: 95%; left: 2.5%; }
     .input-wrapper { gap: 5px; }
     .wiki-input { padding: 0.7rem; font-size: 0.9rem; }
 }

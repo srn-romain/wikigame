@@ -636,11 +636,11 @@ async function renderSoloDashboard(container) {
                         </div>
                     ` : ''}
 
-                    <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap:1rem;">
+                    <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap:1rem;">
                         ${drafts.length === 0 ? `
-                            <div style="grid-column:1/-1; padding:4rem 2rem; text-align:center; border:2px dashed #e5e7eb; border-radius:20px; color:#9ca3af;">
+                            <div style="grid-column:1/-1; padding:2rem 1rem; text-align:center; border:2px dashed #e5e7eb; border-radius:20px; color:#9ca3af; word-break: break-word;">
                                 <i class="fa-solid fa-folder-open" style="font-size:2rem; margin-bottom:1rem; display:block;"></i>
-                                Aucun brouillon en cours. Lancez une nouvelle partie !
+                                <span style="display:block; max-width: 100%;">Aucun brouillon en cours. Lancez une nouvelle partie !</span>
                             </div>
                         ` : drafts.map(d => {
                             const remainingDays = Math.ceil((d.expireDate - new Date()) / (1000 * 60 * 60 * 24));
