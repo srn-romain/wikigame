@@ -245,6 +245,14 @@ async function renderMissions(container) {
                 <div style="text-align:center; margin-bottom: 3rem;">
                     <h1 style="font-size:2.5rem; color:white; font-weight:800;"><i class="fa-solid fa-scroll" style="color:var(--primary);"></i> Vos Missions</h1>
                     <p style="color:white; font-weight:600;">Complétez des défis pour débloquer de nouveaux paliers de prestige.</p>
+                    <div style="margin-top: 1rem; display: inline-flex; gap: 1rem; flex-wrap: wrap; justify-content: center;">
+                        <span style="background: rgba(255,255,255,0.1); backdrop-filter: blur(5px); color: white; padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; border: 1px solid rgba(255,255,255,0.2);">
+                            <i class="fa-solid fa-gift" style="color:var(--accent); margin-right:5px;"></i> Bonus de palier : <b>+10 à +40 XP</b>
+                        </span>
+                        <span style="background: rgba(255,255,255,0.1); backdrop-filter: blur(5px); color: white; padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; border: 1px solid rgba(255,255,255,0.2);">
+                            <i class="fa-solid fa-crown" style="color:#fbbf24; margin-right:5px;"></i> Grand Maître : <b>+300 XP</b>
+                        </span>
+                    </div>
                 </div>
 
                 ${[1, 2, 3, 4].map(t => {
@@ -260,7 +268,10 @@ async function renderMissions(container) {
                                 </div>
                                 <div>
                                     <h2 style="margin:0; font-size:1.5rem; color:#111827;">${tierNames[t]}</h2>
-                                    <p style="margin:0; font-size:0.9rem; color:white; font-weight:600;">Progression : ${tierSuccessCount} / 10 missions</p>
+                                    <div style="display:flex; align-items:center; gap:10px;">
+                                        <p style="margin:0; font-size:0.9rem; color:white; font-weight:600;">Progression : ${tierSuccessCount} / 10 missions</p>
+                                        ${tierSuccessCount === 10 ? `<span style="background:var(--accent); color:white; font-size:0.7rem; font-weight:900; padding:2px 8px; border-radius:10px; box-shadow:0 0 10px rgba(var(--accent-rgb), 0.5);">+${t * 10} XP BONUS</span>` : `<span style="color:rgba(255,255,255,0.7); font-size:0.7rem; font-weight:600;">(Bonus : +${t * 10} XP)</span>`}
+                                    </div>
                                 </div>
                             </div>
 
@@ -387,22 +398,64 @@ window._claimMission = async (id) => {
     const mission = MISSIONS_DATA.find(m => m.id === id);
     if (!mission) return;
 
-    const { db, updateDoc, doc, increment, arrayUnion, getCurrentUser } = await import("./firebase-app.js");
+    const { db, updateDoc, doc, getDoc, increment, arrayUnion, getCurrentUser } = await import("./firebase-app.js");
     const user = getCurrentUser();
     if (!user) return;
 
     try {
-        await updateDoc(doc(db, "users", user.uid), {
+        const userRef = doc(db, "users", user.uid);
+        const userSnap = await getDoc(userRef);
+        const userData = userSnap.data() || {};
+        
+        const claimedMissions = userData.claimedMissions || [];
+        const claimedTierBonuses = userData.claimedTierBonuses || [];
+        const hasFullBonus = userData.claimedFullCompletionBonus || false;
+        
+        // Nouvelle liste avec la mission actuelle
+        const newClaimed = [...claimedMissions, id];
+        let totalBonusXP = mission.xpReward;
+        let bonusMsg = `Félicitations ! Vous avez gagné ${mission.xpReward} XP.`;
+
+        // 1. Vérifier bonus de palier (10xp, 20xp, 30xp, 40xp)
+        const tierMissions = MISSIONS_DATA.filter(m => m.tier === mission.tier);
+        const allTierDone = tierMissions.every(m => newClaimed.includes(m.id));
+        
+        const updates = {
             xp: increment(mission.xpReward),
             claimedMissions: arrayUnion(mission.id)
-        });
+        };
+
+        if (allTierDone && !claimedTierBonuses.includes(mission.tier)) {
+            const tierBonus = mission.tier * 10;
+            updates.xp = increment(mission.xpReward + tierBonus);
+            updates.claimedTierBonuses = arrayUnion(mission.tier);
+            bonusMsg += `\n\n🎉 BONUS DE PALIER : +${tierBonus} XP pour avoir complété le ${mission.tier === 1 ? '1er' : mission.tier + 'ème'} palier !`;
+        }
+
+        // 2. Vérifier bonus final (300xp)
+        const allMissionsDone = MISSIONS_DATA.every(m => newClaimed.includes(m.id));
+        if (allMissionsDone && !hasFullBonus) {
+            updates.xp = increment((updates.xp._increment || mission.xpReward) + 300); // Additionne si déjà un bonus de palier
+            // Note: firestore increment doesn't stack easily in one call if we don't know the current value, 
+            // but since we are doing multiple increments in one object, we need to be careful.
+            // Actually, we can just calculate the final amount to increment.
+            let finalIncrement = mission.xpReward;
+            if (allTierDone && !claimedTierBonuses.includes(mission.tier)) finalIncrement += (mission.tier * 10);
+            finalIncrement += 300;
+            
+            updates.xp = increment(finalIncrement);
+            updates.claimedFullCompletionBonus = true;
+            bonusMsg += `\n\n🏆 GRAND SUCCÈS : +300 XP pour avoir terminé TOUTES les missions ! INCROYABLE !`;
+        }
+
+        await updateDoc(userRef, updates);
         
         // Effet de succès et rechargement
         document.getElementById('mission-detail-modal').remove();
         renderMissions(document.getElementById('main-container'));
         
-        // Notification (simple alert pour l'instant)
-        alert(`Félicitations ! Vous avez gagné ${mission.xpReward} XP.`);
+        // Notification
+        showInfoModal("Mission Accomplie", bonusMsg, "success");
     } catch (e) {
         console.error("Claim: Error", e);
         if (btn) {
