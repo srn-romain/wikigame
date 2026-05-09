@@ -124,9 +124,9 @@ function renderHome(container) {
     container.innerHTML = `
         <div class="glass home-hero" style="max-width: 960px; margin: 2rem auto; padding: 3rem 2rem; border: none; box-shadow: 0 20px 50px rgba(0,0,0,0.15);">
             <div style="margin-bottom: 0.5rem; text-align: center;">
-                <h1 style="font-size: 5rem; letter-spacing: -0.05em; margin-bottom: 0.5rem; line-height: 1; display: flex; align-items: center; justify-content: center; gap: 20px;">
-                    <i class="fa-brands fa-wikipedia-w" style="color:#000000; font-size: 4rem;"></i>
-                    <span><span style="color:var(--primary)">WIKI</span><span style="color:var(--accent)">GAME</span></span>
+                <h1 class="home-title">
+                    <i class="fa-brands fa-wikipedia-w"></i>
+                    <span><span style="color:var(--primary)">WIKI</span><span style="color:var(--accent)">REVEAL</span></span>
                 </h1>
                 <p style="font-size: 1.25rem; color: var(--title-dark); font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.8;">
                     Le jeu de décryptage encyclopédique
@@ -150,7 +150,7 @@ function renderHome(container) {
                 </button>
             </div>
 
-            <div class="feature-cards" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;">
+            <div class="feature-cards">
                 <div class="feature-card" style="background: white; border: 1px solid #eee; padding: 2.5rem 1.5rem; border-radius: 12px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.03);">
                     <i class="fa-solid fa-brain" style="color: var(--primary); font-size: 2rem; margin-bottom: 1.5rem;"></i>
                     <h3 style="color: var(--title-dark); font-size: 1rem; margin-bottom: 0.25rem; font-weight: 700;">Déduction</h3>
@@ -496,13 +496,13 @@ export async function openAdminDashboard() {
         const globalStats = statsSnap.exists() ? statsSnap.data() : { totalGamesPlayed: 0, soloGamesPlayed: 0, roomsCreated: 0 };
 
         container.innerHTML = `
-            <div class="auth-modal" style="max-width: 600px; padding: 2rem;">
+            <div class="auth-modal" style="width:95%; max-width: 600px; padding: 2rem;">
                 <button class="close-modal" id="close-admin">&times;</button>
                 <h2 style="margin-bottom: 1.5rem; display:flex; align-items:center; gap:10px;">
                     <i class="fa-solid fa-user-shield" style="color:var(--accent);"></i> Console Admin
                 </h2>
 
-                <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-bottom: 2rem;">
+                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 15px; margin-bottom: 2rem;">
                     <div class="glass" style="padding: 1rem; text-align:center;">
                         <div style="font-size:1.5rem; font-weight:800; color:var(--primary);">${globalStats.totalGamesPlayed || 0}</div>
                         <div style="font-size:0.7rem; color:var(--text-muted); text-transform:uppercase;">Parties Totales</div>

@@ -81,10 +81,10 @@ function renderAuthForm(container, mode) {
 
 function renderProfileModal(container, user, userData) {
     container.innerHTML = `
-        <div class="auth-modal profile-container" id="profile-modal-root" style="max-width: 450px; padding:0; display:flex; overflow-x:hidden; overflow-y:auto; max-height:90vh; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); position:relative;">
+        <div class="auth-modal profile-container" id="profile-modal-root" style="width:95%; max-width: 450px; padding:0; display:flex; flex-wrap:nowrap; overflow-x:hidden; overflow-y:auto; max-height:90vh; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); position:relative;">
             
             <!-- PANNEAU PRINCIPAL -->
-            <div id="profile-main-view" style="min-width: 450px; padding: 2rem; flex: 0 0 450px;">
+            <div id="profile-main-view" style="width: 100%; min-width: 320px; max-width:450px; padding: 2rem; flex: 0 0 100%;">
                 <button class="close-modal" id="close-auth">&times;</button>
                 
                 <div style="text-align:center; margin-bottom: 1.5rem;">
@@ -141,7 +141,7 @@ function renderProfileModal(container, user, userData) {
             </div>
 
             <!-- PANNEAU HISTORIQUE (DROITE) -->
-            <div id="profile-history-view" style="width: 350px; flex: 0 0 350px; border-left: 1px solid #eee; background: #f9fafb; display: flex; flex-direction: column;">
+            <div id="profile-history-view" style="width: 100%; min-width: 320px; max-width:350px; flex: 0 0 100%; border-left: 1px solid #eee; background: #f9fafb; display: flex; flex-direction: column;">
                 <div style="padding:1.5rem; border-bottom:1px solid #eee; display:flex; align-items:center; gap: 15px; background: white;">
                     <button id="back-to-profile" style="background:var(--primary); color:white; border:none; width:32px; height:32px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:transform 0.2s;">
                         <i class="fa-solid fa-arrow-left"></i>
@@ -179,12 +179,19 @@ function setupProfileEvents(container, user, userData) {
         historyBtn.onclick = () => {
             _renderHistoryList(userData.dailyHistory || []);
             root.style.maxWidth = '800px';
+            // Sur mobile, on fait défiler vers le panneau d'historique
+            setTimeout(() => {
+                root.scrollTo({ left: root.scrollWidth, behavior: 'smooth' });
+            }, 50);
         };
     }
 
     if (backBtn) {
         backBtn.onclick = () => {
-            root.style.maxWidth = '450px';
+            root.scrollTo({ left: 0, behavior: 'smooth' });
+            setTimeout(() => {
+                root.style.maxWidth = '450px';
+            }, 300);
         };
     }
 

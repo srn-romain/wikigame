@@ -968,7 +968,11 @@ body {
 }
 
 @media (max-width: 800px) {
-    .mobile-toggle { display: block; }
+    .mobile-toggle { 
+        display: block; 
+        order: 10; /* Le place à la fin du flux flex */
+        margin-left: 10px;
+    }
     
     .nav-links {
         display: none;
@@ -990,9 +994,19 @@ body {
 
     .nav-btn {
         width: 100%;
-        padding: 1rem 1.5rem;
+        padding: 1.2rem 1.5rem;
         border-radius: 0;
-        border-bottom: 1px solid #f9f9f9;
+        border-bottom: 1px solid #f0f0f0;
+        color: var(--text-main);
+        text-align: left;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .nav-btn.active {
+        background: #f9fafb;
+        color: var(--primary);
     }
     
     .mobile-toggle.active {
@@ -1005,7 +1019,20 @@ body {
     .wiki-title { font-size: 1.4rem; }
     .wiki-content { padding: 1.25rem; }
     .home-hero h1 { font-size: 2rem; }
-    .game-controls { bottom: 8px; padding: 0.75rem; }
+    .game-controls { bottom: 8px; padding: 0.75rem; width: 95%; left: 2.5%; }
+    .input-wrapper { gap: 5px; }
+    .wiki-input { padding: 0.7rem; font-size: 0.9rem; }
+}
+
+@media (max-width: 480px) {
+    .username { display: none; } /* Masquer le pseudo pour laisser de la place aux icônes */
+    .nav-actions { gap: 5px; }
+    .stats-bar { gap: 8px; justify-content: space-around; width: 100%; }
+    .stat { font-size: 0.7rem; padding: 4px 8px; }
+    .stat i { font-size: 0.7rem; }
+    .home-hero h1 { font-size: 1.6rem; }
+    .home-btns { flex-direction: column; width: 100%; }
+    .btn-primary, .btn-accent { width: 100%; }
 }
 
 /* ══════════════════════════════════
@@ -1129,3 +1156,52 @@ body {
     line-height: 1.2;
 }
 
+
+/* feature cards home */
+.feature-cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+    margin-top: 2rem;
+}
+
+@media (max-width: 900px) {
+    .feature-cards {
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    }
+}
+
+@media (max-width: 600px) {
+    .feature-cards {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Home Title */
+.home-title {
+    font-size: 5rem;
+    letter-spacing: -0.05em;
+    margin-bottom: 0.5rem;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    font-weight: 800;
+}
+.home-title i { font-size: 4rem; color: #000; }
+
+@media (max-width: 900px) {
+    .home-title { font-size: 4rem; }
+    .home-title i { font-size: 3rem; }
+}
+
+@media (max-width: 640px) {
+    .home-title { font-size: 3rem; gap: 10px; }
+    .home-title i { font-size: 2.2rem; }
+}
+
+@media (max-width: 480px) {
+    .home-title { font-size: 2.2rem; }
+    .home-title i { font-size: 1.8rem; }
+}
