@@ -1240,3 +1240,140 @@ body {
     .home-title { font-size: 2.2rem; }
     .home-title i { font-size: 1.8rem; }
 }
+
+/* ─────────────────────────────────────────────
+   SOLO DRAFT CARDS
+   ───────────────────────────────────────────── */
+.solo-draft-card {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 20px;
+    padding: 1.5rem;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+}
+
+.solo-draft-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
+    border-color: var(--primary-light);
+}
+
+.draft-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.draft-badge {
+    background: #f0fdf4;
+    color: #166534;
+    padding: 4px 10px;
+    border-radius: 99px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    border: 1px solid #dcfce7;
+}
+
+.draft-delete {
+    all: unset;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    color: #9ca3af;
+    transition: all 0.2s;
+}
+
+.draft-delete:hover {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+.draft-body {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.draft-icon {
+    width: 48px;
+    height: 48px;
+    background: #f8fafc;
+    border: 1px solid #f1f5f9;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    color: #64748b;
+}
+
+.draft-info h3 {
+    margin: 0;
+    font-size: 1rem;
+    color: #1e293b;
+    font-weight: 800;
+}
+
+.draft-info p {
+    margin: 2px 0 0;
+    font-size: 0.75rem;
+    color: #94a3b8;
+}
+
+.draft-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    background: #f8fafc;
+    padding: 1rem;
+    border-radius: 12px;
+}
+
+.stat-item {
+    display: flex;
+    flex-direction: column;
+}
+
+.stat-item .label {
+    font-size: 0.65rem;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 700;
+}
+
+.stat-item .value {
+    font-size: 1.1rem;
+    color: #1e293b;
+    font-weight: 800;
+}
+
+.draft-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 0.5rem;
+    color: var(--primary);
+    font-weight: 700;
+    font-size: 0.85rem;
+}
+
+.solo-draft-card:hover .draft-footer i {
+    transform: translateX(4px);
+}
+
+.draft-footer i {
+    transition: transform 0.2s;
+}

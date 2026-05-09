@@ -696,23 +696,40 @@ async function renderSoloDashboard(container) {
                             </div>
                         ` : drafts.map(d => {
                             const remainingDays = Math.ceil((d.expireDate - new Date()) / (1000 * 60 * 60 * 24));
+                            const lastActivity = d.lastSavedAt || d.createdAt;
                             return `
-                                <div class="feature-card" style="background:white; border:1px solid #e5e7eb; padding:1.5rem; border-radius:16px; position:relative; transition:all 0.2s; cursor:pointer;" onclick="window.loadSolo('${d.id}', '${d.articleId}')">
-                                    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:1rem;">
-                                        <div style="background: #f3f4f6; color: #4b5563; padding: 4px 8px; border-radius: 6px; font-size: 0.65rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;">
-                                            <i class="fa-solid fa-clock"></i> Expire dans ${remainingDays}j
+                                <div class="solo-draft-card" onclick="window.loadSolo('${d.id}', '${d.articleId}')">
+                                    <div class="draft-header">
+                                        <div class="draft-badge">
+                                            <i class="fa-solid fa-hourglass-half"></i> ${remainingDays}j restants
                                         </div>
-                                        <button onclick="event.stopPropagation(); window.confirmDeleteSolo('${d.id}')" style="all:unset; cursor:pointer; color:#9ca3af; font-size:0.9rem; padding:4px;" title="Supprimer">
-                                            <i class="fa-solid fa-trash-can"></i>
+                                        <button class="draft-delete" onclick="event.stopPropagation(); window.confirmDeleteSolo('${d.id}')">
+                                            <i class="fa-solid fa-xmark"></i>
                                         </button>
                                     </div>
-                                    <h3 style="font-size:1.1rem; color:#111827; margin:0 0 10px; line-height:1.3; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">Article Mystère</h3>
-                                    <div style="display:flex; gap:15px; font-size:0.85rem; color:#6b7280;">
-                                        <span><i class="fa-solid fa-bullseye" style="color:var(--accent);"></i> ${d.attempts} essais</span>
-                                        <span><i class="fa-solid fa-font" style="color:var(--primary);"></i> ${d.foundCount} mots</span>
+                                    
+                                    <div class="draft-body">
+                                        <div class="draft-icon"><i class="fa-brands fa-wikipedia-w"></i></div>
+                                        <div class="draft-info">
+                                            <h3>Article Mystère</h3>
+                                            <p>Activité : ${new Date(lastActivity).toLocaleDateString()}</p>
+                                        </div>
                                     </div>
-                                    <div style="margin-top:1.2rem; display:flex; align-items:center; color:var(--primary); font-weight:700; font-size:0.9rem; gap:6px;">
-                                        Reprendre <i class="fa-solid fa-arrow-right" style="font-size:0.8rem;"></i>
+
+                                    <div class="draft-stats">
+                                        <div class="stat-item">
+                                            <span class="label">Essais</span>
+                                            <span class="value">${d.attempts}</span>
+                                        </div>
+                                        <div class="stat-item">
+                                            <span class="label">Mots</span>
+                                            <span class="value">${d.foundCount}</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="draft-footer">
+                                        <span>Reprendre la recherche</span>
+                                        <i class="fa-solid fa-chevron-right"></i>
                                     </div>
                                 </div>
                             `;
