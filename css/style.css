@@ -1005,3 +1005,125 @@ body {
     .home-hero h1 { font-size: 2rem; }
     .game-controls { bottom: 8px; padding: 0.75rem; }
 }
+
+/* ══════════════════════════════════
+   WIN MODE CARDS (Multiplayer)
+══════════════════════════════════ */
+.win-mode-card {
+    cursor: pointer;
+    display: block;
+    position: relative;
+    transition: all 0.2s ease;
+    margin-bottom: 0.5rem;
+}
+
+.win-mode-card input {
+    position: absolute;
+    opacity: 0;
+    width: 1px;
+    height: 1px;
+}
+
+.win-mode-card .card-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    background: #f9fafb;
+    border: 2px solid #e5e7eb;
+    border-radius: 12px;
+    pointer-events: none; /* Crucial pour que le clic traverse vers le label */
+}
+
+.win-mode-card input:checked + .card-content {
+    background: #ecfdf5;
+    border-color: #A6D866;
+    box-shadow: 0 4px 12px rgba(166, 216, 102, 0.2);
+}
+
+.win-mode-card .icon {
+    font-size: 1.5rem;
+    width: 36px;
+    height: 36px;
+    background: white;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+
+.win-mode-card strong {
+    display: block;
+    font-size: 0.85rem;
+    color: #333333;
+    margin-bottom: 2px;
+}
+
+.win-mode-card p {
+    margin: 0;
+    font-size: 0.7rem;
+    color: #555555;
+    line-height: 1.2;
+}
+
+/* ----------------------------------
+   WIN MODE CARDS (Multiplayer)
+---------------------------------- */
+.win-mode-card {
+    cursor: pointer;
+    display: block;
+    position: relative;
+    transition: all 0.2s ease;
+}
+
+.win-mode-card input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.win-mode-card .card-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    background: #f9fafb;
+    border: 2px solid #e5e7eb;
+    border-radius: 12px;
+    pointer-events: none;
+}
+
+.win-mode-card input:checked + .card-content {
+    background: #ecfdf5;
+    border-color: #A6D866;
+    box-shadow: 0 4px 12px rgba(166, 216, 102, 0.2);
+}
+
+.win-mode-card .icon {
+    font-size: 1.5rem;
+    width: 36px;
+    height: 36px;
+    background: white;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+
+.win-mode-card strong {
+    display: block;
+    font-size: 0.85rem;
+    color: #333333;
+    margin-bottom: 2px;
+}
+
+.win-mode-card p {
+    margin: 0;
+    font-size: 0.7rem;
+    color: #555555;
+    line-height: 1.2;
+}
+
