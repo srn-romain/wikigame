@@ -596,6 +596,34 @@ function renderHome(container) {
                     <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0;">Mesurez votre rapidité face à la communauté sur l'article du jour.</p>
                 </div>
             </div>
+
+            <div style="margin-top: 1.5rem; padding: 2.5rem; background: white; border-radius: 20px; border: 1px solid #eee; text-align: left; box-shadow: 0 10px 30px rgba(0,0,0,0.05);">
+                <h2 style="color: #111827; font-size: 1.6rem; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 12px; font-weight: 800;">
+                    <i class="fa-solid fa-circle-question" style="color: var(--primary);"></i> C'est quoi le principe ?
+                </h2>
+                <div style="color: #4b5563; line-height: 1.8; font-size: 1rem;">
+                    <p style="margin-bottom: 1.2rem;">
+                        WikiGame est un jeu de réflexion et de culture générale. Le concept est simple : nous avons choisi un article au hasard sur Wikipédia, mais nous avons <b>masqué tous les mots</b> par des petits blocs noirs.
+                    </p>
+                    <ul style="margin-left: 1.5rem; margin-bottom: 1.2rem; display: flex; flex-direction: column; gap: 12px; list-style-type: none;">
+                        <li style="display: flex; align-items: flex-start; gap: 10px;">
+                            <i class="fa-solid fa-check" style="color: var(--primary); margin-top: 5px;"></i>
+                            <span><b style="color: #111827;">Le but :</b> Retrouver le titre de l'article en devinant les mots qui composent le texte.</span>
+                        </li>
+                        <li style="display: flex; align-items: flex-start; gap: 10px;">
+                            <i class="fa-solid fa-check" style="color: var(--primary); margin-top: 5px;"></i>
+                            <span><b style="color: #111827;">Comment jouer ?</b> Proposez des mots dans la barre de saisie. Si le mot existe dans l'article, il se révèle instantanément !</span>
+                        </li>
+                        <li style="display: flex; align-items: flex-start; gap: 10px;">
+                            <i class="fa-solid fa-check" style="color: var(--primary); margin-top: 5px;"></i>
+                            <span><b style="color: #111827;">La victoire :</b> La partie s'arrête dès que vous parvenez à trouver le <b>titre principal</b> de la page.</span>
+                        </li>
+                    </ul>
+                    <p style="font-style: italic; color: #6b7280; font-size: 0.9rem;">
+                        Astuce : Observez la ponctuation et la longueur des blocs pour déduire s'il s'agit d'un nom propre, d'un verbe ou d'une date !
+                    </p>
+                </div>
+            </div>
         </div>
     `;
 }

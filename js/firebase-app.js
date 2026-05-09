@@ -4,7 +4,8 @@ import {
     collection, doc, setDoc, getDoc, updateDoc,
     onSnapshot, increment, serverTimestamp,
     runTransaction, query, where, getDocs, deleteDoc, deleteField, arrayUnion,
-    orderBy, limit, getCountFromServer
+    orderBy, limit, getCountFromServer,
+    enableIndexedDbPersistence
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import {
     getAuth,
@@ -28,6 +29,15 @@ const app = initializeApp(firebaseConfig);
 const db  = getFirestore(app);
 const auth = getAuth(app);
 const googleProvider = new GoogleAuthProvider();
+
+// Activation du cache local (Offline Persistence)
+enableIndexedDbPersistence(db).catch((err) => {
+    if (err.code == 'failed-precondition') {
+        console.warn("Firestore: Persistence failed (multiple tabs).");
+    } else if (err.code == 'unimplemented') {
+        console.warn("Firestore: Persistence not supported.");
+    }
+});
 
 let currentUser = null;
 
