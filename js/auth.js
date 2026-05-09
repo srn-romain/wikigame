@@ -81,56 +81,79 @@ function renderAuthForm(container, mode) {
 
 function renderProfileModal(container, user, userData) {
     container.innerHTML = `
-        <div class="auth-modal" style="max-width: 450px;">
-            <button class="close-modal" id="close-auth">&times;</button>
+        <div class="auth-modal profile-container" id="profile-modal-root" style="max-width: 450px; padding:0; display:flex; overflow:hidden; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); position:relative;">
             
-            <div style="text-align:center; margin-bottom: 1.5rem;">
-                <div class="avatar-placeholder" style="width:70px; height:70px; font-size:1.8rem; margin: 0 auto 0.75rem;">
-                    ${user.photoURL ? `<img src="${user.photoURL}" class="avatar-img" style="width:70px; height:70px;">` : `<i class="fa-solid fa-user-astronaut"></i>`}
-                </div>
-                <h2 style="margin-bottom:0.25rem;">Mon Profil</h2>
-                <p style="color:var(--text-muted); font-size:0.8rem;">${user.email}</p>
-            </div>
-
-            <div class="stats-row" style="display:grid; grid-template-columns: 1fr; gap: 10px; margin-bottom: 1.5rem;">
-                <div class="glass" style="padding: 12px; text-align:center; border-radius:12px;">
-                    <div style="font-size:1.2rem; font-weight:800; color:var(--accent);">${userData.dailySolvedTotal || 0}</div>
-                    <div style="font-size:0.65rem; color:var(--text-muted); text-transform:uppercase;">Défis Quotidiens Résolus</div>
-                </div>
-            </div>
-
-            <div id="profile-msg" class="auth-error" style="background:rgba(16, 185, 129, 0.1); color:var(--accent); border-color:rgba(16, 185, 129, 0.2);"></div>
-
-            <div class="auth-form">
-                <div class="form-group">
-                    <label>Pseudo</label>
-                    <input type="text" id="profile-pseudo" value="${userData.pseudo || ''}" placeholder="Votre pseudo">
-                </div>
-                <div class="form-group">
-                    <label>Bio (max 100 caractères)</label>
-                    <textarea id="profile-bio" maxlength="100" style="background:#f9fafb; border:1px solid #e5e7eb; padding:0.8rem; border-radius:var(--radius-md); color:var(--text-main); font-family:var(--font-ui); resize:none; height:60px; outline:none;">${userData.bio || ''}</textarea>
-                </div>
+            <!-- PANNEAU PRINCIPAL -->
+            <div id="profile-main-view" style="min-width: 450px; padding: 2rem; flex: 0 0 450px;">
+                <button class="close-modal" id="close-auth">&times;</button>
                 
-                <div style="display:flex; flex-direction:column; gap:8px; margin-top: 0.5rem;">
-                    <button id="save-profile" class="btn-primary" style="justify-content:center; width:100%;">
-                        <i class="fa-solid fa-floppy-disk"></i> Sauvegarder les modifications
-                    </button>
+                <div style="text-align:center; margin-bottom: 1.5rem;">
+                    <div class="avatar-placeholder" style="width:70px; height:70px; font-size:1.8rem; margin: 0 auto 0.75rem;">
+                        ${user.photoURL ? `<img src="${user.photoURL}" class="avatar-img" style="width:70px; height:70px;">` : `<i class="fa-solid fa-user-astronaut"></i>`}
+                    </div>
+                    <h2 style="margin-bottom:0.25rem;">Mon Profil</h2>
+                    <p style="color:var(--text-muted); font-size:0.8rem;">${user.email}</p>
+                </div>
 
-                    <button id="reset-pwd-profile" class="btn-accent" style="justify-content:center; width:100%;">
-                        <i class="fa-solid fa-key"></i> Réinitialiser le mot de passe
+                <div class="stats-row" style="display:grid; grid-template-columns: 1fr; gap: 10px; margin-bottom: 1.5rem;">
+                    <div class="glass" id="view-daily-history" style="padding: 12px; text-align:center; border-radius:12px; cursor:pointer; transition:all 0.2s; border:1px solid rgba(0,0,0,0.05);" onmouseover="this.style.transform='translateY(-2px)'; this.style.borderColor='var(--accent)';" onmouseout="this.style.transform='none'; this.style.borderColor='rgba(0,0,0,0.05)';">
+                        <div style="font-size:1.2rem; font-weight:800; color:var(--accent);">${userData.dailySolvedTotal || 0}</div>
+                        <div style="font-size:0.65rem; color:var(--text-muted); text-transform:uppercase; font-weight:700;">Défis Quotidiens Résolus <i class="fa-solid fa-chevron-right" style="margin-left:4px; font-size:0.6rem;"></i></div>
+                    </div>
+                </div>
+
+                <div id="profile-msg" class="auth-error" style="background:rgba(16, 185, 129, 0.1); color:var(--accent); border-color:rgba(16, 185, 129, 0.2);"></div>
+
+                <div class="auth-form">
+                    <div class="form-group">
+                        <label>Pseudo</label>
+                        <input type="text" id="profile-pseudo" value="${userData.pseudo || ''}" placeholder="Votre pseudo">
+                    </div>
+                    <div class="form-group">
+                        <label>Bio (max 100 caractères)</label>
+                        <textarea id="profile-bio" maxlength="100" style="background:#f9fafb; border:1px solid #e5e7eb; padding:0.8rem; border-radius:var(--radius-md); color:var(--text-main); font-family:var(--font-ui); resize:none; height:60px; outline:none;">${userData.bio || ''}</textarea>
+                    </div>
+                    
+                    <div style="display:flex; flex-direction:column; gap:8px; margin-top: 0.5rem;">
+                        <button id="save-profile" class="btn-primary" style="justify-content:center; width:100%;">
+                            <i class="fa-solid fa-floppy-disk"></i> Sauvegarder les modifications
+                        </button>
+                    </div>
+
+                    <div class="divider" style="margin: 1.5rem 0 0.75rem;">Actions</div>
+                    <div style="display:flex; flex-direction:column; gap:8px;">
+                        <button id="reset-pwd-profile" class="btn-accent" style="justify-content:center; width:100%;">
+                            <i class="fa-solid fa-key"></i> Réinitialiser le mot de passe
+                        </button>
+                        <button id="logout-btn" class="btn-accent" style="width:100%; background:#4b5563; color:white; justify-content:center; box-shadow: 0 4px 12px rgba(75, 85, 99, 0.2); border:none;">
+                            <i class="fa-solid fa-right-from-bracket"></i> Déconnexion
+                        </button>
+                    </div>
+                </div>
+
+                <div class="divider" style="margin: 1.5rem 0 0.75rem; color: var(--danger);">Zone de danger</div>
+                
+                <div style="display:flex; flex-direction:column; gap:8px;">
+                    <button id="delete-account-btn" class="btn-accent" style="width:100%; background:var(--danger); justify-content:center; box-shadow: 0 4px 12px rgba(231, 76, 60, 0.2);">
+                        <i class="fa-solid fa-trash-can"></i> Supprimer le compte
                     </button>
                 </div>
             </div>
 
-            <div class="divider" style="margin: 2rem 0 1rem;">Zone de danger</div>
-            
-            <div style="display:flex; flex-direction:column; gap:8px;">
-                <button id="logout-btn" class="btn-accent" style="width:100%; background:var(--danger); color:white; justify-content:center; box-shadow: 0 4px 12px rgba(231, 76, 60, 0.2);">
-                    <i class="fa-solid fa-right-from-bracket"></i> Déconnexion
-                </button>
-                <button id="delete-account-btn" class="btn-accent" style="width:100%; background:var(--danger); justify-content:center; box-shadow: 0 4px 12px rgba(231, 76, 60, 0.2);">
-                    <i class="fa-solid fa-trash-can"></i> Supprimer le compte
-                </button>
+            <!-- PANNEAU HISTORIQUE (DROITE) -->
+            <div id="profile-history-view" style="width: 350px; flex: 0 0 350px; border-left: 1px solid #eee; background: #f9fafb; display: flex; flex-direction: column;">
+                <div style="padding:1.5rem; border-bottom:1px solid #eee; display:flex; align-items:center; gap: 15px; background: white;">
+                    <button id="back-to-profile" style="background:var(--primary); color:white; border:none; width:32px; height:32px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:transform 0.2s;">
+                        <i class="fa-solid fa-arrow-left"></i>
+                    </button>
+                    <h3 style="margin:0; font-size:1.1rem;"><i class="fa-solid fa-history" style="color:var(--accent); margin-right:8px;"></i> Historique</h3>
+                </div>
+                <div id="history-list-content" style="flex:1; overflow-y:auto; padding:0;">
+                    <!-- Injecté via JS -->
+                </div>
+                <div id="history-footer" style="padding:1rem; text-align:center; border-top:1px solid #eee; background: white;">
+                    <!-- Injecté via JS -->
+                </div>
             </div>
         </div>
     `;
@@ -147,6 +170,23 @@ function setupProfileEvents(container, user, userData) {
     const msgEl = document.getElementById('profile-msg');
 
     closeBtn.onclick = () => container.classList.add('hidden');
+
+    const root = document.getElementById('profile-modal-root');
+    const historyBtn = document.getElementById('view-daily-history');
+    const backBtn = document.getElementById('back-to-profile');
+
+    if (historyBtn) {
+        historyBtn.onclick = () => {
+            _renderHistoryList(userData.dailyHistory || []);
+            root.style.maxWidth = '800px';
+        };
+    }
+
+    if (backBtn) {
+        backBtn.onclick = () => {
+            root.style.maxWidth = '450px';
+        };
+    }
 
     resetBtn.onclick = async () => {
         try {
@@ -359,4 +399,45 @@ function formatError(code) {
         case 'auth/invalid-email': return 'Email non valide.';
         default: return 'Une erreur est survenue.';
     }
+}
+
+function _renderHistoryList(history) {
+    const listContainer = document.getElementById('history-list-content');
+    const footerContainer = document.getElementById('history-footer');
+    if (!listContainer || !footerContainer) return;
+
+    // Trier par date décroissante
+    const sorted = [...history].sort((a, b) => b.solvedAt - a.solvedAt);
+
+    let listHtml = "";
+    if (sorted.length === 0) {
+        listHtml = `
+            <div style="text-align:center; color:var(--text-muted); padding:3rem 2rem;">
+                <i class="fa-solid fa-ghost" style="font-size:3rem; opacity:0.1; margin-bottom:1rem;"></i>
+                <p style="font-size:0.9rem;">Aucun historique disponible pour le moment.</p>
+                <p style="font-size:0.75rem; margin-top:0.5rem; opacity:0.7;">(Seuls les défis résolus à partir d'aujourd'hui sont enregistrés)</p>
+            </div>`;
+    } else {
+        listHtml = sorted.map(item => {
+            const dateStr = new Date(item.solvedAt).toLocaleDateString('fr-FR', {
+                day: '2-digit', month: 'long', year: 'numeric'
+            });
+            return `
+                <div style="display:flex; justify-content:space-between; align-items:center; padding:15px 20px; border-bottom:1px solid #f3f4f6; gap:15px; background:white; transition:background 0.2s;" onmouseover="this.style.background='#fcfcfc';" onmouseout="this.style.background='white';">
+                    <div style="flex:1;">
+                        <div style="font-size:0.85rem; font-weight:700; color:var(--text-main); line-height:1.3;">${item.title}</div>
+                        <div style="font-size:0.7rem; color:var(--text-muted); margin-top:2px;">${dateStr}</div>
+                    </div>
+                    <div style="color:#10b981; font-size:1.1rem;"><i class="fa-solid fa-check-circle"></i></div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    listContainer.innerHTML = listHtml;
+    footerContainer.innerHTML = `
+        <p style="font-size:0.8rem; color:var(--text-muted); font-weight:600; margin:0;">
+            ${sorted.length} défi${sorted.length > 1 ? 's' : ''} relevé${sorted.length > 1 ? 's' : ''} au total
+        </p>
+    `;
 }

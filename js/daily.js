@@ -8,7 +8,7 @@
  */
 import {
     db, doc, getDoc, setDoc, updateDoc,
-    waitForAuth, increment, runTransaction, serverTimestamp
+    waitForAuth, increment, runTransaction, serverTimestamp, arrayUnion
 } from './firebase-app.js';
 import { fetchRandomArticle } from './wiki.js';
 
@@ -112,7 +112,7 @@ export async function checkDailySolved(user) {
  * Met à jour : users/{uid}.lastDailyDate, .dailyFoundToday, .dailySolvedTotal
  * Et incrémente dailies/{dateId}.solversCount.
  */
-export async function markDailyAsSolved(user) {
+export async function markDailyAsSolved(user, articleTitle) {
     if (!user || user.isAnonymous) return;
 
     const dateId = getTodayDateId();
@@ -127,7 +127,12 @@ export async function markDailyAsSolved(user) {
         await updateDoc(userRef, {
             lastDailyDate:    dateId,
             dailyFoundToday:  true,
-            dailySolvedTotal: increment(1)
+            dailySolvedTotal: increment(1),
+            dailyHistory: arrayUnion({
+                dateId,
+                title: articleTitle || "Article inconnu",
+                solvedAt: Date.now()
+            })
         });
 
         // Incrémenter le compteur global du défi

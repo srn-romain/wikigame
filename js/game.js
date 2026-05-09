@@ -502,7 +502,7 @@ async function triggerWin(skipSave = false) {
         try {
             const { markDailyAsSolved } = await import('./daily.js');
             // markDailyAsSolved gère lui-même l'incrémentation de dailySolvedTotal
-            await markDailyAsSolved(user);
+            await markDailyAsSolved(user, state.article.title);
         } catch (e) {
             console.error("Game: Failed to save daily stats:", e);
         }

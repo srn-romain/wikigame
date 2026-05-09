@@ -16,6 +16,7 @@ import { showInfoModal } from './auth.js';
 let _unsub = null;
 let _roomId = null;
 let _countdownInterval = null;
+let _lastRoomData = null; // Cache pour éviter les getDoc() répétitifs
 
 // ── CRÉER UNE SALLE ──────────────────────────────────────────────
 export async function createRoom({ roomName, username, maxRounds, winMode }) {
@@ -217,6 +218,20 @@ export async function nextArticle() {
     await updateDoc(doc(db, "rooms", _roomId), updates);
 }
 
+// ── QUITTER LA SALLE ─────────────────────────────────────────────
+export function leaveRoom() {
+    console.log("Multiplayer: Leaving room and cleaning up listeners...");
+    if (_unsub) { _unsub(); _unsub = null; }
+    if (_countdownInterval) { clearInterval(_countdownInterval); _countdownInterval = null; }
+    if (window._mpHeartbeat) { clearInterval(window._mpHeartbeat); window._mpHeartbeat = null; }
+    _roomId = null;
+    _lastRoomData = null;
+    window._mpGameStarted = false;
+    window._mpArticleId = null;
+    window.mpReportProgress = null;
+}
+window.mpLeaveRoom = leaveRoom;
+
 // ── RAPPORT DE PROGRESSION ────────────────────────────────────────
 export async function reportProgress(found, total, finished, attempts) {
     if (!_roomId) return;
@@ -226,9 +241,8 @@ export async function reportProgress(found, total, finished, attempts) {
     console.log(`Multiplayer: Reporting progress for ${user.uid} - Found: ${found}/${total}, Finished: ${finished}`);
 
     const roomRef = doc(db, "rooms", _roomId);
-    const snap = await getDoc(roomRef);
-    if (!snap.exists()) return;
-    const data = snap.data();
+    const data = _lastRoomData; // Utilisation du cache local au lieu d'un getDoc()
+    if (!data) return;
 
     const round = data.currentRound || 1;
     const updates = {};
@@ -255,13 +269,16 @@ export async function reportProgress(found, total, finished, attempts) {
 
     // Logique de fin de manche
     if (finished && data.state === "PLAYING") {
+        const winnerName = user.displayName || user.uid;
         if (data.winMode === 1) {
             // Mode 1 : Stop immédiat pour tout le monde
             updates.state = "PAUSED";
-            updates.roundWinner = user.uid;
+            updates.roundFinished = true;
+            updates.roundWinner = winnerName;
         } else if (data.winMode === 3 && !data.countdownEnd) {
             // Mode 3 : Déclenchement du compte à rebours de 1 minute
             updates.countdownEnd = Date.now() + 60000;
+            updates.roundWinner = winnerName;
         }
     }
 
@@ -275,7 +292,8 @@ function _subscribe(roomId) {
     _unsub = onSnapshot(doc(db, "rooms", roomId), (snap) => {
         if (!snap.exists()) return;
         const data = snap.data();
-        console.log(`Multiplayer: Received update for room ${roomId}, state: ${data.state}`);
+        _lastRoomData = data; // Mise à jour du cache local
+        // console.log(`Multiplayer: Received update for room ${roomId}, state: ${data.state}`);
         const user = getCurrentUser();
 
         // Heartbeat pour la présence
@@ -522,31 +540,28 @@ function _removeAdminPanel() {
 
 function _showPauseBanner() {
     if (document.getElementById('mp-pause-banner')) return;
+    if (!_lastRoomData) return;
+
+    const data = _lastRoomData;
+    const winner = data.roundWinner ? (data.players[data.roundWinner]?.name || "Un joueur") : null;
+    const isTimeUp = data.roundFinished;
+
+    const banner = document.createElement('div');
+    banner.id = 'mp-pause-banner';
+    banner.style.cssText = `
+        position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:300;
+        display:flex; align-items:center; justify-content:center;
+        backdrop-filter: blur(4px);
+    `;
     
-    // Récupérer les infos de la salle pour savoir si c'est une pause admin ou une fin de manche Mode 1
-    const roomId = _roomId;
-    getDoc(doc(db, "rooms", roomId)).then(snap => {
-        if (!snap.exists()) return;
-        const data = snap.data();
-        const winner = data.roundWinner ? (data.players[data.roundWinner]?.name || "Un joueur") : null;
-        const isTimeUp = data.roundFinished;
+    const user = getCurrentUser();
+    const isAdmin = user && data.creatorUid === user.uid;
 
-        const banner = document.createElement('div');
-        banner.id = 'mp-pause-banner';
-        banner.style.cssText = `
-            position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:300;
-            display:flex; align-items:center; justify-content:center;
-            backdrop-filter: blur(4px);
-        `;
-        
-        const user = getCurrentUser();
-        const isAdmin = user && data.creatorUid === user.uid;
+    const pauserUid = data.pausedBy;
+    const pauserName = pauserUid ? (data.players[pauserUid]?.name || "Un joueur") : null;
+    const canResume = user && user.uid === pauserUid;
 
-        const pauserUid = data.pausedBy;
-        const pauserName = pauserUid ? (data.players[pauserUid]?.name || "Un joueur") : null;
-        const canResume = user && user.uid === pauserUid;
-
-        let content = "";
+    let content = "";
         if (winner) {
             content = `
                 <i class="fa-solid fa-trophy" style="font-size:3rem; color:#f1c40f; margin-bottom:1rem;"></i>
@@ -596,7 +611,6 @@ function _showPauseBanner() {
             </div>
         `;
         document.body.appendChild(banner);
-    });
 }
 
 // ── LOBBY ─────────────────────────────────────────────────────────

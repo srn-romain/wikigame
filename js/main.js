@@ -80,6 +80,11 @@ async function navigateTo(view) {
         if (window.resetGameState) window.resetGameState();
     }
 
+    // Arrêt des écouteurs multijoueur si on quitte la vue compétition
+    if (view !== 'multiplayer' && window.mpLeaveRoom) {
+        window.mpLeaveRoom();
+    }
+
     console.log(`Main: Navigating to view="${view}"`);
     const container = document.getElementById('main-container');
     const controls = document.getElementById('game-controls');
