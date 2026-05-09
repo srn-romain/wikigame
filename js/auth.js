@@ -81,7 +81,7 @@ function renderAuthForm(container, mode) {
 
 function renderProfileModal(container, user, userData) {
     container.innerHTML = `
-        <div class="auth-modal profile-container" id="profile-modal-root" style="max-width: 450px; padding:0; display:flex; overflow:hidden; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); position:relative;">
+        <div class="auth-modal profile-container" id="profile-modal-root" style="max-width: 450px; padding:0; display:flex; overflow-x:hidden; overflow-y:auto; max-height:90vh; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); position:relative;">
             
             <!-- PANNEAU PRINCIPAL -->
             <div id="profile-main-view" style="min-width: 450px; padding: 2rem; flex: 0 0 450px;">
@@ -129,18 +129,11 @@ function renderProfileModal(container, user, userData) {
                             <i class="fa-solid fa-right-from-bracket"></i> Déconnexion
                         </button>
                     </div>
-
-                    ${user.uid === "xwX5eCsUqpRLIBAI3K5Y7y70HLp1" ? `
-                        <div class="divider" style="margin: 1.5rem 0 0.75rem;">Admin</div>
-                        <button id="admin-dashboard-btn" class="btn-primary" style="width:100%; justify-content:center; background:#2c3e50; color:white; border:none; box-shadow: 0 4px 12px rgba(44, 62, 80, 0.2);">
-                            <i class="fa-solid fa-user-shield"></i> Console Administration
-                        </button>
-                    ` : ''}
                 </div>
 
                 <div class="divider" style="margin: 1.5rem 0 0.75rem; color: var(--danger);">Zone de danger</div>
                 
-                <div style="display:flex; flex-direction:column; gap:8px;">
+                <div style="display:flex; flex-direction:column; gap:8px; padding-bottom: 2rem;">
                     <button id="delete-account-btn" class="btn-accent" style="width:100%; background:var(--danger); justify-content:center; box-shadow: 0 4px 12px rgba(231, 76, 60, 0.2);">
                         <i class="fa-solid fa-trash-can"></i> Supprimer le compte
                     </button>
@@ -236,15 +229,6 @@ function setupProfileEvents(container, user, userData) {
         // Redirection vers l'accueil (nettoyage URL) et rechargement
         window.location.href = window.location.origin + window.location.pathname;
     };
-
-    const adminBtn = document.getElementById('admin-dashboard-btn');
-    if (adminBtn) {
-        adminBtn.onclick = async () => {
-            container.classList.add('hidden');
-            const { openAdminDashboard } = await import('./main.js');
-            openAdminDashboard();
-        };
-    }
 
     deleteBtn.onclick = () => {
         showConfirmModal(

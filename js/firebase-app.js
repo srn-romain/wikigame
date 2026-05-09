@@ -111,7 +111,7 @@ function updateUserProfileUI(user) {
     // 1. Gérer le bouton Admin (Indépendant)
     if (adminArea) {
         if (isAdmin) {
-            adminArea.innerHTML = `<div id="nav-admin-shortcut" style="color:var(--accent); margin-right:15px; font-size:1.1rem; padding: 8px; cursor:pointer; transition:all 0.2s; background:rgba(0,0,0,0.03); border-radius:8px;" title="Console Admin" onmouseover="this.style.transform='translateY(-2px)'; this.style.background='rgba(0,0,0,0.06)';" onmouseout="this.style.transform='none'; this.style.background='rgba(0,0,0,0.03)'"><i class="fa-solid fa-user-shield"></i></div>`;
+            adminArea.innerHTML = `<div id="nav-admin-shortcut" style="color:var(--accent); margin-right:15px; font-size:1.1rem; padding: 8px; cursor:pointer; transition:all 0.2s;" title="Console Admin" onmouseover="this.style.transform='translateY(-2px)';" onmouseout="this.style.transform='none';"><i class="fa-solid fa-user-shield"></i></div>`;
             document.getElementById('nav-admin-shortcut').onclick = (e) => {
                 e.stopPropagation();
                 if (window.openAdminDashboard) window.openAdminDashboard();
