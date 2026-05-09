@@ -141,6 +141,8 @@ export async function incrementGlobalStat(statName) {
 function getCurrentUser() { return currentUser; }
 function waitForAuth()    { return authReady; }
 
+let _lastNavUpdate = { name: '', photo: '' };
+
 function updateUserProfileUI(user, firestoreData = null) {
     const btn = document.getElementById('user-profile-btn');
     const adminArea = document.getElementById('admin-nav-area');
@@ -156,6 +158,12 @@ function updateUserProfileUI(user, firestoreData = null) {
     const photo = (firestoreData && firestoreData.photoURL) 
         ? firestoreData.photoURL 
         : user.photoURL;
+
+    // ⚡ Optimisation : Éviter de rafraichir le DOM si rien n'a changé (évite les 429 sur les images Google)
+    if (_lastNavUpdate.name === name && _lastNavUpdate.photo === photo) {
+        return;
+    }
+    _lastNavUpdate = { name, photo };
 
     const isAdmin = user.uid === "xwX5eCsUqpRLIBAI3K5Y7y70HLp1";
 
@@ -193,5 +201,5 @@ export {
     onSnapshot, increment, serverTimestamp,
     runTransaction, query, where, getDocs, deleteDoc, deleteField, arrayUnion,
     orderBy, limit, getCountFromServer,
-    waitForAuth, getCurrentUser
+    waitForAuth, getCurrentUser, updateUserProfileUI
 };

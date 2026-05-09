@@ -70,9 +70,13 @@ function setupAuthListeners() {
     profileBtn.onclick = async () => await openAuthModal('login');
 
     // Close modal when clicking outside
-    modalContainer.onclick = (e) => {
+    modalContainer.onclick = async (e) => {
         if (e.target === modalContainer) {
-            modalContainer.classList.add('hidden');
+            if (window.profileHandleClose) {
+                await window.profileHandleClose();
+            } else {
+                modalContainer.classList.add('hidden');
+            }
         }
     };
 }

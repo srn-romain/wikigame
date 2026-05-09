@@ -8,6 +8,7 @@ import {
     sendPasswordResetEmail,
     deleteUser,
     getCurrentUser,
+    updateUserProfileUI,
     doc, getDoc, setDoc, updateDoc
 } from './firebase-app.js';
 
@@ -94,7 +95,7 @@ function renderProfileModal(container, user, userData) {
                 
                 <div style="text-align:center; margin-bottom: 1.5rem;">
                     <div class="avatar-placeholder" id="avatar-preview-container" style="width:70px; height:70px; font-size:1.8rem; margin: 0 auto 0.75rem; position:relative;">
-                        ${user.photoURL ? `<img src="${user.photoURL}" class="avatar-img" style="width:70px; height:70px;">` : `<i class="fa-solid fa-user-astronaut"></i>`}
+                        ${(userData.photoURL || user.photoURL) ? `<img src="${userData.photoURL || user.photoURL}" class="avatar-img" style="width:70px; height:70px;">` : `<i class="fa-solid fa-user-astronaut"></i>`}
                         <button id="change-photo-btn" style="position:absolute; bottom:0; right:0; background:var(--primary); color:white; border:none; width:26px; height:26px; border-radius:50%; cursor:pointer; font-size:0.75rem; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 6px rgba(0,0,0,0.3); border:2px solid white; z-index:10;">
                             <i class="fa-solid fa-camera"></i>
                         </button>
@@ -242,8 +243,8 @@ function setupProfileEvents(container, user, userData) {
         };
     }
 
-    // Dirty state tracking
     let isDirty = false;
+    let hasSavedChanges = false;
     const markDirty = () => { isDirty = true; };
     const pseudoIn = document.getElementById('profile-pseudo');
     const bioIn = document.getElementById('profile-bio');
@@ -259,12 +260,17 @@ function setupProfileEvents(container, user, userData) {
             if (result === 'cancel') return;
             if (result === 'save') {
                 const ok = await performSave();
-                if (!ok) return; // Keep modal open if save failed
+                if (!ok) return; 
             }
         }
+        
         container.classList.add('hidden');
-        // On détache aussi l'écouteur global temporaire si nécessaire
-        window.profileIsDirty = false;
+        window.profileHandleClose = null;
+
+        // Recharger la page uniquement si des modifs ont eu lieu (pour tout rafraichir proprement)
+        if (hasSavedChanges) {
+            window.location.reload();
+        }
     };
 
     // Pour que main.js puisse aussi vérifier
@@ -319,11 +325,17 @@ function setupProfileEvents(container, user, userData) {
 
         try {
             await updateProfile(user, { displayName: pseudo });
-            await setDoc(doc(db, "users", user.uid), { pseudo, bio, isPublic, updatedAt: Date.now() }, { merge: true });
+            const newData = { pseudo, bio, isPublic, photoURL: user.photoURL, updatedAt: Date.now() };
+            await setDoc(doc(db, "users", user.uid), newData, { merge: true });
+            
+            // Mettre à jour la navbar immédiatement sans attendre le reload
+            updateUserProfileUI(user, newData);
+
             msgEl.textContent = "Profil mis à jour !";
             msgEl.style.display = 'block';
             msgEl.style.color = "var(--primary)";
-            isDirty = false; // Reset dirty state
+            isDirty = false;
+            hasSavedChanges = true;
             setTimeout(() => msgEl.style.display = 'none', 3000);
             return true;
         } catch (e) {
