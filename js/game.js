@@ -41,15 +41,27 @@ export function resetGameState() {
     state.won = false;
     const controls = document.getElementById('game-controls');
     if (controls) controls.classList.add('hidden');
+    if (window._saveTimeout) clearTimeout(window._saveTimeout);
+    if (window._mpReportTimeout) clearTimeout(window._mpReportTimeout);
 }
 window.resetGameState = resetGameState;
+
+export async function forceSaveDraft() {
+    if (state.draftId) {
+        if (window._saveTimeout) clearTimeout(window._saveTimeout);
+        await saveSoloProgress(state.draftId, state.guesses, state.attempts, state.foundCount);
+    }
+}
+window.forceSaveDraft = forceSaveDraft;
 
 export function getGameState() {
     return {
         foundCount: state.foundCount,
-        totalCount: state.tokens.filter(t => t.isWord).length,
+        totalCount: state.tokens ? state.tokens.filter(t => t.isWord).length : 0,
         won: state.won,
-        attempts: state.attempts
+        attempts: state.attempts,
+        mode: state.mode,
+        draftId: state.draftId
     };
 }
 window.getGameState = getGameState;
@@ -198,6 +210,7 @@ function startGame(article, preSolved = false, savedGuesses = [], savedAttempts 
     document.getElementById('game-controls').classList.remove('hidden');
 
     // Timer
+    state.startTime = Date.now();
     state.pausedOffset = 0;
     if (window._gameTimer) clearInterval(window._gameTimer);
     window._gameTimer = setInterval(updateTimer, 1000);
@@ -298,7 +311,7 @@ function renderGame() {
         quitBtn.style.borderTop = "1px solid var(--glass-border)";
         quitBtn.style.marginTop = "auto";
         quitBtn.innerHTML = `
-            <button onclick="window.navigateTo('solo', true)" class="btn-primary" style="width:100%; justify-content:center; background:#475569; padding:0.6rem; font-size:0.85rem;">
+            <button onclick="window.forceSaveDraft().then(() => window.navigateTo('solo', true))" class="btn-primary" style="width:100%; justify-content:center; background:#475569; padding:0.6rem; font-size:0.85rem;">
                 <i class="fa-solid fa-person-running"></i> Quitter et Sauvegarder
             </button>
         `;
@@ -377,9 +390,9 @@ function renderWinBanner(target) {
             <i class="fa-solid fa-trophy"></i>
             <div>
                 <h2>Bravo ! Article trouvé !</h2>
-                <p>En \${state.attempts} tentatives</p>
+                <p>En ${state.attempts} tentatives</p>
             </div>
-            <a href="\${state.article.url}" target="_blank" class="wiki-link-btn">
+            <a href="${state.article.url}" target="_blank" class="wiki-link-btn">
                 <i class="fa-brands fa-wikipedia-w"></i>
                 Voir l'article
             </a>
@@ -528,19 +541,31 @@ export function handleGuess(rawInput) {
         revealWordInDOM(cleanInput, hitCount);
     }
 
-    // Sauvegarde auto du brouillon Solo
+    // Sauvegarde auto du brouillon Solo (Debounce pour préserver les quotas Firebase)
     if (state.draftId) {
         const statusEl = document.getElementById('solo-save-status');
-        if (statusEl) statusEl.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Synchronisation...';
+        if (statusEl) statusEl.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Attente...';
         
-        saveSoloProgress(state.draftId, state.guesses, state.attempts, state.foundCount)
-            .then(() => {
-                if (statusEl) statusEl.innerHTML = '<i class="fa-solid fa-cloud-check"></i> Sauvegarde auto active';
-            })
-            .catch(err => {
-                console.error(err);
-                if (statusEl) statusEl.innerHTML = '<i class="fa-solid fa-circle-exclamation" style="color:red"></i> Erreur de sauvegarde';
-            });
+        if (window._saveTimeout) clearTimeout(window._saveTimeout);
+        window._saveTimeout = setTimeout(() => {
+            if (statusEl) statusEl.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Synchronisation...';
+            saveSoloProgress(state.draftId, state.guesses, state.attempts, state.foundCount)
+                .then(() => {
+                    if (statusEl) statusEl.innerHTML = '<i class="fa-solid fa-cloud-check"></i> Sauvegarde auto active';
+                })
+                .catch(err => {
+                    console.error(err);
+                    if (statusEl) statusEl.innerHTML = '<i class="fa-solid fa-circle-exclamation" style="color:red"></i> Erreur de sauvegarde';
+                });
+        }, 10000); // Sauvegarde toutes les 10 secondes d'inactivité
+    }
+
+    // Multiplayer progress update (Debounce pour préserver les quotas Firebase)
+    if (state.mode === 'multiplayer' && window.mpReportProgress) {
+        if (window._mpReportTimeout) clearTimeout(window._mpReportTimeout);
+        window._mpReportTimeout = setTimeout(() => {
+            window.mpReportProgress(state.foundCount, state.totalWords, false, state.attempts);
+        }, 8000); // Synchronisation tous les 8 secondes d'inactivité
     }
 
     updateCloseMatches();
@@ -700,10 +725,10 @@ function updateGuessesSidebar() {
     [...state.history].reverse().forEach(item => {
         const div = document.createElement('div');
         const isHit = item.hits > 0;
-        div.className = `guess-item \${isHit ? 'hit' : 'miss'}`;
+        div.className = `guess-item ${isHit ? 'hit' : 'miss'}`;
         div.innerHTML = `
-            <span>\${item.word}</span>
-            <span class="guess-badge">\${isHit ? item.hits : ''}</span>
+            <span>${item.word}</span>
+            <span class="guess-badge">${isHit ? item.hits : ''}</span>
         `;
         list.appendChild(div);
     });
@@ -716,14 +741,15 @@ function updateStats() {
     const attemptsEl = document.getElementById('stat-attempts');
     const wordsEl = document.getElementById('stat-words');
     if (attemptsEl) attemptsEl.textContent = state.attempts;
-    if (wordsEl) wordsEl.textContent = `\${state.foundCount}/\${state.totalWords}`;
+    if (wordsEl) wordsEl.textContent = `${state.foundCount}/${state.totalWords}`;
 }
 
 function updateTimer() {
     const el = document.getElementById('stat-timer');
     if (!el) return;
     const elapsed = Math.floor((Date.now() - state.startTime - state.pausedOffset) / 1000);
+    state.timer = elapsed;
     const m = Math.floor(elapsed / 60).toString().padStart(2, '0');
     const s = (elapsed % 60).toString().padStart(2, '0');
-    el.textContent = `\${m}:\${s}`;
+    el.textContent = `${m}:${s}`;
 }

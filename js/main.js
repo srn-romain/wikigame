@@ -81,13 +81,20 @@ function setupAuthListeners() {
 
 export async function navigateTo(view, force = false) {
     if (window.isGameActive && window.isGameActive()) {
-        if (!force) {
+        const gameState = window.getGameState ? window.getGameState() : null;
+        const isAutoSavedSolo = gameState && gameState.mode === 'solo' && gameState.draftId;
+
+        if (!force && !isAutoSavedSolo) {
             const confirmed = await showConfirmModal(
                 "Partie en cours",
                 "Attention : vous avez une partie en cours. Si vous changez de page maintenant, votre progression sera perdue et aucun score ne sera enregistré dans vos statistiques. Souhaitez-vous vraiment quitter ?",
                 "Quitter la partie"
             );
             if (!confirmed) return;
+        }
+
+        if (isAutoSavedSolo && window.forceSaveDraft) {
+            await window.forceSaveDraft();
         }
 
         // Reset game state
@@ -744,7 +751,7 @@ function renderMultiplayerMenu(container) {
             <div style="text-align:center;margin-bottom:2rem;">
                 <i class="fa-solid fa-users-line" style="font-size:2.5rem;color:var(--accent);margin-bottom:.75rem;"></i>
                 <h2 style="margin:0 0 .25rem;">Mode Compétition</h2>
-                <p style="color:var(--text-muted);font-size:.9rem;">Créez votre salle ou rejoignez-en une existante.</p>
+                <p style="color:white;font-size:.9rem;">Créez votre salle ou rejoignez-en une existante.</p>
             </div>
 
             <div style="display:flex; flex-direction:column; gap:2rem; max-width:550px; margin: 0 auto;">
