@@ -151,9 +151,17 @@ function renderLobby(data, roomId) {
             <div style="text-align: center; margin-bottom: 2rem;">
                 <i class="fa-solid fa-door-open" style="font-size:2rem; color:var(--accent); margin-bottom:0.75rem;"></i>
                 <h2>Salle d'attente</h2>
-                <div style="font-size: 2.5rem; font-family: var(--font-mono); color: var(--primary); letter-spacing: 6px; margin: 1rem 0; font-weight:700;">
-                    ${roomId}
+                
+                <div style="display:flex; align-items:center; justify-content:center; gap:15px; margin: 1rem 0;">
+                    <div style="font-size: 2.5rem; font-family: var(--font-mono); color: var(--primary); letter-spacing: 6px; font-weight:700;">
+                        ${roomId}
+                    </div>
+                    <button onclick="window.copyRoomCode('${roomId}')" id="copy-btn" class="glass" title="Copier le code" 
+                        style="width:45px; height:45px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:var(--text-main); cursor:pointer; transition: all 0.2s; border: 1px solid #eee; background: white;">
+                        <i class="fa-solid fa-copy"></i>
+                    </button>
                 </div>
+
                 <p style="color:var(--text-muted); font-size:0.85rem;">Partagez ce code avec vos amis</p>
             </div>
 
@@ -177,6 +185,28 @@ function renderLobby(data, roomId) {
         </div>
     `;
 }
+
+// Global copy helper
+window.copyRoomCode = async (code) => {
+    try {
+        await navigator.clipboard.writeText(code);
+        const btn = document.getElementById('copy-btn');
+        const icon = btn.querySelector('i');
+        
+        // Visual feedback
+        icon.className = 'fa-solid fa-check';
+        btn.style.borderColor = 'var(--primary)';
+        btn.style.color = 'var(--primary)';
+        
+        setTimeout(() => {
+            icon.className = 'fa-solid fa-copy';
+            btn.style.borderColor = '#eee';
+            btn.style.color = 'var(--text-main)';
+        }, 2000);
+    } catch (err) {
+        console.error('Failed to copy!', err);
+    }
+};
 
 function generateRoomCode() {
     return Math.random().toString(36).substring(2, 7).toUpperCase();
