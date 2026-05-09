@@ -111,6 +111,10 @@ async function navigateTo(view) {
             await waitForAuth();
             renderMultiplayerMenu(container);
             break;
+
+        case 'ranking':
+            renderRanking(container);
+            break;
     }
 }
 
@@ -126,7 +130,7 @@ function renderHome(container) {
             <div style="margin-bottom: 0.5rem; text-align: center;">
                 <h1 class="home-title">
                     <i class="fa-brands fa-wikipedia-w"></i>
-                    <span><span style="color:var(--primary)">WIKI</span><span style="color:var(--accent)">REVEAL</span></span>
+                    <span><span style="color:var(--primary)">WIKI</span><span style="color:var(--accent)">GAME</span></span>
                 </h1>
                 <p style="font-size: 1.25rem; color: var(--title-dark); font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.8;">
                     Le jeu de décryptage encyclopédique
@@ -542,3 +546,148 @@ export async function openAdminDashboard() {
 }
 
 window.openAdminDashboard = openAdminDashboard;
+
+async function renderRanking(container) {
+    container.innerHTML = `
+        <div class="loading-screen">
+            <div class="loading-spinner"></div>
+            <p>Chargement du classement mondial...</p>
+        </div>
+    `;
+
+    try {
+        const { db, collection, getDocs, query, where, orderBy, limit, getDoc, doc, getCountFromServer, getCurrentUser } = await import("./firebase-app.js");
+        const user = getCurrentUser();
+        let currentUserData = null;
+        let currentUserRank = null;
+
+        if (user && !user.isAnonymous) {
+            const userDoc = await getDoc(doc(db, "users", user.uid));
+            if (userDoc.exists()) {
+                currentUserData = userDoc.data();
+                const xp = currentUserData.xp || 0;
+                const countSnap = await getCountFromServer(query(collection(db, "users"), where("xp", ">", xp)));
+                currentUserRank = countSnap.data().count + 1;
+            }
+        }
+
+        const q = query(
+            collection(db, "users"),
+            where("isPublic", "==", true),
+            orderBy("xp", "desc"),
+            limit(50)
+        );
+        const snap = await getDocs(q);
+        const players = [];
+        let rankCounter = 1;
+        snap.forEach(d => {
+            players.push({ ...d.data(), actualRank: rankCounter++ });
+        });
+
+        const isInTop50 = players.some(p => p.uid === user?.uid);
+        const showPersonalRow = currentUserData && !isInTop50;
+
+        let tableRowsHtml = players.map(p => {
+            const isPersonal = p.uid === user?.uid;
+            const isTop3 = p.actualRank <= 3;
+            const colors = ["#fbbf24", "#94a3b8", "#b45309"];
+            
+            return `
+                <tr style="border-bottom:1px solid #f3f4f6; ${isPersonal ? 'background: #f0fdf4;' : ''}">
+                    <td style="padding:1.2rem; text-align:center;">
+                        ${isTop3 
+                            ? `<i class="fa-solid fa-medal" style="color:${colors[p.actualRank - 1]}; font-size:1.4rem;"></i>` 
+                            : `<span style="color:#111827; font-weight:800; font-family:'JetBrains Mono', monospace; font-size:1rem;">#${p.actualRank}</span>`
+                        }
+                    </td>
+                    <td style="padding:1.2rem;">
+                        <div style="display:flex; align-items:center; gap:12px;">
+                            <div class="avatar-placeholder" style="width:38px; height:38px; font-size:0.9rem; background:var(--primary); color:white; font-weight:800;">
+                                ${p.pseudo ? p.pseudo[0].toUpperCase() : '?'}
+                            </div>
+                            <div style="font-weight:800; color:#111827; font-size:1rem;">
+                                ${p.pseudo || "Anonyme"} 
+                                ${isPersonal ? '<span style="background:var(--primary); color:white; font-size:0.65rem; padding:2px 6px; border-radius:4px; margin-left:8px;">VOUS</span>' : ""}
+                            </div>
+                        </div>
+                    </td>
+                    <td style="padding:1.2rem; text-align:right;">
+                        <span style="background:#dcfce7; color:#166534; padding:6px 14px; border-radius:20px; font-weight:800; font-size:1rem; border: 1.5px solid #bbf7d0;">
+                            ${p.xp || 0} XP
+                        </span>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+
+        if (showPersonalRow) {
+            const isPrivate = currentUserData.isPublic === false;
+            tableRowsHtml += `
+                <tr style="border: 2px dashed ${isPrivate ? 'var(--accent)' : 'var(--primary)'}; background: ${isPrivate ? '#fffaf0' : '#f0fdf4'}; margin-top: 10px;">
+                    <td style="padding:1.2rem; text-align:center;">
+                        <span style="color:#111827; font-weight:800; font-family:'JetBrains Mono', monospace; font-size:1rem;">#${currentUserRank}</span>
+                    </td>
+                    <td style="padding:1.2rem;">
+                        <div style="display:flex; align-items:center; gap:12px;">
+                            <div class="avatar-placeholder" style="width:38px; height:38px; font-size:0.9rem; background:${isPrivate ? 'var(--accent)' : 'var(--primary)'}; color:white; font-weight:800;">
+                                ${currentUserData.pseudo ? currentUserData.pseudo[0].toUpperCase() : '?'}
+                            </div>
+                            <div>
+                                <div style="font-weight:800; color:#111827; font-size:1rem;">
+                                    ${currentUserData.pseudo || "Anonyme"} 
+                                    <span style="background:${isPrivate ? 'var(--accent)' : 'var(--primary)'}; color:white; font-size:0.65rem; padding:2px 6px; border-radius:4px; margin-left:8px;">VOUS</span>
+                                </div>
+                                ${isPrivate ? `
+                                    <div style="font-size:0.75rem; color:#b45309; font-weight:700; margin-top:3px;">
+                                        <i class="fa-solid fa-eye-slash"></i> Profil privé : vous seul voyez votre position
+                                    </div>
+                                ` : ""}
+                            </div>
+                        </div>
+                    </td>
+                    <td style="padding:1.2rem; text-align:right;">
+                        <span style="background:${isPrivate ? 'var(--accent)' : '#dcfce7'}; color:${isPrivate ? 'white' : '#166534'}; padding:6px 14px; border-radius:20px; font-weight:800; font-size:1rem; border: 1.5px solid ${isPrivate ? 'transparent' : '#bbf7d0'};">
+                            ${currentUserData.xp || 0} XP
+                        </span>
+                    </td>
+                </tr>
+            `;
+        }
+
+        container.innerHTML = `
+            <div style="max-width:800px; margin: 2rem auto; padding: 0 1rem;">
+                <div style="text-align:center; margin-bottom: 3rem;">
+                    <h1 style="font-size:2.5rem; margin-bottom:0.5rem; color:#111827; font-weight:800;"><i class="fa-solid fa-trophy" style="color:#fbbf24;"></i> Classement Mondial</h1>
+                    <p style="color:#111827; font-weight:800; font-size:1.2rem;">Les meilleurs décrypteurs de WIKIGAME</p>
+                </div>
+
+                <div class="glass" style="padding:0; overflow:hidden; border-radius:16px; border: 1px solid #e5e7eb; background:white; box-shadow:0 10px 25px rgba(0,0,0,0.05);">
+                    <table style="width:100%; border-collapse:collapse; text-align:left;">
+                        <thead style="background:#f9fafb; border-bottom:2px solid #e5e7eb;">
+                            <tr>
+                                <th style="padding:1.2rem; width:80px; text-align:center; color:#111827; font-weight:800; text-transform:uppercase; font-size:0.75rem; letter-spacing:0.05em;">Rang</th>
+                                <th style="padding:1.2rem; color:#111827; font-weight:800; text-transform:uppercase; font-size:0.75rem; letter-spacing:0.05em;">Joueur</th>
+                                <th style="padding:1.2rem; text-align:right; color:#111827; font-weight:800; text-transform:uppercase; font-size:0.75rem; letter-spacing:0.05em;">Points XP</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${tableRowsHtml}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div style="margin-top:3rem; padding: 1.5rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; text-align:center; box-shadow:0 4px 12px rgba(0,0,0,0.02);">
+                    <h4 style="margin:0 0 0.5rem; color:#111827; font-size:1.1rem; font-weight:800;">Comment gagner des points ?</h4>
+                    <p style="color:#374151; font-size:0.95rem; margin:0; line-height:1.5; font-weight:600;">
+                        <span style="display:inline-block; background:#dcfce7; color:#166534; padding:4px 10px; border-radius:6px; font-weight:800; margin-right:5px; border:1px solid #bbf7d0;">+50 XP</span> Défis Quotidiens &nbsp;&nbsp;
+                        <span style="display:inline-block; background:#dbeafe; color:#1e40af; padding:4px 10px; border-radius:6px; font-weight:800; margin-right:5px; border:1px solid #bfdbfe;">+25 XP</span> Parties Solo
+                    </p>
+                </div>
+            </div>
+        `;
+
+    } catch (e) {
+        console.error("Ranking: Error fetching users", e);
+        container.innerHTML = `<div class="glass" style="margin:2rem auto; text-align:center; padding:3rem;"><p style="color:#ef4444; font-weight:800;">Erreur lors du chargement du classement.</p></div>`;
+    }
+}

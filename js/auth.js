@@ -98,7 +98,11 @@ function renderProfileModal(container, user, userData) {
                 <div class="stats-row" style="display:grid; grid-template-columns: 1fr; gap: 10px; margin-bottom: 1.5rem;">
                                     <div class="glass" id="view-daily-history" style="padding: 12px; text-align:center; border-radius:12px; cursor:pointer; transition:all 0.2s; border:1px solid rgba(0,0,0,0.05);" onmouseover="this.style.transform='translateY(-2px)'; this.style.borderColor='var(--accent)';" onmouseout="this.style.transform='none'; this.style.borderColor='rgba(0,0,0,0.05)';">
                         <div style="font-size:1.2rem; font-weight:800; color:var(--accent);">${(userData.dailyHistory || []).length}</div>
-                        <div style="font-size:0.65rem; color:var(--text-muted); text-transform:uppercase; font-weight:700;">Défis Quotidiens Résolus <i class="fa-solid fa-chevron-right" style="margin-left:4px; font-size:0.6rem;"></i></div>
+                        <div style="font-size:0.65rem; color:var(--text-muted); text-transform:uppercase; font-weight:700;">Défis Résolus <i class="fa-solid fa-chevron-right" style="margin-left:4px; font-size:0.6rem;"></i></div>
+                    </div>
+                    <div class="glass" style="flex:1; padding:1.2rem; text-align:center; border: 1px solid #e5e7eb;">
+                        <div style="font-size:1.2rem; font-weight:800; color:var(--primary);">${userData.xp || 0}</div>
+                        <div style="font-size:0.65rem; color:var(--text-muted); text-transform:uppercase; font-weight:700;">Points XP</div>
                     </div>
                 </div>
 
@@ -112,6 +116,13 @@ function renderProfileModal(container, user, userData) {
                     <div class="form-group">
                         <label>Bio (max 100 caractères)</label>
                         <textarea id="profile-bio" maxlength="100" style="background:#f9fafb; border:1px solid #e5e7eb; padding:0.8rem; border-radius:var(--radius-md); color:var(--text-main); font-family:var(--font-ui); resize:none; height:60px; outline:none;">${userData.bio || ''}</textarea>
+                    </div>
+
+                    <div style="display:flex; align-items:center; gap:10px; margin: 10px 0; background: #f0f7ff; padding: 10px; border-radius: 8px;">
+                        <input type="checkbox" id="profile-public" ${userData.isPublic !== false ? 'checked' : ''} style="width:18px; height:18px; cursor:pointer;">
+                        <label for="profile-public" style="font-size:0.85rem; color:#1e40af; cursor:pointer; font-weight:600;">
+                            Apparaître publiquement dans le classement
+                        </label>
                     </div>
                     
                     <div style="display:flex; flex-direction:column; gap:8px; margin-top: 0.5rem;">
@@ -211,12 +222,13 @@ function setupProfileEvents(container, user, userData) {
     saveBtn.onclick = async () => {
         const pseudo = document.getElementById('profile-pseudo').value;
         const bio = document.getElementById('profile-bio').value;
+        const isPublic = document.getElementById('profile-public').checked;
         saveBtn.disabled = true;
         saveBtn.textContent = "Enregistrement...";
 
         try {
             await updateProfile(user, { displayName: pseudo });
-            await setDoc(doc(db, "users", user.uid), { pseudo, bio, updatedAt: Date.now() }, { merge: true });
+            await setDoc(doc(db, "users", user.uid), { pseudo, bio, isPublic, updatedAt: Date.now() }, { merge: true });
             msgEl.textContent = "Profil mis à jour !";
             msgEl.style.display = 'block';
             msgEl.style.color = "var(--primary)";

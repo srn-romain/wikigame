@@ -71,13 +71,19 @@ async function _syncUserDoc(user) {
                 photoURL:         user.photoURL || null,
                 createdAt:        serverTimestamp(),
                 lastLoginAt:      serverTimestamp(),
+                xp:               0,
+                isPublic:         true,
                 gamesPlayed:      0,
-                lastDailyDate:    null,
-                dailyFoundToday:  false,
                 dailyHistory:     []
             });
         } else {
-            await updateDoc(userRef, { lastLoginAt: serverTimestamp() });
+            const data = snap.data();
+            const updates = { lastLoginAt: serverTimestamp() };
+            // S'assurer que les anciens utilisateurs ont les champs nécessaires pour le classement
+            if (data.xp === undefined) updates.xp = 0;
+            if (data.isPublic === undefined) updates.isPublic = true;
+            
+            await updateDoc(userRef, updates);
         }
     } catch (e) {
         console.error("Auth: Error syncing user doc:", e);

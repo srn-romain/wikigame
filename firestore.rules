@@ -8,9 +8,9 @@ service cloud.firestore {
 
     // ── USERS ──
     match /users/{uid} {
-      allow read:  if request.auth != null && (request.auth.uid == uid || isAdmin());
+      allow read:  if request.auth != null && (request.auth.uid == uid || resource.data.isPublic == true || isAdmin());
       allow write: if request.auth != null && request.auth.uid == uid;
-      allow list:  if isAdmin(); // Autoriser le listage pour les 10 derniers connectés
+      allow list:  if request.auth != null; // On filtrera par isPublic dans la requête
     }
 
     // ── DAILIES ──

@@ -496,21 +496,32 @@ async function triggerWin(skipSave = false) {
 
     if (window._gameTimer) clearInterval(window._gameTimer);
 
-    // Sauvegarde Firestore uniquement pour le mode daily (pas solo)
+    // Sauvegarde Firestore
     const user = getCurrentUser();
-    if (user && !user.isAnonymous && !skipSave && state.mode === 'daily') {
+    const isPublicMode = state.mode === 'daily' || state.mode === 'solo';
+
+    if (user && !user.isAnonymous && !skipSave && isPublicMode) {
         try {
-            const { markDailyAsSolved } = await import('./daily.js');
-            await markDailyAsSolved(user, state.article.title);
+            const { incrementGlobalStat, doc, db, updateDoc, increment } = await import('./firebase-app.js');
             
-            // Stats Globales
-            const { incrementGlobalStat } = await import('./firebase-app.js');
-            incrementGlobalStat('totalGamesPlayed');
-            if (state.mode === 'solo' || state.mode === 'daily') {
-                incrementGlobalStat('soloGamesPlayed');
+            // Logique spécifique au mode Quotidien
+            if (state.mode === 'daily') {
+                const { markDailyAsSolved } = await import('./daily.js');
+                await markDailyAsSolved(user, state.article.title);
             }
+
+            // Stats Globales & XP
+            incrementGlobalStat('totalGamesPlayed');
+            incrementGlobalStat('soloGamesPlayed');
+            
+            // Attribution XP différentiée
+            const xpToAdd = (state.mode === 'daily') ? 50 : 25;
+            await updateDoc(doc(db, "users", user.uid), { 
+                xp: increment(xpToAdd) 
+            });
+
         } catch (e) {
-            console.error("Game: Failed to save daily stats:", e);
+            console.error("Game: Failed to save victory stats:", e);
         }
     }
 
