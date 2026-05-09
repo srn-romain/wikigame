@@ -156,9 +156,30 @@ export async function startRound() {
 }
 
 export async function pauseGame() {
-    const snap = await getDoc(doc(db, "rooms", _roomId));
-    const cur  = snap.data().state;
-    await updateDoc(doc(db, "rooms", _roomId), { state: cur === "PAUSED" ? "PLAYING" : "PAUSED" });
+    const user = getCurrentUser();
+    if (!user) return;
+
+    const roomRef = doc(db, "rooms", _roomId);
+    const snap = await getDoc(roomRef);
+    if (!snap.exists()) return;
+    const data = snap.data();
+
+    if (data.state === "PLAYING") {
+        // N'importe qui peut mettre pause
+        await updateDoc(roomRef, { 
+            state: "PAUSED", 
+            pausedBy: user.uid 
+        });
+    } else if (data.state === "PAUSED") {
+        // Seul celui qui a mis pause (ou l'admin par sécurité ?) peut relancer
+        // On suit la règle demandée : celui qui a mis pause relance.
+        if (data.pausedBy === user.uid) {
+            await updateDoc(roomRef, { 
+                state: "PLAYING", 
+                pausedBy: deleteField() 
+            });
+        }
+    }
 }
 
 export async function stopGame() {
@@ -448,6 +469,10 @@ function _showPauseBanner() {
         const user = getCurrentUser();
         const isAdmin = user && data.creatorUid === user.uid;
 
+        const pauserUid = data.pausedBy;
+        const pauserName = pauserUid ? (data.players[pauserUid]?.name || "Un joueur") : null;
+        const canResume = user && user.uid === pauserUid;
+
         const content = winner 
             ? `
                 <i class="fa-solid fa-trophy" style="font-size:3rem; color:#f1c40f; margin-bottom:1rem;"></i>
@@ -465,12 +490,14 @@ function _showPauseBanner() {
             : `
                 <i class="fa-solid fa-pause" style="font-size:2rem; color:var(--accent); margin-bottom:1rem;"></i>
                 <h2 style="margin:0;">Partie en pause</h2>
-                <p style="color:#6b7280; margin-top:.5rem;">${isAdmin ? "Vous avez mis la partie en pause." : "En attente de l'hôte…"}</p>
-                ${isAdmin ? `
+                <p style="color:#6b7280; margin-top:.5rem;"><strong>${pauserName}</strong> a mis la partie en pause.</p>
+                ${canResume ? `
                     <button onclick="window._mpPause()" class="btn-primary" style="margin-top:2rem; width:100%; justify-content:center;">
                         <i class="fa-solid fa-play"></i> Reprendre la partie
                     </button>
-                ` : ''}
+                ` : `
+                    <p style="color:#94a3b8; font-size:0.85rem; margin-top:1.5rem;">En attente de reprise par ${pauserName}…</p>
+                `}
             `;
 
         banner.innerHTML = `

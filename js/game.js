@@ -196,6 +196,11 @@ function renderGame() {
                 <i class="fa-solid fa-users"></i> Joueurs
             </div>
             <div id="players-live-list" class="guesses-list"></div>
+            <div style="padding:1rem; border-top: 1px solid var(--glass-border); margin-top:auto;">
+                <button onclick="window._mpPause()" class="btn-primary" style="width:100%; justify-content:center; padding: 0.6rem; font-size: 0.8rem; background: rgba(255,255,255,0.1); border: 1px solid var(--glass-border); color: var(--text-main);">
+                    <i class="fa-solid fa-pause"></i> Mettre en pause
+                </button>
+            </div>
         `;
         layout.appendChild(rightSidebar);
     }
