@@ -26,9 +26,9 @@ export async function openAuthModal(mode = 'login') {
         const userData = userDoc.exists() ? userDoc.data() : {
             pseudo:           user.displayName || "",
             bio:              "",
-            dailySolvedTotal: 0,
             lastDailyDate:    null,
-            dailyFoundToday:  false
+            dailyFoundToday:  false,
+            dailyHistory:     []
         };
         renderProfileModal(modalContainer, user, userData);
     } else {
@@ -96,8 +96,8 @@ function renderProfileModal(container, user, userData) {
                 </div>
 
                 <div class="stats-row" style="display:grid; grid-template-columns: 1fr; gap: 10px; margin-bottom: 1.5rem;">
-                    <div class="glass" id="view-daily-history" style="padding: 12px; text-align:center; border-radius:12px; cursor:pointer; transition:all 0.2s; border:1px solid rgba(0,0,0,0.05);" onmouseover="this.style.transform='translateY(-2px)'; this.style.borderColor='var(--accent)';" onmouseout="this.style.transform='none'; this.style.borderColor='rgba(0,0,0,0.05)';">
-                        <div style="font-size:1.2rem; font-weight:800; color:var(--accent);">${userData.dailySolvedTotal || 0}</div>
+                                    <div class="glass" id="view-daily-history" style="padding: 12px; text-align:center; border-radius:12px; cursor:pointer; transition:all 0.2s; border:1px solid rgba(0,0,0,0.05);" onmouseover="this.style.transform='translateY(-2px)'; this.style.borderColor='var(--accent)';" onmouseout="this.style.transform='none'; this.style.borderColor='rgba(0,0,0,0.05)';">
+                        <div style="font-size:1.2rem; font-weight:800; color:var(--accent);">${(userData.dailyHistory || []).length}</div>
                         <div style="font-size:0.65rem; color:var(--text-muted); text-transform:uppercase; font-weight:700;">Défis Quotidiens Résolus <i class="fa-solid fa-chevron-right" style="margin-left:4px; font-size:0.6rem;"></i></div>
                     </div>
                 </div>
@@ -129,6 +129,13 @@ function renderProfileModal(container, user, userData) {
                             <i class="fa-solid fa-right-from-bracket"></i> Déconnexion
                         </button>
                     </div>
+
+                    ${user.uid === "xwX5eCsUqpRLIBAI3K5Y7y70HLp1" ? `
+                        <div class="divider" style="margin: 1.5rem 0 0.75rem;">Admin</div>
+                        <button id="admin-dashboard-btn" class="btn-primary" style="width:100%; justify-content:center; background:#2c3e50; color:white; border:none; box-shadow: 0 4px 12px rgba(44, 62, 80, 0.2);">
+                            <i class="fa-solid fa-user-shield"></i> Console Administration
+                        </button>
+                    ` : ''}
                 </div>
 
                 <div class="divider" style="margin: 1.5rem 0 0.75rem; color: var(--danger);">Zone de danger</div>
@@ -229,6 +236,15 @@ function setupProfileEvents(container, user, userData) {
         // Redirection vers l'accueil (nettoyage URL) et rechargement
         window.location.href = window.location.origin + window.location.pathname;
     };
+
+    const adminBtn = document.getElementById('admin-dashboard-btn');
+    if (adminBtn) {
+        adminBtn.onclick = async () => {
+            container.classList.add('hidden');
+            const { openAdminDashboard } = await import('./main.js');
+            openAdminDashboard();
+        };
+    }
 
     deleteBtn.onclick = () => {
         showConfirmModal(

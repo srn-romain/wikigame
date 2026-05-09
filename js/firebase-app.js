@@ -3,7 +3,8 @@ import {
     getFirestore,
     collection, doc, setDoc, getDoc, updateDoc,
     onSnapshot, increment, serverTimestamp,
-    runTransaction, query, where, getDocs, deleteDoc, deleteField, arrayUnion
+    runTransaction, query, where, getDocs, deleteDoc, deleteField, arrayUnion,
+    orderBy, limit, getCountFromServer
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import {
     getAuth,
@@ -83,19 +84,44 @@ async function _syncUserDoc(user) {
     }
 }
 
+export async function incrementGlobalStat(statName) {
+    try {
+        const statsRef = doc(db, "global_stats", "counters");
+        await setDoc(statsRef, { [statName]: increment(1) }, { merge: true });
+    } catch (e) {
+        console.error("Stats: Error incrementing global stat:", statName, e);
+    }
+}
+
 
 
 function getCurrentUser() { return currentUser; }
 function waitForAuth()    { return authReady; }
 
-function updateUserProfileUI(user, userData = {}) {
+function updateUserProfileUI(user) {
     const btn = document.getElementById('user-profile-btn');
+    const adminArea = document.getElementById('admin-nav-area');
     if (!btn) return;
 
     const isAnon = user.isAnonymous;
     const name   = user.displayName || user.email?.split('@')[0] || `Joueur-${user.uid.slice(0, 4)}`;
     const photo  = user.photoURL;
+    const isAdmin = user.uid === "xwX5eCsUqpRLIBAI3K5Y7y70HLp1";
 
+    // 1. Gérer le bouton Admin (Indépendant)
+    if (adminArea) {
+        if (isAdmin) {
+            adminArea.innerHTML = `<div id="nav-admin-shortcut" style="color:var(--accent); margin-right:15px; font-size:1.1rem; padding: 8px; cursor:pointer; transition:all 0.2s; background:rgba(0,0,0,0.03); border-radius:8px;" title="Console Admin" onmouseover="this.style.transform='translateY(-2px)'; this.style.background='rgba(0,0,0,0.06)';" onmouseout="this.style.transform='none'; this.style.background='rgba(0,0,0,0.03)'"><i class="fa-solid fa-user-shield"></i></div>`;
+            document.getElementById('nav-admin-shortcut').onclick = (e) => {
+                e.stopPropagation();
+                if (window.openAdminDashboard) window.openAdminDashboard();
+            };
+        } else {
+            adminArea.innerHTML = '';
+        }
+    }
+
+    // 2. Gérer le bouton Profil
     btn.innerHTML = `
         <span class="username">${name}</span>
         ${photo
@@ -104,10 +130,6 @@ function updateUserProfileUI(user, userData = {}) {
                    <i class="fa-solid ${isAnon ? 'fa-user' : 'fa-user-astronaut'}"></i>
                </div>`
         }
-        <div class="glass" id="view-daily-history" style="padding: 12px; text-align:center; border-radius:12px; cursor:pointer; transition:all 0.2s; border:1px solid rgba(0,0,0,0.05);" onmouseover="this.style.transform='translateY(-2px)'; this.style.borderColor='var(--accent)';" onmouseout="this.style.transform='none'; this.style.borderColor='rgba(0,0,0,0.05)';">
-            <div style="font-size:1.2rem; font-weight:800; color:var(--accent);">${(userData.dailyHistory || []).length}</div>
-            <div style="font-size:0.65rem; color:var(--text-muted); text-transform:uppercase; font-weight:700;">Défis Quotidiens Résolus <i class="fa-solid fa-chevron-right" style="margin-left:4px; font-size:0.6rem;"></i></div>
-        </div>
     `;
 }
 
@@ -119,5 +141,6 @@ export {
     collection, doc, setDoc, getDoc, updateDoc,
     onSnapshot, increment, serverTimestamp,
     runTransaction, query, where, getDocs, deleteDoc, deleteField, arrayUnion,
+    orderBy, limit, getCountFromServer,
     waitForAuth, getCurrentUser
 };

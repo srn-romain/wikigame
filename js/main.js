@@ -473,3 +473,72 @@ function setupGameInputs() {
         if (e.key === 'Enter') submit();
     });
 }
+
+export async function openAdminDashboard() {
+    const container = document.getElementById("modal-container");
+    container.innerHTML = `<div class="loading-screen"><div class="loading-spinner"></div><p>Chargement du tableau de bord admin...</p></div>`;
+    container.classList.remove("hidden");
+
+    const { db, collection, getDocs, getCountFromServer, query, orderBy, limit, doc, getDoc } = await import("./firebase-app.js");
+    
+    try {
+        // 1. 10 derniers connectés
+        const usersSnap = await getDocs(query(collection(db, "users"), orderBy("lastLoginAt", "desc"), limit(10)));
+        const lastUsers = [];
+        usersSnap.forEach(d => lastUsers.push(d.data()));
+
+        // 2. Nb de salles (multiplayer)
+        const roomsCountSnap = await getCountFromServer(collection(db, "rooms"));
+        const roomsCount = roomsCountSnap.data().count;
+
+        // 3. Stats globales (total games, solo games)
+        const statsSnap = await getDoc(doc(db, "global_stats", "counters"));
+        const globalStats = statsSnap.exists() ? statsSnap.data() : { totalGamesPlayed: 0, soloGamesPlayed: 0, roomsCreated: 0 };
+
+        container.innerHTML = `
+            <div class="auth-modal" style="max-width: 600px; padding: 2rem;">
+                <button class="close-modal" id="close-admin">&times;</button>
+                <h2 style="margin-bottom: 1.5rem; display:flex; align-items:center; gap:10px;">
+                    <i class="fa-solid fa-user-shield" style="color:var(--accent);"></i> Console Admin
+                </h2>
+
+                <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-bottom: 2rem;">
+                    <div class="glass" style="padding: 1rem; text-align:center;">
+                        <div style="font-size:1.5rem; font-weight:800; color:var(--primary);">${globalStats.totalGamesPlayed || 0}</div>
+                        <div style="font-size:0.7rem; color:var(--text-muted); text-transform:uppercase;">Parties Totales</div>
+                    </div>
+                    <div class="glass" style="padding: 1rem; text-align:center;">
+                        <div style="font-size:1.5rem; font-weight:800; color:var(--accent);">${globalStats.soloGamesPlayed || 0}</div>
+                        <div style="font-size:0.7rem; color:var(--text-muted); text-transform:uppercase;">Parties Solo</div>
+                    </div>
+                    <div class="glass" style="padding: 1rem; text-align:center;">
+                        <div style="font-size:1.5rem; font-weight:800; color:#3498db;">${globalStats.roomsCreated || roomsCount}</div>
+                        <div style="font-size:0.7rem; color:var(--text-muted); text-transform:uppercase;">Salles Créées</div>
+                    </div>
+                </div>
+
+                <h3 style="font-size:1rem; margin-bottom: 1rem;">10 Dernières Connexions</h3>
+                <div style="background:rgba(0,0,0,0.03); border-radius: 12px; overflow:hidden;">
+                    ${lastUsers.map(u => {
+                        const date = u.lastLoginAt ? new Date(u.lastLoginAt.seconds ? u.lastLoginAt.seconds * 1000 : u.lastLoginAt).toLocaleString("fr-FR") : "Inconnu";
+                        return `
+                            <div style="display:flex; justify-content:space-between; padding: 10px 15px; border-bottom: 1px solid rgba(0,0,0,0.05); font-size:0.85rem;">
+                                <strong>${u.pseudo || "Anonyme"}</strong>
+                                <span style="color:var(--text-muted);">${date}</span>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            </div>
+        `;
+
+        document.getElementById("close-admin").onclick = () => container.classList.add("hidden");
+
+    } catch (e) {
+        console.error("Admin: Error fetching dashboard data", e);
+        container.innerHTML = `<div class="auth-modal"><p>Erreur lors du chargement des données admin.</p><button id="close-admin">Fermer</button></div>`;
+        document.getElementById("close-admin").onclick = () => container.classList.add("hidden");
+    }
+}
+
+window.openAdminDashboard = openAdminDashboard;

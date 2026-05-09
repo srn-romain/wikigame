@@ -127,7 +127,6 @@ export async function markDailyAsSolved(user, articleTitle) {
         await updateDoc(userRef, {
             lastDailyDate:    dateId,
             dailyFoundToday:  true,
-            dailySolvedTotal: increment(1),
             dailyHistory: arrayUnion({
                 dateId,
                 title: articleTitle || "Article inconnu",

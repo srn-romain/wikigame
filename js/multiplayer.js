@@ -26,6 +26,9 @@ export async function createRoom({ roomName, username, maxRounds, winMode }) {
     const roomId  = _genCode();
     const roomRef = doc(db, "rooms", roomId);
 
+    const { incrementGlobalStat } = await import('./firebase-app.js');
+    incrementGlobalStat('roomsCreated');
+
     await setDoc(roomRef, {
         roomId,
         name:       roomName || `Salle de ${username}`,

@@ -501,8 +501,14 @@ async function triggerWin(skipSave = false) {
     if (user && !user.isAnonymous && !skipSave && state.mode === 'daily') {
         try {
             const { markDailyAsSolved } = await import('./daily.js');
-            // markDailyAsSolved gère lui-même l'incrémentation de dailySolvedTotal
             await markDailyAsSolved(user, state.article.title);
+            
+            // Stats Globales
+            const { incrementGlobalStat } = await import('./firebase-app.js');
+            incrementGlobalStat('totalGamesPlayed');
+            if (state.mode === 'solo' || state.mode === 'daily') {
+                incrementGlobalStat('soloGamesPlayed');
+            }
         } catch (e) {
             console.error("Game: Failed to save daily stats:", e);
         }
