@@ -1,4 +1,4 @@
-﻿/**
+/**
  * multiplayer.js — Mode Compétition
  * Collection: rooms/{roomId}
  * {
@@ -709,7 +709,7 @@ function _showPauseBanner() {
 
 // ── ÉCRAN DE RECHERCHE (LOADER SYNC) ──────────────────────────────
 function _renderSearching(data) {
-    const container = document.getElementById('main-container');
+    const container = document.getElementById('dynamic-view');
     if (!container) return;
 
     const hostName = data.players[data.hostId]?.name || "L'hôte";
@@ -740,7 +740,7 @@ function _renderLobby(data, roomId, user) {
     document.getElementById('mp-pause-banner')?.remove();
     document.getElementById('mp-admin-panel')?.remove();
 
-    const container = document.getElementById('main-container');
+    const container = document.getElementById('dynamic-view');
     if (!container) return;
 
     const isAdmin   = user && data.creatorUid === user.uid;
@@ -832,7 +832,7 @@ function _renderLeaderboard(data) {
     _removeAdminPanel();
     document.getElementById('mp-pause-banner')?.remove();
 
-    const container = document.getElementById('main-container');
+    const container = document.getElementById('dynamic-view');
     if (!container) return;
 
     document.getElementById('game-controls')?.classList.add('hidden');

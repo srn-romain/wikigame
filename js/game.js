@@ -93,7 +93,7 @@ export async function initGame(mode, articleId = null, preSolved = false, draftI
     state.draftId = draftId;
 
     // Show loading
-    const container = document.getElementById('main-container');
+    const container = document.getElementById('dynamic-view');
     container.innerHTML = `
         <div class="loading-screen">
             <div class="loading-spinner"></div>
@@ -231,7 +231,7 @@ function startGame(article, preSolved = false, savedGuesses = [], savedAttempts 
 // RENDER
 // ─────────────────────────────────────────────
 function renderGame() {
-    const container = document.getElementById('main-container');
+    const container = document.getElementById('dynamic-view');
     container.innerHTML = '';
 
     // ── Main Layout (Sidebar + Content) ──

@@ -549,7 +549,7 @@ window._claimMission = async (id) => {
         
         // Effet de succès et rechargement
         document.getElementById('mission-detail-modal').remove();
-        renderMissions(document.getElementById('main-container'));
+        renderMissions(document.getElementById('dynamic-view'));
         
         // Notification
         showInfoModal("Mission Accomplie", bonusMsg, "success");
@@ -922,7 +922,7 @@ function renderMultiplayerMenu(container) {
 // DAILY CHALLENGE
 // ─────────────────────────────────────────────
 async function loadDailyChallenge() {
-    const container = document.getElementById('main-container');
+    const container = document.getElementById('dynamic-view');
     container.innerHTML = `<div class="loading-screen"><div class="loading-spinner"></div><p>Initialisation du défi quotidien...</p></div>`;
 
     await waitForAuth();
