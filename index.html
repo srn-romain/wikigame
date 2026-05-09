@@ -3,9 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Wikigame</title>
+    <title>WikiGame — Le jeu de décryptage encyclopédique</title>
     <link href="https://srn-romain.github.io/wikigame/favicon.webp" rel="icon">
-    <meta name="description" content="Devinez la page Wikipédia cachée. Tous les mots sont masqués — tapez des mots pour les révéler et trouvez le titre de l'article.">
+    <meta name="description" content="WikiGame : Devinez l'article Wikipédia caché. Tous les mots sont masqués — débloquez des avatars exclusifs et relevez le défi quotidien !">
+
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -15,10 +16,11 @@
     <!-- Custom CSS -->
     <link rel="stylesheet" href="css/style.css">
     <!-- PWA -->
-    <link rel="manifest" href="./manifest.json">
+    <link rel="manifest" href="manifest.json">
+
     <meta name="theme-color" content="#50644C">
     <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
+
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="WikiGame">
     <link rel="apple-touch-icon" href="favicon.webp">
@@ -53,8 +55,94 @@
 
         <!-- Main Content Area -->
         <main id="main-container">
-            <!-- Dynamic Content Injected Here -->
+            <!-- Home View (Visible by default) -->
+            <section id="home-view" class="view-section">
+                <div class="glass home-hero">
+                    <div class="hero-header">
+                        <h1 class="home-title">
+                            <i class="fa-brands fa-wikipedia-w"></i>
+                            <span><span style="color:var(--primary)">WIKI</span><span style="color:var(--accent)">GAME</span></span>
+                        </h1>
+                        <p class="hero-subtitle">Le jeu de décryptage encyclopédique</p>
+                    </div>
+                    
+                    <p class="hero-description">
+                        Saurez-vous identifier l'article caché derrière ses mots masqués ? 
+                        Un défi de culture et de déduction logique.
+                    </p>
+        
+                    <div class="home-btns-container">
+                        <div class="home-btns-row top-row">
+                            <button class="btn-primary btn-hero daily" onclick="window.navigateTo('daily')">
+                                <i class="fa-solid fa-calendar-check"></i> Défi Quotidien
+                            </button>
+                            <button class="btn-primary btn-hero solo" onclick="window.navigateTo('solo')">
+                                <i class="fa-solid fa-play"></i> Mode Solo
+                            </button>
+                            <button class="btn-primary btn-hero multi" onclick="window.navigateTo('multiplayer')">
+                                <i class="fa-solid fa-users"></i> Compétition
+                            </button>
+                        </div>
+                        <div class="home-btns-row bottom-row">
+                            <button class="btn-primary btn-hero rank" onclick="window.navigateTo('ranking')">
+                                <i class="fa-solid fa-ranking-star"></i> Classement
+                            </button>
+                            <button class="btn-primary btn-hero mission" onclick="window.navigateTo('missions')">
+                                <i class="fa-solid fa-scroll"></i> Missions
+                            </button>
+                        </div>
+                    </div>
+
+        
+                    <div class="feature-cards">
+                        <div class="feature-card">
+                            <i class="fa-solid fa-brain" style="color: var(--primary);"></i>
+                            <h3>Déduction</h3>
+                            <p>Analysez la structure et les connecteurs logiques pour percer le mystère.</p>
+                        </div>
+                        <div class="feature-card">
+                            <i class="fa-solid fa-magnifying-glass-chart" style="color: var(--accent);"></i>
+                            <h3>Analyse</h3>
+                            <p>Utilisez les indices de longueur de mots pour valider vos hypothèses.</p>
+                        </div>
+                        <div class="feature-card">
+                            <i class="fa-solid fa-ranking-star" style="color: #2563eb;"></i>
+                            <h3>Compétition</h3>
+                            <p>Mesurez votre rapidité face à la communauté sur l'article du jour.</p>
+                        </div>
+                    </div>
+        
+                    <div class="how-it-works">
+                        <h2>
+                            <i class="fa-solid fa-circle-question"></i> C'est quoi le principe ?
+                        </h2>
+                        <div class="how-it-works-content">
+                            <p>
+                                WikiGame est un jeu de réflexion et de culture générale. Le concept est simple : nous avons choisi un article au hasard sur Wikipédia, mais nous avons <b>masqué tous les mots</b> par des petits blocs noirs.
+                            </p>
+                            <ul>
+                                <li>
+                                    <i class="fa-solid fa-check"></i>
+                                    <span><b>Le but :</b> Retrouver le titre de l'article en devinant les mots qui composent le texte.</span>
+                                </li>
+                                <li>
+                                    <i class="fa-solid fa-check"></i>
+                                    <span><b>Comment jouer ?</b> Proposez des mots dans la barre de saisie. Si le mot existe dans l'article, il se révèle instantanément !</span>
+                                </li>
+                                <li>
+                                    <i class="fa-solid fa-check"></i>
+                                    <span><b>La victoire :</b> La partie s'arrête dès que vous parvenez à trouver le <b>titre principal</b> de la page.</span>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Other Views Container -->
+            <div id="dynamic-view" class="view-section hidden"></div>
         </main>
+
 
         <!-- Floating Game Controls (visible during game) -->
         <div id="game-controls" class="game-controls glass hidden">

@@ -97,7 +97,7 @@ export async function initGame(mode, articleId = null, preSolved = false, draftI
     container.innerHTML = `
         <div class="loading-screen">
             <div class="loading-spinner"></div>
-            <p>Chargement d'un article Wikipedia aléatoire...</p>
+            <p id="loading-status-text">Chargement d'un article Wikipedia aléatoire...</p>
         </div>`;
     document.getElementById('game-controls').classList.add('hidden');
 
@@ -377,9 +377,9 @@ function renderWinBanner(target) {
             <i class="fa-solid fa-trophy"></i>
             <div>
                 <h2>Bravo ! Article trouvé !</h2>
-                <p>En ${state.attempts} tentatives</p>
+                <p>En \${state.attempts} tentatives</p>
             </div>
-            <a href="${state.article.url}" target="_blank" class="wiki-link-btn">
+            <a href="\${state.article.url}" target="_blank" class="wiki-link-btn">
                 <i class="fa-brands fa-wikipedia-w"></i>
                 Voir l'article
             </a>
@@ -700,10 +700,10 @@ function updateGuessesSidebar() {
     [...state.history].reverse().forEach(item => {
         const div = document.createElement('div');
         const isHit = item.hits > 0;
-        div.className = `guess-item ${isHit ? 'hit' : 'miss'}`;
+        div.className = `guess-item \${isHit ? 'hit' : 'miss'}`;
         div.innerHTML = `
-            <span>${item.word}</span>
-            <span class="guess-badge">${isHit ? item.hits : ''}</span>
+            <span>\${item.word}</span>
+            <span class="guess-badge">\${isHit ? item.hits : ''}</span>
         `;
         list.appendChild(div);
     });
@@ -716,7 +716,7 @@ function updateStats() {
     const attemptsEl = document.getElementById('stat-attempts');
     const wordsEl = document.getElementById('stat-words');
     if (attemptsEl) attemptsEl.textContent = state.attempts;
-    if (wordsEl) wordsEl.textContent = `${state.foundCount}/${state.totalWords}`;
+    if (wordsEl) wordsEl.textContent = `\${state.foundCount}/\${state.totalWords}`;
 }
 
 function updateTimer() {
@@ -725,5 +725,5 @@ function updateTimer() {
     const elapsed = Math.floor((Date.now() - state.startTime - state.pausedOffset) / 1000);
     const m = Math.floor(elapsed / 60).toString().padStart(2, '0');
     const s = (elapsed % 60).toString().padStart(2, '0');
-    el.textContent = `${m}:${s}`;
+    el.textContent = `\${m}:\${s}`;
 }

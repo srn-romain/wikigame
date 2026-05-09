@@ -21,6 +21,8 @@ import {
     deleteUser
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import firebaseConfig from './firebase-config.js';
+import { getAvatarHtml } from './avatars.js';
+
 
 // ─────────────────────────────────────────────
 // INIT
@@ -78,7 +80,9 @@ async function _syncUserDoc(user) {
                 email:            user.email || null,
                 pseudo:           user.displayName || null,
                 bio:              "",
+                avatarId:         0,
                 photoURL:         user.photoURL || null,
+
                 createdAt:        serverTimestamp(),
                 lastLoginAt:      serverTimestamp(),
                 xp:               0,
@@ -141,7 +145,16 @@ export async function incrementGlobalStat(statName) {
 function getCurrentUser() { return currentUser; }
 function waitForAuth()    { return authReady; }
 
-let _lastNavUpdate = { name: '', photo: '' };
+let _lastNavUpdate = { name: '', photo: '', avatarId: -1 };
+
+
+// Cache global pour les images en échec (évite les 429 et le clignotement)
+window._failedAvatarUrls = window._failedAvatarUrls || new Set();
+
+window._handleAvatarError = (img, url, fallbackIcon = 'fa-user-astronaut') => {
+    window._failedAvatarUrls.add(url);
+    img.outerHTML = `<i class="fa-solid ${fallbackIcon}"></i>`;
+};
 
 function updateUserProfileUI(user, firestoreData = null) {
     const btn = document.getElementById('user-profile-btn');
@@ -155,15 +168,26 @@ function updateUserProfileUI(user, firestoreData = null) {
         ? firestoreData.pseudo 
         : (user.displayName || user.email?.split('@')[0] || `Joueur-${user.uid.slice(0, 4)}`);
         
-    const photo = (firestoreData && firestoreData.photoURL) 
-        ? firestoreData.photoURL 
-        : user.photoURL;
+    // Priorité absolue aux avatars. On ignore la photo Google pour éviter les erreurs 429
+    // et respecter la consigne de suppression de la gestion des photos de profil.
+    let photo = (firestoreData && firestoreData.photoURL) ? firestoreData.photoURL : null;
 
-    // ⚡ Optimisation : Éviter de rafraichir le DOM si rien n'a changé (évite les 429 sur les images Google)
-    if (_lastNavUpdate.name === name && _lastNavUpdate.photo === photo) {
+
+    let avatarId = firestoreData?.avatarId ?? -1;
+
+    // Si l'image a déjà échoué, on utilise le placeholder
+    if (photo && window._failedAvatarUrls.has(photo)) {
+        photo = null;
+    }
+
+    // ⚡ Optimisation : Éviter de rafraichir le DOM si rien n'a changé
+    if (_lastNavUpdate.name === name && 
+        _lastNavUpdate.photo === (photo || '') && 
+        _lastNavUpdate.avatarId === avatarId) {
         return;
     }
-    _lastNavUpdate = { name, photo };
+    _lastNavUpdate = { name, photo: photo || '', avatarId };
+
 
     const isAdmin = user.uid === "xwX5eCsUqpRLIBAI3K5Y7y70HLp1";
 
@@ -181,16 +205,25 @@ function updateUserProfileUI(user, firestoreData = null) {
     }
 
     // 2. Gérer le bouton Profil
+    const fallbackIcon = isAnon ? 'fa-user' : 'fa-user-astronaut';
+    
+    let avatarHtml = '';
+    if (firestoreData && firestoreData.avatarId !== undefined) {
+        avatarHtml = getAvatarHtml(firestoreData.avatarId, "34px", "0.9rem");
+    } else if (photo && !window._failedAvatarUrls.has(photo)) {
+        avatarHtml = `<img src="${photo}" class="avatar-img" alt="avatar" onerror="window._handleAvatarError(this, '${photo}', '${fallbackIcon}')">`;
+    } else {
+        // Avatar par défaut si rien d'autre n'est dispo
+        avatarHtml = getAvatarHtml(0, "34px", "0.9rem");
+    }
+
+
     btn.innerHTML = `
         <span class="username">${name}</span>
-        ${photo
-            ? `<img src="${photo}" class="avatar-img" alt="avatar">`
-            : `<div class="avatar-placeholder" style="background:${isAnon ? 'var(--text-muted)' : 'var(--accent)'};">
-                   <i class="fa-solid ${isAnon ? 'fa-user' : 'fa-user-astronaut'}"></i>
-               </div>`
-        }
+        ${avatarHtml}
     `;
 }
+
 
 export {
     db, auth, googleProvider,

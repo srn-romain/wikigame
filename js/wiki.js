@@ -5,6 +5,26 @@
 
 const API_BASE = 'https://fr.wikipedia.org/w/api.php';
 
+function updateLoadingStatus(msg) {
+    const el = document.getElementById('loading-status-text');
+    if (el) {
+        el.textContent = msg;
+    }
+}
+
+const FRIENDLY_MESSAGES = [
+    "Ouverture de l'encyclopédie...",
+    "Recherche d'un sujet intéressant...",
+    "Lecture des premières lignes...",
+    "Vérification de la longueur...",
+    "Sujet trop court, on cherche encore...",
+    "Exploration des archives...",
+    "Presque prêt...",
+    "Finalisation du texte..."
+];
+let messageIndex = 0;
+
+
 /**
  * Fetch a random Wikipedia article with its extract in ONE request.
  */
@@ -14,29 +34,32 @@ export async function fetchRandomArticle() {
         format: 'json',
         prop: 'extracts',
         exintro: '0',
-        explaintext: '1',       // USE PLAIN TEXT - Much easier to split into paragraphs without HTML mess
+        explaintext: '1',
         generator: 'random',
         grnnamespace: '0',
         grnlimit: '1',
         origin: '*'
     });
 
-    console.log("WikiAPI: Fetching random article...");
+    updateLoadingStatus(FRIENDLY_MESSAGES[messageIndex % FRIENDLY_MESSAGES.length]);
+    messageIndex++;
+
 
     try {
         const response = await fetch(`${API_BASE}?${params.toString()}`);
 
         if (response.status === 429) {
-            console.warn("WikiAPI: Rate limited (429). Waiting 3s...");
+            updateLoadingStatus("Trop de requêtes, on patiente un peu...");
             await sleep(3000);
             return fetchRandomArticle();
         }
 
         if (!response.ok) {
-            console.error(`WikiAPI: HTTP Error ${response.status}. Waiting 2s...`);
+            updateLoadingStatus("Petit souci de connexion, on réessaie...");
             await sleep(2000);
             return fetchRandomArticle();
         }
+
 
         const data = await response.json();
         const pages = data?.query?.pages;
@@ -51,10 +74,13 @@ export async function fetchRandomArticle() {
         const page = pages[pageId];
 
         if (!page || pageId === '-1' || !page.extract) {
-            console.warn("WikiAPI: Invalid page or no extract. Retrying...");
+            updateLoadingStatus("Sujet vide, on en cherche un autre...");
             await sleep(1000);
             return fetchRandomArticle();
         }
+
+        updateLoadingStatus("Sujet trouvé ! Analyse en cours...");
+
 
         console.log("WikiAPI: Found article:", page.title);
 
@@ -66,10 +92,11 @@ export async function fetchRandomArticle() {
 
         // Minimum 500 caractères
         if (totalCharCount < 500) {
-            console.warn(`WikiAPI: Article trop court (${totalCharCount} chars). Retrying...`);
+            updateLoadingStatus("Sujet trop court, on en cherche un autre...");
             await sleep(500);
             return fetchRandomArticle();
         }
+
 
 
         return {

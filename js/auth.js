@@ -11,6 +11,8 @@ import {
     updateUserProfileUI,
     doc, getDoc, setDoc, updateDoc
 } from './firebase-app.js';
+import { AVATARS, getUserTier, getAvatarHtml } from './avatars.js';
+
 
 /**
  * Opens the Auth Modal
@@ -94,16 +96,16 @@ function renderProfileModal(container, user, userData) {
                 <button class="close-modal" id="close-auth">&times;</button>
                 
                 <div style="text-align:center; margin-bottom: 1.5rem;">
-                    <div class="avatar-placeholder" id="avatar-preview-container" style="width:70px; height:70px; font-size:1.8rem; margin: 0 auto 0.75rem; position:relative;">
-                        ${(userData.photoURL || user.photoURL) ? `<img src="${userData.photoURL || user.photoURL}" class="avatar-img" style="width:70px; height:70px;">` : `<i class="fa-solid fa-user-astronaut"></i>`}
-                        <button id="change-photo-btn" style="position:absolute; bottom:0; right:0; background:var(--primary); color:white; border:none; width:26px; height:26px; border-radius:50%; cursor:pointer; font-size:0.75rem; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 6px rgba(0,0,0,0.3); border:2px solid white; z-index:10;">
-                            <i class="fa-solid fa-camera"></i>
-                        </button>
+                    <div id="avatar-preview-container" style="width:80px; height:80px; margin: 0 auto 0.75rem; position:relative; cursor:pointer;" title="Changer d'avatar">
+                        ${getAvatarHtml(userData.avatarId || 0, "80px", "2rem")}
+                        <div id="change-avatar-badge" style="position:absolute; bottom:0; right:0; background:var(--primary); color:white; border:none; width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 6px rgba(0,0,0,0.3); border:2px solid white; z-index:10;">
+                            <i class="fa-solid fa-pen" style="font-size:0.7rem;"></i>
+                        </div>
                     </div>
-                    <input type="file" id="photo-input" accept="image/*" style="display:none;">
                     <h2 style="margin-bottom:0.25rem;">Mon Profil</h2>
                     <p style="color:var(--text-muted); font-size:0.8rem;">${user.email}</p>
                 </div>
+
 
                 <div class="stats-row" style="display:grid; grid-template-columns: 1fr; gap: 10px; margin-bottom: 1.5rem;">
                                     <div class="glass" id="view-daily-history" style="padding: 12px; text-align:center; border-radius:12px; cursor:pointer; transition:all 0.2s; border:1px solid rgba(0,0,0,0.05);" onmouseover="this.style.transform='translateY(-2px)'; this.style.borderColor='var(--accent)';" onmouseout="this.style.transform='none'; this.style.borderColor='rgba(0,0,0,0.05)';">
@@ -190,58 +192,20 @@ function setupProfileEvents(container, user, userData) {
     const resetBtn = document.getElementById('reset-pwd-profile');
     const msgEl = document.getElementById('profile-msg');
     
-    // Photo handling
-    const changePhotoBtn = document.getElementById('change-photo-btn');
-    const photoInput = document.getElementById('photo-input');
-    const avatarPreview = document.getElementById('avatar-preview-container');
-
-    if (changePhotoBtn && photoInput) {
-        changePhotoBtn.onclick = () => photoInput.click();
-        photoInput.onchange = async (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-
-            // Limite de 500 Ko (Firestore a une limite de 1 Mo par doc, Base64 ajoute ~33%)
-            if (file.size > 500 * 1024) {
-                msgEl.textContent = "Image trop lourde (max 500 Ko).";
-                msgEl.style.display = 'block';
-                msgEl.style.color = "var(--danger)";
-                return;
-            }
-
-            const reader = new FileReader();
-            reader.onload = async (event) => {
-                const base64 = event.target.result;
-                try {
-                    changePhotoBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
-                    
-                    // Update Firestore (Firebase Auth photoURL is limited and doesn't support Base64)
-                    await updateDoc(doc(db, "users", user.uid), { photoURL: base64 });
-
-                    // UI Update
-                    const img = avatarPreview.querySelector('img');
-                    if (img) {
-                        img.src = base64;
-                    } else {
-                        avatarPreview.innerHTML = `<img src="${base64}" class="avatar-img" style="width:70px; height:70px;">` + changePhotoBtn.outerHTML;
-                        // Need to re-bind since we replaced HTML
-                        document.getElementById('change-photo-btn').onclick = () => photoInput.click();
-                    }
-                    
-                    msgEl.textContent = "Photo mise à jour avec succès !";
-                    msgEl.style.display = 'block';
-                    msgEl.style.color = "var(--primary)";
-                } catch (err) {
-                    msgEl.textContent = "Erreur lors de la mise à jour.";
-                    msgEl.style.display = 'block';
-                } finally {
-                    const btn = document.getElementById('change-photo-btn');
-                    if (btn) btn.innerHTML = '<i class="fa-solid fa-camera"></i>';
-                }
-            };
-            reader.readAsDataURL(file);
-        };
+    // Avatar handling
+    const avatarContainer = document.getElementById('avatar-preview-container');
+    if (avatarContainer) {
+        avatarContainer.onclick = () => openAvatarCatalog(userData, (newAvatarId) => {
+            userData.avatarId = newAvatarId;
+            avatarContainer.innerHTML = getAvatarHtml(newAvatarId, "80px", "2rem") + `
+                <div id="change-avatar-badge" style="position:absolute; bottom:0; right:0; background:var(--primary); color:white; border:none; width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 6px rgba(0,0,0,0.3); border:2px solid white; z-index:10;">
+                    <i class="fa-solid fa-pen" style="font-size:0.7rem;"></i>
+                </div>
+            `;
+            markDirty();
+        });
     }
+
 
     let isDirty = false;
     let hasSavedChanges = false;
@@ -325,8 +289,15 @@ function setupProfileEvents(container, user, userData) {
 
         try {
             await updateProfile(user, { displayName: pseudo });
-            const newData = { pseudo, bio, isPublic, photoURL: user.photoURL, updatedAt: Date.now() };
+            const newData = { 
+                pseudo, 
+                bio, 
+                isPublic, 
+                avatarId: userData.avatarId || 0,
+                updatedAt: Date.now() 
+            };
             await setDoc(doc(db, "users", user.uid), newData, { merge: true });
+
             
             // Mettre à jour la navbar immédiatement sans attendre le reload
             updateUserProfileUI(user, newData);
@@ -603,3 +574,69 @@ function _renderHistoryList(history) {
         </p>
     `;
 }
+
+/**
+ * Affiche le catalogue d'avatars
+ */
+export function openAvatarCatalog(userData, onSelect) {
+    const userTier = getUserTier(userData);
+    
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    overlay.style.zIndex = "3000";
+    overlay.innerHTML = `
+        <div class="auth-modal" style="max-width: 500px; padding: 2rem;">
+            <button class="close-modal" id="close-catalog">&times;</button>
+            <h2 style="margin-bottom: 0.5rem; text-align:center;">Choisissez votre avatar</h2>
+            <p style="text-align:center; color:var(--text-muted); font-size:0.85rem; margin-bottom:2rem;">
+                Débloquez de nouveaux avatars en progressant dans les paliers de missions !
+            </p>
+            
+            <div id="avatar-grid" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 15px; max-height: 400px; overflow-y:auto; padding: 10px;">
+                ${AVATARS.map(avatar => {
+                    const isLocked = avatar.tier > userTier;
+                    const isSelected = userData.avatarId === avatar.id;
+                    return `
+                        <div class="avatar-item ${isLocked ? 'locked' : ''} ${isSelected ? 'selected' : ''}" 
+                             data-id="${avatar.id}"
+                             style="display:flex; flex-direction:column; align-items:center; gap:8px; cursor:${isLocked ? 'not-allowed' : 'pointer'}; position:relative; padding: 10px; border-radius: 12px; transition:all 0.2s; border: 2px solid ${isSelected ? 'var(--primary)' : 'transparent'}; background: ${isSelected ? 'rgba(166, 216, 102, 0.1)' : 'transparent'};">
+                            
+                            <div class="avatar-placeholder" style="width:50px; height:50px; background:${isLocked ? '#e5e7eb' : avatar.color}; color:white; font-size:1.5rem; filter:${isLocked ? 'grayscale(1) opacity(0.5)' : 'none'};">
+                                <i class="fa-solid ${avatar.icon}"></i>
+                            </div>
+                            
+                            <span style="font-size:0.65rem; font-weight:700; color:${isLocked ? '#9ca3af' : 'var(--text-main)'}; text-align:center; line-height:1.1;">
+                                ${avatar.label}
+                            </span>
+                            
+                            ${isLocked ? `
+                                <div style="position:absolute; top:5px; right:5px; background:rgba(0,0,0,0.6); color:white; width:20px; height:20px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.7rem;">
+                                    <i class="fa-solid fa-lock"></i>
+                                </div>
+                            ` : ''}
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+            
+            <div style="margin-top: 2rem; text-align:center;">
+                <button class="btn-primary" id="close-catalog-btn" style="width:100%; justify-content:center;">Fermer</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(overlay);
+    
+    const close = () => overlay.remove();
+    overlay.querySelector('#close-catalog').onclick = close;
+    overlay.querySelector('#close-catalog-btn').onclick = close;
+    overlay.onclick = (e) => { if (e.target === overlay) close(); };
+    
+    overlay.querySelectorAll('.avatar-item:not(.locked)').forEach(item => {
+        item.onclick = () => {
+            const id = parseInt(item.dataset.id);
+            onSelect(id);
+            close();
+        };
+    });
+}
+

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * multiplayer.js — Mode Compétition
  * Collection: rooms/{roomId}
  * {
@@ -724,7 +724,7 @@ function _renderSearching(data) {
                     <strong>${hostName}</strong> a lancé la partie !
                 </p>
                 <p style="color:#6b7280; font-size:0.9rem; margin-top:0.5rem;">
-                    Recherche d'un article Wikipédia passionnant en cours...
+                    <span id=" loading-status-text\>Recherche d'un article</span> Wikipédia passionnant en cours...
                 </p>
             </div>
             <p style="color:#94a3b8; font-size:0.8rem; margin-top:2rem;">

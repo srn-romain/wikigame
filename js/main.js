@@ -4,6 +4,8 @@ import { waitForAuth, getCurrentUser } from './firebase-app.js';
 import { openAuthModal, showInfoModal, showConfirmModal } from './auth.js';
 import { getDailyArticleId, checkDailySolved, getCountdown, getDailySolversCount } from './daily.js';
 import { getSoloDrafts, createSoloDraft, deleteSoloDraft } from './solo.js';
+import { getAvatarHtml } from './avatars.js';
+
 
 
 
@@ -52,16 +54,12 @@ function setupNavigation() {
     });
 
     document.querySelector('.logo').addEventListener('click', () => {
-        buttons.forEach(b => b.classList.remove('active'));
-        document.querySelector('[data-view="home"]')?.classList.add('active');
-        
-        // Close mobile menu
-        navLinks.classList.remove('open');
-        toggle?.classList.remove('active');
-
-        navigateTo('home');
+        const homeBtn = document.querySelector('.nav-btn[data-view="home"]');
+        if (homeBtn) homeBtn.click();
+        else navigateTo('home');
     });
 }
+
 
 function setupAuthListeners() {
     const profileBtn = document.getElementById('user-profile-btn');
@@ -104,17 +102,33 @@ export async function navigateTo(view, force = false) {
     console.log(`Main: Navigating to view="${view}"`);
     window.scrollTo(0, 0);
 
-    const container = document.getElementById('main-container');
+    const homeView = document.getElementById('home-view');
+    const dynamicView = document.getElementById('dynamic-view');
     const controls = document.getElementById('game-controls');
+    
+    // Update active nav button
+    const buttons = document.querySelectorAll('.nav-btn[data-view]');
+    buttons.forEach(b => {
+        b.classList.toggle('active', b.dataset.view === view);
+    });
+
     controls.classList.add('hidden');
+
     window.isInMpGame     = false;
-    window._mpGameStarted = false; // Reset pour que le listener MP puisse relancer
+    window._mpGameStarted = false;
+
+    if (view === 'home') {
+        homeView.classList.remove('hidden');
+        dynamicView.classList.add('hidden');
+        dynamicView.innerHTML = '';
+        return;
+    }
+
+    homeView.classList.add('hidden');
+    dynamicView.classList.remove('hidden');
+    const container = dynamicView;
 
     switch (view) {
-        case 'home':
-            renderHome(container);
-            break;
-
         case 'solo':
             await waitForAuth();
             renderSoloDashboard(container);
@@ -139,6 +153,7 @@ export async function navigateTo(view, force = false) {
             break;
     }
 }
+
 window.navigateTo = navigateTo;
 
 const MISSIONS_DATA = [
@@ -553,86 +568,8 @@ window._claimMission = async (id) => {
 // ─────────────────────────────────────────────
 // HOME PAGE
 // ─────────────────────────────────────────────
-function renderHome(container) {
-    container.innerHTML = `
-        <div class="glass home-hero" style="max-width: 960px; margin: 2rem auto; padding: 3rem 2rem; border: none; box-shadow: 0 20px 50px rgba(0,0,0,0.15);">
-            <div style="margin-bottom: 0.5rem; text-align: center;">
-                <h1 class="home-title">
-                    <i class="fa-brands fa-wikipedia-w"></i>
-                    <span><span style="color:var(--primary)">WIKI</span><span style="color:var(--accent)">GAME</span></span>
-                </h1>
-                <p style="font-size: 1.25rem; color: var(--title-dark); font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.8;">
-                    Le jeu de décryptage encyclopédique
-                </p>
-            </div>
-            
-            <p style="font-size: 1.1rem; color: var(--text-muted); max-width: 520px; margin: 0 auto 3rem; line-height: 1.8; text-align: center;">
-                Saurez-vous identifier l'article caché derrière ses mots masqués ? 
-                Un défi de culture et de déduction logique.
-            </p>
+// renderHome est supprimé car le contenu est statique dans index.html
 
-            <div class="home-btns" style="margin-bottom: 5rem; display: flex; justify-content: center; gap: 12px; max-width: 950px; margin-left: auto; margin-right: auto; flex-wrap: wrap;">
-                <button class="btn-primary" style="flex: 1; min-width: 180px; padding: 1.1rem 0; justify-content: center; background: linear-gradient(135deg, #166534 0%, #15803d 100%); border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 4px 15px rgba(22, 101, 52, 0.3);" onclick="document.querySelector('[data-view=daily]').click()">
-                    <i class="fa-solid fa-calendar-check" style="font-size: 0.9rem; opacity: 0.9;"></i> Défi Quotidien
-                </button>
-                <button class="btn-primary" style="flex: 1; min-width: 180px; padding: 1.1rem 0; justify-content: center; background: linear-gradient(135deg, #334155 0%, #475569 100%); border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 4px 15px rgba(51, 65, 85, 0.2);" onclick="document.querySelector('[data-view=solo]').click()">
-                    <i class="fa-solid fa-play" style="font-size: 0.9rem; opacity: 0.9;"></i> Mode Solo
-                </button>
-                <button class="btn-primary" style="flex: 1; min-width: 180px; padding: 1.1rem 0; justify-content: center; background: linear-gradient(135deg, #991b1b 0%, #b91c1c 100%); border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 4px 15px rgba(153, 27, 27, 0.3);" onclick="document.querySelector('[data-view=multiplayer]').click()">
-                    <i class="fa-solid fa-users" style="font-size: 0.9rem; opacity: 0.9;"></i> Compétition
-                </button>
-                <button class="btn-primary" style="flex: 1; min-width: 180px; padding: 1.1rem 0; justify-content: center; background: linear-gradient(135deg, #a16207 0%, #ca8a04 100%); border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 4px 15px rgba(161, 98, 7, 0.2);" onclick="document.querySelector('[data-view=ranking]').click()">
-                    <i class="fa-solid fa-ranking-star" style="font-size: 0.9rem; opacity: 0.9;"></i> Classement
-                </button>
-                <button class="btn-primary" style="flex: 1; min-width: 180px; padding: 1.1rem 0; justify-content: center; background: linear-gradient(135deg, #075985 0%, #0369a1 100%); border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 4px 15px rgba(7, 89, 133, 0.2);" onclick="document.querySelector('[data-view=missions]').click()">
-                    <i class="fa-solid fa-scroll" style="font-size: 0.9rem; opacity: 0.9;"></i> Missions
-                </button>
-            </div>
-
-            <div class="feature-cards">
-                <div class="feature-card" style="background: white; border: 1px solid #eee; padding: 2.5rem 1.5rem; border-radius: 12px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.03);">
-                    <i class="fa-solid fa-brain" style="color: var(--primary); font-size: 2rem; margin-bottom: 1.5rem;"></i>
-                    <h3 style="color: var(--title-dark); font-size: 1rem; margin-bottom: 0.25rem; font-weight: 700;">Déduction</h3>
-                    <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.4; margin: 0;">Analysez la structure et les connecteurs logiques pour percer le mystère.</p>
-                </div>
-                <div class="feature-card" style="background: white; border: 1px solid #eee; padding: 2.5rem 1.5rem; border-radius: 12px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.03);">
-                    <i class="fa-solid fa-magnifying-glass-chart" style="color: var(--accent); font-size: 2rem; margin-bottom: 1.5rem;"></i>
-                    <h3 style="color: var(--title-dark); font-size: 1rem; margin-bottom: 0.25rem; font-weight: 700;">Analyse</h3>
-                    <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0;">Utilisez les indices de longueur de mots pour valider vos hypothèses.</p>
-                </div>
-                <div class="feature-card" style="background: white; border: 1px solid #eee; padding: 2.5rem 1.5rem; border-radius: 12px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.03);">
-                    <i class="fa-solid fa-ranking-star" style="color: #2563eb; font-size: 2rem; margin-bottom: 1.5rem;"></i>
-                    <h3 style="color: var(--title-dark); font-size: 1rem; margin-bottom: 0.25rem; font-weight: 700;">Compétition</h3>
-                    <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0;">Mesurez votre rapidité face à la communauté sur l'article du jour.</p>
-                </div>
-            </div>
-
-            <div style="margin-top: 1.5rem; padding: 2.5rem; background: white; border-radius: 20px; border: 1px solid #eee; text-align: left; box-shadow: 0 10px 30px rgba(0,0,0,0.05);">
-                <h2 style="color: #111827; font-size: 1.6rem; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 12px; font-weight: 800;">
-                    <i class="fa-solid fa-circle-question" style="color: var(--primary);"></i> C'est quoi le principe ?
-                </h2>
-                <div style="color: #4b5563; line-height: 1.8; font-size: 1rem;">
-                    <p style="margin-bottom: 1.2rem;">
-                        WikiGame est un jeu de réflexion et de culture générale. Le concept est simple : nous avons choisi un article au hasard sur Wikipédia, mais nous avons <b>masqué tous les mots</b> par des petits blocs noirs.
-                    </p>
-                    <ul style="margin-left: 1.5rem; margin-bottom: 1.2rem; display: flex; flex-direction: column; gap: 12px; list-style-type: none;">
-                        <li style="display: flex; align-items: flex-start; gap: 10px;">
-                            <i class="fa-solid fa-check" style="color: var(--primary); margin-top: 5px;"></i>
-                            <span><b style="color: #111827;">Le but :</b> Retrouver le titre de l'article en devinant les mots qui composent le texte.</span>
-                        </li>
-                        <li style="display: flex; align-items: flex-start; gap: 10px;">
-                            <i class="fa-solid fa-check" style="color: var(--primary); margin-top: 5px;"></i>
-                            <span><b style="color: #111827;">Comment jouer ?</b> Proposez des mots dans la barre de saisie. Si le mot existe dans l'article, il se révèle instantanément !</span>
-                        </li>
-                        <li style="display: flex; align-items: flex-start; gap: 10px;">
-                            <i class="fa-solid fa-check" style="color: var(--primary); margin-top: 5px;"></i>
-                            <span><b style="color: #111827;">La victoire :</b> La partie s'arrête dès que vous parvenez à trouver le <b>titre principal</b> de la page.</span>
-                        </li>
-                    </ul>
-            </div>
-        </div>
-    `;
-}
 
 // ─────────────────────────────────────────────
 // SOLO DASHBOARD (Brouillons)
@@ -1161,6 +1098,23 @@ async function renderRanking(container) {
     try {
         const { db, collection, getDocs, query, where, orderBy, limit, getDoc, doc, getCountFromServer, getCurrentUser } = await import("./firebase-app.js");
         const user = getCurrentUser();
+
+        if (!user || user.isAnonymous) {
+            container.innerHTML = `
+                <div class="glass" style="max-width:500px; margin:4rem auto; padding:3.5rem 2rem; text-align:center; border-radius:24px; box-shadow:0 20px 50px rgba(0,0,0,0.1);">
+                    <i class="fa-solid fa-lock" style="font-size:3.5rem; color:var(--accent); margin-bottom:1.5rem;"></i>
+                    <h2 style="font-weight:800; color:#111827;">Classement Mondial</h2>
+                    <p style="color:var(--text-muted); margin-top:1rem; line-height:1.6; font-weight:600;">
+                        Connectez-vous pour rejoindre la compétition, gagner de l'XP et voir votre rang parmi les meilleurs joueurs !
+                    </p>
+                    <button class="btn-primary" onclick="window.openAuthModal()" style="margin-top:2.5rem; width:100%; justify-content:center; padding:1rem; font-size:1rem;">
+                        <i class="fa-solid fa-right-to-bracket"></i> Se connecter pour participer
+                    </button>
+                </div>
+            `;
+            return;
+        }
+
         let currentUserData = null;
         let currentUserRank = null;
 
@@ -1205,9 +1159,8 @@ async function renderRanking(container) {
                     </td>
                     <td style="padding:1.2rem;">
                         <div style="display:flex; align-items:center; gap:12px;">
-                            <div class="avatar-placeholder" style="width:38px; height:38px; font-size:0.9rem; background:var(--primary); color:white; font-weight:800;">
-                                ${p.pseudo ? p.pseudo[0].toUpperCase() : '?'}
-                            </div>
+                            ${getAvatarHtml(p.avatarId || 0, "38px", "0.9rem")}
+
                             <div style="font-weight:800; color:#111827; font-size:1rem;">
                                 ${p.pseudo || "Anonyme"} 
                                 ${isPersonal ? '<span style="background:var(--primary); color:white; font-size:0.65rem; padding:2px 6px; border-radius:4px; margin-left:8px;">VOUS</span>' : ""}
@@ -1232,9 +1185,8 @@ async function renderRanking(container) {
                     </td>
                     <td style="padding:1.2rem;">
                         <div style="display:flex; align-items:center; gap:12px;">
-                            <div class="avatar-placeholder" style="width:38px; height:38px; font-size:0.9rem; background:${isPrivate ? 'var(--accent)' : 'var(--primary)'}; color:white; font-weight:800;">
-                                ${currentUserData.pseudo ? currentUserData.pseudo[0].toUpperCase() : '?'}
-                            </div>
+                            ${getAvatarHtml(currentUserData.avatarId || 0, "38px", "0.9rem")}
+
                             <div>
                                 <div style="font-weight:800; color:#111827; font-size:1rem;">
                                     ${currentUserData.pseudo || "Anonyme"} 

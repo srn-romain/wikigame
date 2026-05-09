@@ -9,7 +9,9 @@ const ASSETS = [
   './js/auth.js',
   './js/daily.js',
   './js/multiplayer.js',
-  './favicon.webp'
+  './js/avatars.js',
+  './favicon.webp',
+  './manifest.json'
 ];
 
 self.addEventListener('install', (event) => {
