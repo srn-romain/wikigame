@@ -123,53 +123,53 @@ async function navigateTo(view) {
 }
 
 const MISSIONS_DATA = [
-    // TIER 1: Wiki de Bois (0-9)
-    { id: 0, tier: 1, title: "Bienvenue", desc: "Jouer votre première partie", goal: 1, stat: "totalGamesPlayed", icon: "fa-door-open" },
-    { id: 1, tier: 1, title: "Premier pas", desc: "Gagner 1 partie (Solo ou Quotidien)", goal: 1, stat: "totalWins", icon: "fa-trophy" },
-    { id: 2, tier: 1, title: "Apprenti", desc: "Atteindre 10 XP", goal: 10, stat: "xp", icon: "fa-star" },
-    { id: 3, tier: 1, title: "Explorateur", desc: "Jouer 5 parties au total", goal: 5, stat: "totalGamesPlayed", icon: "fa-map" },
-    { id: 4, tier: 1, title: "Ponctuel", desc: "Compléter 1 défi quotidien", goal: 1, stat: "dailySolvedCount", icon: "fa-calendar-check" },
-    { id: 5, tier: 1, title: "Social", desc: "Participer à 1 compétition multijoueur", goal: 1, stat: "mpGamesPlayed", icon: "fa-users" },
-    { id: 6, tier: 1, title: "Persistant", desc: "Faire 50 essais dans une seule partie", goal: 50, stat: "maxAttemptsInOneGame", icon: "fa-brain" },
-    { id: 7, tier: 1, title: "Curieux", desc: "Révéler 500 mots au total", goal: 500, stat: "totalWordsRevealed", icon: "fa-eye" },
-    { id: 8, tier: 1, title: "Habitué", desc: "Jouer 3 jours différents", goal: 3, stat: "daysPlayed", icon: "fa-clock-rotate-left" },
-    { id: 9, tier: 1, title: "Maître du Bois", desc: "Atteindre 30 XP", goal: 30, stat: "xp", icon: "fa-tree" },
+    // TIER 1: Wiki de Bois (0-9) - 25 XP chacun
+    { id: 0, tier: 1, title: "Bienvenue", desc: "Jouer votre première partie", goal: 1, stat: "totalGamesPlayed", icon: "fa-door-open", xpReward: 25 },
+    { id: 1, tier: 1, title: "Premier pas", desc: "Gagner 1 partie (Solo ou Quotidien)", goal: 1, stat: "totalWins", icon: "fa-trophy", xpReward: 25 },
+    { id: 2, tier: 1, title: "Apprenti", desc: "Atteindre 10 XP supplémentaires", goal: 10, stat: "xp", icon: "fa-star", xpReward: 25 },
+    { id: 3, tier: 1, title: "Explorateur", desc: "Jouer 5 parties au total", goal: 5, stat: "totalGamesPlayed", icon: "fa-map", xpReward: 25 },
+    { id: 4, tier: 1, title: "Ponctuel", desc: "Compléter 1 défi quotidien", goal: 1, stat: "dailySolvedCount", icon: "fa-calendar-check", xpReward: 25 },
+    { id: 5, tier: 1, title: "Social", desc: "Participer à 1 compétition multijoueur", goal: 1, stat: "mpGamesPlayed", icon: "fa-users", xpReward: 25 },
+    { id: 6, tier: 1, title: "Persistant", desc: "Faire 50 essais dans une seule partie", goal: 50, stat: "maxAttemptsInOneGame", icon: "fa-brain", xpReward: 25 },
+    { id: 7, tier: 1, title: "Curieux", desc: "Révéler 500 mots au total", goal: 500, stat: "totalWordsRevealed", icon: "fa-eye", xpReward: 25 },
+    { id: 8, tier: 1, title: "Habitué", desc: "Jouer 3 jours différents", goal: 3, stat: "daysPlayed", icon: "fa-clock-rotate-left", xpReward: 25 },
+    { id: 9, tier: 1, title: "Maître du Bois", desc: "Atteindre 30 XP totaux", goal: 30, stat: "xp", icon: "fa-tree", xpReward: 25 },
 
-    // TIER 2: Wiki de Bronze (10-19)
-    { id: 10, tier: 2, title: "Vétéran", desc: "Jouer 20 parties au total", goal: 20, stat: "totalGamesPlayed", icon: "fa-shield-halved" },
-    { id: 11, tier: 2, title: "Collectionneur", desc: "Gagner 10 parties", goal: 10, stat: "totalWins", icon: "fa-medal" },
-    { id: 12, tier: 2, title: "Fidèle", desc: "Compléter 5 défis quotidiens", goal: 5, stat: "dailySolvedCount", icon: "fa-calendar-days" },
-    { id: 13, tier: 2, title: "Compétiteur", desc: "Jouer 10 parties multijoueur", goal: 10, stat: "mpGamesPlayed", icon: "fa-user-group" },
-    { id: 14, tier: 2, title: "Ascension", desc: "Atteindre 100 XP", goal: 100, stat: "xp", icon: "fa-arrow-up-right-dots" },
-    { id: 15, tier: 2, title: "Lecteur", desc: "Révéler 2000 mots au total", goal: 2000, stat: "totalWordsRevealed", icon: "fa-book-open" },
-    { id: 16, tier: 2, title: "Rapide", desc: "Gagner une partie en moins de 2 minutes", goal: 1, stat: "fastWins", icon: "fa-bolt" },
-    { id: 17, tier: 2, title: "Savant", desc: "Trouver un article avec moins de 10 essais", goal: 1, stat: "efficientWins", icon: "fa-graduation-cap" },
-    { id: 18, tier: 2, title: "Série", desc: "Jouer 5 jours consécutifs", goal: 5, stat: "streak", icon: "fa-fire" },
-    { id: 19, tier: 2, title: "Maître de Bronze", desc: "Atteindre 250 XP", goal: 250, stat: "xp", icon: "fa-award" },
+    // TIER 2: Wiki de Bronze (10-19) - 100 XP chacun
+    { id: 10, tier: 2, title: "Vétéran", desc: "Jouer 20 parties au total", goal: 20, stat: "totalGamesPlayed", icon: "fa-shield-halved", xpReward: 100 },
+    { id: 11, tier: 2, title: "Collectionneur", desc: "Gagner 10 parties", goal: 10, stat: "totalWins", icon: "fa-medal", xpReward: 100 },
+    { id: 12, tier: 2, title: "Fidèle", desc: "Compléter 5 défis quotidiens", goal: 5, stat: "dailySolvedCount", icon: "fa-calendar-days", xpReward: 100 },
+    { id: 13, tier: 2, title: "Compétiteur", desc: "Jouer 10 parties multijoueur", goal: 10, stat: "mpGamesPlayed", icon: "fa-user-group", xpReward: 100 },
+    { id: 14, tier: 2, title: "Ascension", desc: "Atteindre 100 XP totaux", goal: 100, stat: "xp", icon: "fa-arrow-up-right-dots", xpReward: 100 },
+    { id: 15, tier: 2, title: "Lecteur", desc: "Révéler 2000 mots au total", goal: 2000, stat: "totalWordsRevealed", icon: "fa-book-open", xpReward: 100 },
+    { id: 16, tier: 2, title: "Rapide", desc: "Gagner une partie en moins de 2 minutes", goal: 1, stat: "fastWins", icon: "fa-bolt", xpReward: 100 },
+    { id: 17, tier: 2, title: "Savant", desc: "Trouver un article avec moins de 10 essais", goal: 1, stat: "efficientWins", icon: "fa-graduation-cap", xpReward: 100 },
+    { id: 18, tier: 2, title: "Série", desc: "Jouer 5 jours consécutifs", goal: 5, stat: "streak", icon: "fa-fire", xpReward: 100 },
+    { id: 19, tier: 2, title: "Maître de Bronze", desc: "Atteindre 250 XP totaux", goal: 250, stat: "xp", icon: "fa-award", xpReward: 100 },
 
-    // TIER 3: Wiki d'Argent (20-29)
-    { id: 20, tier: 3, title: "Expert", desc: "Jouer 50 parties au total", goal: 50, stat: "totalGamesPlayed", icon: "fa-user-tie" },
-    { id: 21, tier: 3, title: "Vainqueur", desc: "Gagner 25 parties", goal: 25, stat: "totalWins", icon: "fa-crown" },
-    { id: 22, tier: 3, title: "Assidu", desc: "Compléter 15 défis quotidiens", goal: 15, stat: "dailySolvedCount", icon: "fa-calendar-plus" },
-    { id: 23, tier: 3, title: "Podium", desc: "Finir premier dans 5 compétitions", goal: 5, stat: "mpWins", icon: "fa-ranking-star" },
-    { id: 24, tier: 3, title: "Érudit", desc: "Atteindre 500 XP", goal: 500, stat: "xp", icon: "fa-book" },
-    { id: 25, tier: 3, title: "百科事典", desc: "Révéler 10000 mots au total", goal: 10000, stat: "totalWordsRevealed", icon: "fa-globe" },
-    { id: 26, tier: 3, title: "Éclair", desc: "Gagner en moins de 60 secondes", goal: 1, stat: "ultraFastWins", icon: "fa-bolt-lightning" },
-    { id: 27, tier: 3, title: "Sniper", desc: "Trouver un article en exactement 1 essai", goal: 1, stat: "oneShotWins", icon: "fa-crosshairs" },
-    { id: 28, tier: 3, title: "Légende", desc: "Jouer 30 jours au total", goal: 30, stat: "daysPlayed", icon: "fa-hourglass-half" },
-    { id: 29, tier: 3, title: "Maître d'Argent", desc: "Atteindre 1000 XP", goal: 1000, stat: "xp", icon: "fa-gem" },
+    // TIER 3: Wiki d'Argent (20-29) - 250 XP chacun
+    { id: 20, tier: 3, title: "Expert", desc: "Jouer 50 parties au total", goal: 50, stat: "totalGamesPlayed", icon: "fa-user-tie", xpReward: 250 },
+    { id: 21, tier: 3, title: "Vainqueur", desc: "Gagner 25 parties", goal: 25, stat: "totalWins", icon: "fa-crown", xpReward: 250 },
+    { id: 22, tier: 3, title: "Assidu", desc: "Compléter 15 défis quotidiens", goal: 15, stat: "dailySolvedCount", icon: "fa-calendar-plus", xpReward: 250 },
+    { id: 23, tier: 3, title: "Podium", desc: "Finir premier dans 5 compétitions", goal: 5, stat: "mpWins", icon: "fa-ranking-star", xpReward: 250 },
+    { id: 24, tier: 3, title: "Érudit", desc: "Atteindre 500 XP totaux", goal: 500, stat: "xp", icon: "fa-book", xpReward: 250 },
+    { id: 25, tier: 3, title: "Encyclopédie", desc: "Révéler 10000 mots au total", goal: 10000, stat: "totalWordsRevealed", icon: "fa-globe", xpReward: 250 },
+    { id: 26, tier: 3, title: "Éclair", desc: "Gagner en moins de 60 secondes", goal: 1, stat: "ultraFastWins", icon: "fa-bolt-lightning", xpReward: 250 },
+    { id: 27, tier: 3, title: "Sniper", desc: "Trouver un article en exactement 1 essai", goal: 1, stat: "oneShotWins", icon: "fa-crosshairs", xpReward: 250 },
+    { id: 28, tier: 3, title: "Légende", desc: "Jouer 30 jours au total", goal: 30, stat: "daysPlayed", icon: "fa-hourglass-half", xpReward: 250 },
+    { id: 29, tier: 3, title: "Maître d'Argent", desc: "Atteindre 1000 XP totaux", goal: 1000, stat: "xp", icon: "fa-gem", xpReward: 250 },
 
-    // TIER 4: Wiki d'Or (30-39)
-    { id: 30, tier: 4, title: "Divinité", desc: "Jouer 200 parties au total", goal: 200, stat: "totalGamesPlayed", icon: "fa-spaghetti-monster-vermillion" },
-    { id: 31, tier: 4, title: "Insubmersible", desc: "Gagner 100 parties", goal: 100, stat: "totalWins", icon: "fa-anchor" },
-    { id: 32, tier: 4, title: "Chronos", desc: "Compléter 50 défis quotidiens", goal: 50, stat: "dailySolvedCount", icon: "fa-stopwatch" },
-    { id: 33, tier: 4, title: "Empereur", desc: "Gagner 25 compétitions multijoueur", goal: 25, stat: "mpWins", icon: "fa-chess-king" },
-    { id: 34, tier: 4, title: "Prestige", desc: "Atteindre 5000 XP", goal: 5000, stat: "xp", icon: "fa-certificate" },
-    { id: 35, tier: 4, title: "Omniscient", desc: "Révéler 50000 mots au total", goal: 50000, stat: "totalWordsRevealed", icon: "fa-brain" },
-    { id: 36, tier: 4, title: "Maître du temps", desc: "Gagner en moins de 30 secondes", goal: 1, stat: "godSpeedWins", icon: "fa-wind" },
-    { id: 37, tier: 4, title: "Perfectionniste", desc: "Gagner 5 parties sans aucune erreur", goal: 5, stat: "flawlessWins", icon: "fa-check-double" },
-    { id: 38, tier: 4, title: "Infatigable", desc: "Avoir une série de 30 jours", goal: 30, stat: "streak", icon: "fa-infinity" },
-    { id: 39, tier: 4, title: "Maître d'Or", desc: "Atteindre 10000 XP", goal: 10000, stat: "xp", icon: "fa-coins" }
+    // TIER 4: Wiki d'Or (30-39) - 500 XP chacun
+    { id: 30, tier: 4, title: "Divinité", desc: "Jouer 200 parties au total", goal: 200, stat: "totalGamesPlayed", icon: "fa-spaghetti-monster-vermillion", xpReward: 500 },
+    { id: 31, tier: 4, title: "Insubmersible", desc: "Gagner 100 parties", goal: 100, stat: "totalWins", icon: "fa-anchor", xpReward: 500 },
+    { id: 32, tier: 4, title: "Chronos", desc: "Compléter 50 défis quotidiens", goal: 50, stat: "dailySolvedCount", icon: "fa-stopwatch", xpReward: 500 },
+    { id: 33, tier: 4, title: "Empereur", desc: "Gagner 25 compétitions multijoueur", goal: 25, stat: "mpWins", icon: "fa-chess-king", xpReward: 500 },
+    { id: 34, tier: 4, title: "Prestige", desc: "Atteindre 5000 XP totaux", goal: 5000, stat: "xp", icon: "fa-certificate", xpReward: 500 },
+    { id: 35, tier: 4, title: "Omniscient", desc: "Révéler 50000 mots au total", goal: 50000, stat: "totalWordsRevealed", icon: "fa-brain", xpReward: 500 },
+    { id: 36, tier: 4, title: "Maître du temps", desc: "Gagner en moins de 30 secondes", goal: 1, stat: "godSpeedWins", icon: "fa-wind", xpReward: 500 },
+    { id: 37, tier: 4, title: "Perfectionniste", desc: "Gagner 5 parties sans aucune erreur", goal: 5, stat: "flawlessWins", icon: "fa-check-double", xpReward: 500 },
+    { id: 38, tier: 4, title: "Infatigable", desc: "Avoir une série de 30 jours", goal: 30, stat: "streak", icon: "fa-infinity", xpReward: 500 },
+    { id: 39, tier: 4, title: "Maître d'Or", desc: "Atteindre 10000 XP totaux", goal: 10000, stat: "xp", icon: "fa-coins", xpReward: 500 }
 ];
 
 async function renderMissions(container) {
@@ -219,6 +219,8 @@ async function renderMissions(container) {
             flawlessWins: userData.flawlessWins || 0
         };
 
+        const claimedMissions = userData.claimedMissions || [];
+
         // Calculer le nombre de missions réussies par palier
         const successes = MISSIONS_DATA.map(m => (stats[m.stat] || 0) >= m.goal);
         const totalSuccessCount = successes.filter(s => s).length;
@@ -241,8 +243,8 @@ async function renderMissions(container) {
         container.innerHTML = `
             <div style="max-width:1000px; margin: 2rem auto; padding: 0 1rem;">
                 <div style="text-align:center; margin-bottom: 3rem;">
-                    <h1 style="font-size:2.5rem; color:#111827; font-weight:800;"><i class="fa-solid fa-scroll" style="color:var(--primary);"></i> Vos Missions</h1>
-                    <p style="color:#4b5563; font-weight:600;">Complétez des défis pour débloquer de nouveaux paliers de prestige.</p>
+                    <h1 style="font-size:2.5rem; color:white; font-weight:800;"><i class="fa-solid fa-scroll" style="color:var(--primary);"></i> Vos Missions</h1>
+                    <p style="color:white; font-weight:600;">Complétez des défis pour débloquer de nouveaux paliers de prestige.</p>
                 </div>
 
                 ${[1, 2, 3, 4].map(t => {
@@ -258,7 +260,7 @@ async function renderMissions(container) {
                                 </div>
                                 <div>
                                     <h2 style="margin:0; font-size:1.5rem; color:#111827;">${tierNames[t]}</h2>
-                                    <p style="margin:0; font-size:0.9rem; color:#6b7280;">Progression : ${tierSuccessCount} / 10 missions</p>
+                                    <p style="margin:0; font-size:0.9rem; color:white; font-weight:600;">Progression : ${tierSuccessCount} / 10 missions</p>
                                 </div>
                             </div>
 
@@ -266,26 +268,33 @@ async function renderMissions(container) {
                                 ${tierMissions.map(m => {
                                     const current = stats[m.stat] || 0;
                                     const isDone = current >= m.goal;
+                                    const isClaimed = claimedMissions.includes(m.id);
                                     const percent = Math.min(100, (current / m.goal) * 100);
 
                                     return `
-                                        <div class="glass mission-card ${isDone ? 'mission-done' : ''} ${isLocked ? 'locked' : ''}" 
+                                        <div class="glass mission-card ${isDone ? 'mission-done' : ''} ${isLocked ? 'locked' : ''} ${isClaimed ? 'claimed' : ''}" 
                                              style="padding:1.5rem; position:relative; overflow:hidden; cursor:${isLocked ? 'not-allowed' : 'pointer'};"
-                                             onclick="${isLocked ? '' : `window._showMissionDetail(${m.id}, ${current}, ${m.goal})`}">
+                                             onclick="${isLocked ? '' : `window._showMissionDetail(${m.id}, ${current}, ${m.goal}, ${isClaimed})`}">
                                             <div style="display:flex; gap:15px; align-items:flex-start;">
-                                                <div style="width:40px; height:40px; border-radius:10px; background:${isDone ? '#dcfce7' : '#f3f4f6'}; color:${isDone ? '#166534' : '#6b7280'}; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                                                <div style="width:40px; height:40px; border-radius:10px; background:${isDone ? (isClaimed ? '#f1f5f9' : '#dcfce7') : '#f3f4f6'}; color:${isDone ? (isClaimed ? '#94a3b8' : '#166534') : '#6b7280'}; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
                                                     <i class="fa-solid ${m.icon}"></i>
                                                 </div>
                                                 <div style="flex:1;">
-                                                    <h3 style="margin:0; font-size:1rem; color:#111827;">${m.title}</h3>
-                                                    <p style="margin:5px 0 15px; font-size:0.8rem; color:#6b7280; line-height:1.4;">${m.desc}</p>
+                                                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+                                                        <h3 style="margin:0; font-size:1rem; color:#111827;">${m.title}</h3>
+                                                        <span style="font-size:0.7rem; font-weight:800; color:var(--primary); background:rgba(var(--primary-rgb), 0.1); padding:2px 6px; border-radius:4px;">+${m.xpReward} XP</span>
+                                                    </div>
+                                                    <p style="margin:0 0 15px; font-size:0.8rem; color:#6b7280; line-height:1.4;">${m.desc}</p>
                                                     
                                                     <div style="height:6px; background:#e5e7eb; border-radius:10px; overflow:hidden;">
-                                                        <div style="height:100%; width:${percent}%; background:${isDone ? '#10b981' : 'var(--primary)'}; transition:width 0.5s;"></div>
+                                                        <div style="height:100%; width:${percent}%; background:${isDone ? (isClaimed ? '#94a3b8' : '#10b981') : 'var(--primary)'}; transition:width 0.5s;"></div>
                                                     </div>
                                                 </div>
                                             </div>
-                                            ${isDone ? '<i class="fa-solid fa-circle-check" style="position:absolute; top:10px; right:10px; color:#10b981; font-size:1.2rem;"></i>' : ''}
+                                            ${isDone && !isClaimed ? `
+                                                <div style="position:absolute; top:0; right:0; padding:4px 8px; background:#10b981; color:white; font-size:0.6rem; font-weight:800; border-bottom-left-radius:8px;">PRÊT</div>
+                                            ` : ''}
+                                            ${isClaimed ? '<i class="fa-solid fa-circle-check" style="position:absolute; top:10px; right:10px; color:#94a3b8; font-size:1.2rem;"></i>' : ''}
                                         </div>
                                     `;
                                 }).join('')}
@@ -302,19 +311,37 @@ async function renderMissions(container) {
     }
 }
 
-window._showMissionDetail = (id, current, goal) => {
+window._showMissionDetail = (id, current, goal, isClaimed) => {
+    // Éviter les doublons
+    if (document.getElementById('mission-detail-modal')) return;
+
     const mission = MISSIONS_DATA.find(m => m.id === id);
     if (!mission) return;
 
+    const isDone = current >= goal;
+
     const overlay = document.createElement('div');
-    overlay.className = 'auth-modal-overlay';
+    overlay.id = 'mission-detail-modal';
+    overlay.style.cssText = `
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.7);
+        backdrop-filter: blur(8px);
+        z-index: 10000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem;
+        animation: fadeIn 0.3s ease;
+    `;
+
     overlay.innerHTML = `
-        <div class="auth-modal glass" style="max-width:400px; text-align:center;">
-            <div style="width:80px; height:80px; background:rgba(var(--primary-rgb), 0.1); color:var(--primary); border-radius:20px; display:flex; align-items:center; justify-content:center; font-size:2.5rem; margin:0 auto 1.5rem;">
+        <div class="glass" style="max-width:400px; width:100%; text-align:center; padding:2rem; border-radius:24px; border:1px solid rgba(255,255,255,0.2); box-shadow:0 25px 50px -12px rgba(0,0,0,0.5); animation: scaleUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);">
+            <div style="width:80px; height:80px; background:rgba(var(--primary-rgb), 0.2); color:var(--primary); border-radius:20px; display:flex; align-items:center; justify-content:center; font-size:2.5rem; margin:0 auto 1.5rem;">
                 <i class="fa-solid ${mission.icon}"></i>
             </div>
-            <h2 style="margin-bottom:0.5rem;">${mission.title}</h2>
-            <p style="color:var(--text-muted); margin-bottom:2rem;">${mission.desc}</p>
+            <h2 style="margin-bottom:0.5rem; color:#111827;">${mission.title}</h2>
+            <p style="color:#4b5563; margin-bottom:1.5rem; font-weight:600;">${mission.desc}</p>
             
             <div style="background:#f9fafb; padding:1.5rem; border-radius:15px; border:1px solid #e5e7eb; margin-bottom:2rem;">
                 <div style="display:flex; justify-content:space-between; margin-bottom:0.75rem; font-weight:800;">
@@ -324,15 +351,65 @@ window._showMissionDetail = (id, current, goal) => {
                 <div style="height:12px; background:#e5e7eb; border-radius:10px; overflow:hidden;">
                     <div style="height:100%; width:${Math.min(100, (current/goal)*100)}%; background:var(--primary); transition:width 1s cubic-bezier(0.34, 1.56, 0.64, 1);"></div>
                 </div>
-                <p style="margin-top:1rem; font-size:0.8rem; color:#6b7280; font-weight:600;">
-                    ${current >= goal ? 'Mission accomplie ! Bravo.' : `Encore ${goal - current} à accomplir.`}
-                </p>
+                <div style="margin-top:1.2rem; display:flex; justify-content:space-between; align-items:center;">
+                    <span style="font-size:0.8rem; color:#6b7280; font-weight:700;">Récompense :</span>
+                    <span style="font-weight:900; color:var(--accent); font-size:1.1rem;">+${mission.xpReward} XP</span>
+                </div>
             </div>
             
-            <button class="btn-primary" style="width:100%; justify-content:center;" onclick="this.closest('.auth-modal-overlay').remove()">Continuer</button>
+            ${isDone && !isClaimed ? `
+                <button class="btn-accent" style="width:100%; justify-content:center; margin-bottom:0.75rem;" onclick="window._claimMission(${mission.id})">
+                    <i class="fa-solid fa-gift"></i> RÉCUPÉRER L'XP
+                </button>
+            ` : ''}
+            
+            <button class="btn-primary" style="width:100%; justify-content:center;" onclick="document.getElementById('mission-detail-modal').remove()">
+                ${isClaimed ? 'Déjà récupéré' : 'Continuer'}
+            </button>
         </div>
     `;
+
+    // Fermer en cliquant sur l'overlay
+    overlay.onclick = (e) => {
+        if (e.target === overlay) overlay.remove();
+    };
+
     document.body.appendChild(overlay);
+};
+
+window._claimMission = async (id) => {
+    const btn = document.querySelector('#mission-detail-modal .btn-accent');
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Traitement...';
+    }
+
+    const mission = MISSIONS_DATA.find(m => m.id === id);
+    if (!mission) return;
+
+    const { db, updateDoc, doc, increment, arrayUnion, getCurrentUser } = await import("./firebase-app.js");
+    const user = getCurrentUser();
+    if (!user) return;
+
+    try {
+        await updateDoc(doc(db, "users", user.uid), {
+            xp: increment(mission.xpReward),
+            claimedMissions: arrayUnion(mission.id)
+        });
+        
+        // Effet de succès et rechargement
+        document.getElementById('mission-detail-modal').remove();
+        renderMissions(document.getElementById('main-container'));
+        
+        // Notification (simple alert pour l'instant)
+        alert(`Félicitations ! Vous avez gagné ${mission.xpReward} XP.`);
+    } catch (e) {
+        console.error("Claim: Error", e);
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = 'Erreur...';
+        }
+    }
 };
 
 
@@ -874,8 +951,8 @@ async function renderRanking(container) {
         container.innerHTML = `
             <div style="max-width:800px; margin: 2rem auto; padding: 0 1rem;">
                 <div style="text-align:center; margin-bottom: 3rem;">
-                    <h1 style="font-size:2.5rem; margin-bottom:0.5rem; color:#111827; font-weight:800;"><i class="fa-solid fa-trophy" style="color:#fbbf24;"></i> Classement Mondial</h1>
-                    <p style="color:#111827; font-weight:800; font-size:1.2rem;">Les meilleurs décrypteurs de WIKIGAME</p>
+                    <h1 style="font-size:2.5rem; margin-bottom:0.5rem; color:white; font-weight:800;"><i class="fa-solid fa-trophy" style="color:#fbbf24;"></i> Classement Mondial</h1>
+                    <p style="color:white; font-weight:800; font-size:1.2rem;">Les meilleurs décrypteurs de WIKIGAME</p>
                 </div>
 
                 <div class="glass" style="padding:0; overflow:hidden; border-radius:16px; border: 1px solid #e5e7eb; background:white; box-shadow:0 10px 25px rgba(0,0,0,0.05);">
