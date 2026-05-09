@@ -198,41 +198,76 @@ function renderMultiplayerMenu(container) {
                 <p style="color:var(--text-muted);font-size:.9rem;">Créez votre salle ou rejoignez-en une existante.</p>
             </div>
 
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;">
+            <div style="display:flex; flex-direction:column; gap:2rem; max-width:550px; margin: 0 auto;">
+
+                <!-- ── REJOINDRE UNE SALLE ── -->
+                <div class="glass" style="padding:1.75rem;border-radius:var(--radius-lg);display:flex;flex-direction:column;gap:1rem; border: 2px solid var(--accent); background: white;">
+                    <div style="display:flex;align-items:center;gap:10px;margin-bottom:.25rem;">
+                        <div style="background:var(--accent);color:white;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;">
+                            <i class="fa-solid fa-door-open"></i>
+                        </div>
+                        <div>
+                            <h3 style="margin:0;font-size:1rem;">Rejoindre une salle</h3>
+                            <p style="margin:0;font-size:.75rem;color:var(--text-muted);">Entrez le code fourni par l'hôte</p>
+                        </div>
+                    </div>
+
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div style="display:flex;flex-direction:column;gap:.6rem;">
+                            <label style="font-size:.7rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;">Votre pseudo</label>
+                            <input type="text" id="join-username" class="wiki-input" placeholder="Pseudo" value="${defaultName}" style="width:100%; padding: 0.6rem;">
+                        </div>
+                        <div style="display:flex;flex-direction:column;gap:.6rem;">
+                            <label style="font-size:.7rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;">Code de salle</label>
+                            <input type="text" id="join-code" class="wiki-input" placeholder="ABCDE" maxlength="5" style="width:100%; text-transform:uppercase; text-align:center; font-family:var(--font-mono); font-weight:800; padding: 0.6rem;">
+                        </div>
+                    </div>
+
+                    <button id="join-room-btn" class="btn-primary" style="width:100%;justify-content:center;background:var(--accent); border:none;">
+                        <i class="fa-solid fa-arrow-right-to-bracket"></i> Rejoindre la partie
+                    </button>
+                </div>
+
+                <div style="display:flex; align-items:center; gap: 1rem; color: white; opacity: 0.8;">
+                    <hr style="flex:1; border:none; border-top: 1px solid rgba(255,255,255,0.3);">
+                    <span style="font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.2em;">OU</span>
+                    <hr style="flex:1; border:none; border-top: 1px solid rgba(255,255,255,0.3);">
+                </div>
 
                 <!-- ── CRÉER UNE SALLE ── -->
-                <div class="glass" style="padding:1.75rem;border-radius:var(--radius-lg);display:flex;flex-direction:column;gap:1rem;">
-                    <div style="display:flex;align-items:center;gap:10px;margin-bottom:.25rem;">
-                        <div style="background:var(--primary);color:white;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;">
+                <div class="glass" style="padding:2rem;border-radius:var(--radius-lg);display:flex;flex-direction:column;gap:1.2rem;">
+                    <div style="display:flex;align-items:center;gap:10px;margin-bottom:.5rem;">
+                        <div style="background:var(--primary);color:white;width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center; font-size: 1.2rem;">
                             <i class="fa-solid fa-plus"></i>
                         </div>
                         <div>
-                            <h3 style="margin:0;font-size:1rem;">Créer une salle</h3>
-                            <p style="margin:0;font-size:.75rem;color:var(--text-muted);">Vous serez l'administrateur</p>
+                            <h3 style="margin:0;font-size:1.1rem;">Créer une nouvelle salle</h3>
+                            <p style="margin:0;font-size:.8rem;color:var(--text-muted);">Configurez votre propre compétition</p>
                         </div>
                     </div>
 
-                    <div style="display:flex;flex-direction:column;gap:.6rem;">
-                        <label style="font-size:.8rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;">Votre pseudo</label>
-                        <input type="text" id="create-username" class="wiki-input" placeholder="Pseudo" value="${defaultName}" style="width:100%;">
-                    </div>
-
-                    <div style="display:flex;flex-direction:column;gap:.6rem;">
-                        <label style="font-size:.8rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;">Nom de la salle</label>
-                        <input type="text" id="create-roomname" class="wiki-input" placeholder="Ex: La salle de Jean" style="width:100%;">
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div style="display:flex;flex-direction:column;gap:.6rem;">
+                            <label style="font-size:.8rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;">Votre pseudo</label>
+                            <input type="text" id="create-username" class="wiki-input" placeholder="Pseudo" value="${defaultName}" style="width:100%;">
+                        </div>
+                        <div style="display:flex;flex-direction:column;gap:.6rem;">
+                            <label style="font-size:.8rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;">Nom de la salle</label>
+                            <input type="text" id="create-roomname" class="wiki-input" placeholder="Ex: Salon de Wiki" style="width:100%;">
+                        </div>
                     </div>
 
                     <div style="display:flex;flex-direction:column;gap:.6rem;">
                         <label style="font-size:.8rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;">Nombre de manches</label>
-                        <div style="display:flex;align-items:center;gap:.75rem;">
+                        <div style="display:flex;align-items:center;gap:1rem; background: #f9fafb; padding: 0.8rem; border-radius: 12px; border: 1px solid #eee;">
                             <input type="range" id="create-rounds" min="1" max="5" value="3" style="flex:1;accent-color:var(--primary);">
-                            <span id="rounds-display" style="font-family:var(--font-mono);font-weight:800;font-size:1.2rem;color:var(--primary);min-width:1.5rem;text-align:center;">3</span>
+                            <span id="rounds-display" style="font-family:var(--font-mono);font-weight:800;font-size:1.4rem;color:var(--primary);min-width:2rem;text-align:center;">3</span>
                         </div>
                     </div>
 
                     <div style="display:flex;flex-direction:column;gap:.6rem;">
                         <label style="font-size:.8rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;">Mode de victoire</label>
-                        <div id="win-mode-options" style="display:flex; flex-direction:column; gap:.5rem;">
+                        <div id="win-mode-options" style="display:grid; grid-template-columns: 1fr; gap:.6rem;">
                             <label class="win-mode-card">
                                 <input type="radio" name="win-mode" value="1" checked style="display:none;">
                                 <div class="card-content">
@@ -266,38 +301,8 @@ function renderMultiplayerMenu(container) {
                         </div>
                     </div>
 
-                    <button id="create-room-btn" class="btn-primary" style="width:100%;justify-content:center;margin-top:.5rem;">
-                        <i class="fa-solid fa-play"></i> Créer la salle
-                    </button>
-                </div>
-
-                <!-- ── REJOINDRE UNE SALLE ── -->
-                <div class="glass" style="padding:1.75rem;border-radius:var(--radius-lg);display:flex;flex-direction:column;gap:1rem;">
-                    <div style="display:flex;align-items:center;gap:10px;margin-bottom:.25rem;">
-                        <div style="background:var(--accent);color:white;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;">
-                            <i class="fa-solid fa-door-open"></i>
-                        </div>
-                        <div>
-                            <h3 style="margin:0;font-size:1rem;">Rejoindre une salle</h3>
-                            <p style="margin:0;font-size:.75rem;color:var(--text-muted);">Entrez le code fourni par l'hôte</p>
-                        </div>
-                    </div>
-
-                    <div style="display:flex;flex-direction:column;gap:.6rem;">
-                        <label style="font-size:.8rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;">Votre pseudo</label>
-                        <input type="text" id="join-username" class="wiki-input" placeholder="Pseudo" value="${defaultName}" style="width:100%;">
-                    </div>
-
-                    <div style="display:flex;flex-direction:column;gap:.6rem;">
-                        <label style="font-size:.8rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;">Code de la salle</label>
-                        <input type="text" id="join-code" class="wiki-input" placeholder="Ex: AB3KZ" maxlength="5"
-                            style="text-transform:uppercase;text-align:center;font-family:var(--font-mono);font-size:1.5rem;letter-spacing:.2em;width:100%;">
-                    </div>
-
-                    <div style="flex:1;"></div>
-
-                    <button id="join-room-btn" class="btn-accent" style="width:100%;justify-content:center;margin-top:.5rem;">
-                        <i class="fa-solid fa-arrow-right-to-bracket"></i> Rejoindre
+                    <button id="create-room-btn" class="btn-primary" style="width:100%;justify-content:center;margin-top:.5rem; padding: 1rem;">
+                        <i class="fa-solid fa-play"></i> Lancer la compétition
                     </button>
                 </div>
             </div>
