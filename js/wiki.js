@@ -10,22 +10,22 @@ const API_BASE = 'https://fr.wikipedia.org/w/api.php';
  */
 export async function fetchRandomArticle() {
     const params = new URLSearchParams({
-        action:       'query',
-        format:       'json',
-        prop:         'extracts',
-        exintro:      '0',       
-        explaintext:  '1',       // USE PLAIN TEXT - Much easier to split into paragraphs without HTML mess
-        generator:    'random',  
-        grnnamespace: '0',       
-        grnlimit:     '1',
-        origin:       '*'        
+        action: 'query',
+        format: 'json',
+        prop: 'extracts',
+        exintro: '0',
+        explaintext: '1',       // USE PLAIN TEXT - Much easier to split into paragraphs without HTML mess
+        generator: 'random',
+        grnnamespace: '0',
+        grnlimit: '1',
+        origin: '*'
     });
 
     console.log("WikiAPI: Fetching random article...");
-    
+
     try {
         const response = await fetch(`${API_BASE}?${params.toString()}`);
-        
+
         if (response.status === 429) {
             console.warn("WikiAPI: Rate limited (429). Waiting 3s...");
             await sleep(3000);
@@ -40,7 +40,7 @@ export async function fetchRandomArticle() {
 
         const data = await response.json();
         const pages = data?.query?.pages;
-        
+
         if (!pages) {
             console.warn("WikiAPI: No pages in response. Retrying...");
             await sleep(1000);
@@ -48,7 +48,7 @@ export async function fetchRandomArticle() {
         }
 
         const pageId = Object.keys(pages)[0];
-        const page   = pages[pageId];
+        const page = pages[pageId];
 
         if (!page || pageId === '-1' || !page.extract) {
             console.warn("WikiAPI: Invalid page or no extract. Retrying...");
@@ -59,13 +59,13 @@ export async function fetchRandomArticle() {
         console.log("WikiAPI: Found article:", page.title);
 
         // Process plain text into paragraphs
-        const paragraphs = processPlainText(page.extract, 8); // On prend jusqu'à 8 paragraphes pour atteindre la longueur
-        
+        const paragraphs = processPlainText(page.extract, 6); // On prend jusqu'à 8 paragraphes pour atteindre la longueur
+
         const totalCharCount = paragraphs.join('\n\n').length;
         console.log(`WikiAPI: Extracted ${paragraphs.length} paragraphs (Total: ${totalCharCount} chars).`);
 
-        // Nouveaux critères : Minimum 1100 caractères
-        if (totalCharCount < 1100) {
+        // Minimum 500 caractères
+        if (totalCharCount < 500) {
             console.warn(`WikiAPI: Article trop court (${totalCharCount} chars). Retrying...`);
             await sleep(500);
             return fetchRandomArticle();
@@ -73,8 +73,8 @@ export async function fetchRandomArticle() {
 
 
         return {
-            id:         String(pageId),
-            title:      page.title,
+            id: String(pageId),
+            title: page.title,
             paragraphs,
             url: `https://fr.wikipedia.org/?curid=${pageId}`
         };
@@ -91,13 +91,13 @@ export async function fetchRandomArticle() {
  */
 export async function fetchArticleById(pageId) {
     const params = new URLSearchParams({
-        action:      'query',
-        format:      'json',
-        prop:        'extracts',
-        exintro:     '0',
+        action: 'query',
+        format: 'json',
+        prop: 'extracts',
+        exintro: '0',
         explaintext: '1',
-        pageids:     pageId,
-        origin:      '*'
+        pageids: pageId,
+        origin: '*'
     });
 
     try {
@@ -112,10 +112,10 @@ export async function fetchArticleById(pageId) {
         const paragraphs = processPlainText(page.extract, 8);
 
         return {
-            id:    String(pageId),
+            id: String(pageId),
             title: page.title,
             paragraphs,
-            url:   `https://fr.wikipedia.org/?curid=${pageId}`
+            url: `https://fr.wikipedia.org/?curid=${pageId}`
         };
     } catch (error) {
         console.error('WikiAPI Error (ByID):', error);
@@ -139,7 +139,7 @@ function processPlainText(text, maxP) {
         .map(p => p.trim())
         .filter(p => p.length > 40) // Lower threshold to 40 characters
         .filter(p => !p.startsWith('==') && !p.endsWith('==')) // Skip headers
-        .filter(p => !p.includes('may refer to:') && !p.includes('peut désigner :')); 
+        .filter(p => !p.includes('may refer to:') && !p.includes('peut désigner :'));
 
     console.log(`WikiAPI: Filtered down to ${filtered.length} usable segments.`);
 

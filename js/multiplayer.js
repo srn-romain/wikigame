@@ -13,6 +13,8 @@ import { fetchRandomArticle } from './wiki.js';
 import { initGame } from './game.js';
 import { showInfoModal } from './auth.js';
 import { navigateTo } from './main.js';
+import confetti from 'https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/+esm';
+
 
 let _unsub = null;
 let _roomId = null;
@@ -864,7 +866,19 @@ function _renderLeaderboard(data) {
     const user    = getCurrentUser();
     const isAdmin = user && data.creatorUid === user.uid;
 
+    // Confetti pour le podium !
+    const myIndex = players.findIndex(([uid]) => uid === user?.uid);
+    if (myIndex !== -1 && myIndex < 3) {
+        confetti({
+            particleCount: 100,
+            spread: 60,
+            origin: { y: 0.6 },
+            colors: ['#f1c40f', '#f39c12', '#e67e22'] // Gold/Bronze colors
+        });
+    }
+
     container.innerHTML = `
+
         <div style="max-width:700px;margin:2rem auto;padding:0 1rem;">
             <div class="glass" style="padding:2rem;border-radius:var(--radius-lg);">
                 <div style="text-align:center;margin-bottom:2rem;">

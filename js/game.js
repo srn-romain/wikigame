@@ -1,4 +1,6 @@
 import { fetchRandomArticle, fetchArticleById } from './wiki.js';
+import confetti from 'https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/+esm';
+
 import { db, doc, updateDoc, getCurrentUser, getDoc } from './firebase-app.js';
 import { saveSoloProgress, deleteSoloDraft } from './solo.js';
 
@@ -605,7 +607,16 @@ async function triggerWin(skipSave = false) {
     state.won = true;
     state.tokens.forEach(t => { if (t.isWord) t.revealed = true; });
 
+    // Confetti!
+    confetti({
+        particleCount: 150,
+        spread: 70,
+        origin: { y: 0.6 },
+        colors: ['#166534', '#15803d', '#f39c12', '#e67e22', '#2ecc71']
+    });
+
     if (window._gameTimer) clearInterval(window._gameTimer);
+
 
     // Supprimer le brouillon si gagné
     if (state.draftId) {
