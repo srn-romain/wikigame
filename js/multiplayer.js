@@ -15,6 +15,7 @@ import { showInfoModal } from './auth.js';
 
 let _unsub = null;
 let _roomId = null;
+let _countdownInterval = null;
 
 // ── CRÉER UNE SALLE ──────────────────────────────────────────────
 export async function createRoom({ roomName, username, maxRounds, winMode }) {
@@ -220,6 +221,8 @@ export async function reportProgress(found, total, finished, attempts) {
     const user = getCurrentUser();
     if (!user) return;
 
+    console.log(`Multiplayer: Reporting progress for ${user.uid} - Found: ${found}/${total}, Finished: ${finished}`);
+
     const roomRef = doc(db, "rooms", _roomId);
     const snap = await getDoc(roomRef);
     if (!snap.exists()) return;
@@ -270,6 +273,7 @@ function _subscribe(roomId) {
     _unsub = onSnapshot(doc(db, "rooms", roomId), (snap) => {
         if (!snap.exists()) return;
         const data = snap.data();
+        console.log(`Multiplayer: Received update for room ${roomId}, state: ${data.state}`);
         const user = getCurrentUser();
 
         if (data.state === "WAITING") {
@@ -387,15 +391,26 @@ function _injectAdminPanel(data) {
 
 // ── COMPTE À REBOURS (Mode 3) ─────────────────────────────────────
 function _updateCountdown(data) {
-    const slot = document.getElementById('mp-admin-slot');
-    if (!slot) return;
-
-    let banner = document.getElementById('mp-countdown-banner');
-
     if (data.countdownEnd && data.state === "PLAYING") {
-        const remaining = Math.max(0, Math.floor((data.countdownEnd - Date.now()) / 1000));
+        if (!_countdownInterval) {
+            _countdownInterval = setInterval(() => {
+                const remaining = Math.max(0, Math.floor((data.countdownEnd - Date.now()) / 1000));
+                const banner = document.getElementById('mp-countdown-banner');
+                if (banner) {
+                    banner.querySelector('.cd-time').textContent = remaining;
+                }
+                if (remaining <= 0) {
+                    clearInterval(_countdownInterval);
+                    _countdownInterval = null;
+                    if (data.creatorUid === getCurrentUser()?.uid) stopGame();
+                }
+            }, 1000);
+        }
         
-        if (!banner) {
+        // Affichage initial ou forcé
+        let banner = document.getElementById('mp-countdown-banner');
+        const slot = document.getElementById('mp-admin-slot');
+        if (slot && !banner) {
             banner = document.createElement('div');
             banner.id = 'mp-countdown-banner';
             banner.style.cssText = `
@@ -403,20 +418,18 @@ function _updateCountdown(data) {
                 padding: 10px 15px; margin-bottom: 1rem; display: flex; align-items: center; justify-content: center; gap: 10px;
                 font-weight: 800; color: #92400e; width: 100%;
             `;
+            banner.innerHTML = `
+                <i class="fa-solid fa-hourglass-start fa-spin"></i>
+                <span>DERNIÈRE MINUTE ! <span class="cd-time" style="font-family:var(--font-mono); font-size:1.2rem;">--</span>s</span>
+            `;
             slot.insertBefore(banner, slot.firstChild);
         }
-        
-        banner.innerHTML = `
-            <i class="fa-solid fa-hourglass-start fa-spin"></i>
-            <span>DERNIÈRE MINUTE ! <span style="font-family:var(--font-mono); font-size:1.2rem;">${remaining}</span>s</span>
-        `;
-        
-        if (remaining <= 0 && data.creatorUid === getCurrentUser()?.uid) {
-            // L'admin arrête la manche automatiquement à la fin du countdown
-            stopGame(); 
-        }
     } else {
-        banner?.remove();
+        if (_countdownInterval) {
+            clearInterval(_countdownInterval);
+            _countdownInterval = null;
+        }
+        document.getElementById('mp-countdown-banner')?.remove();
     }
 }
 

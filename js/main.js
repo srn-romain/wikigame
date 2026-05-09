@@ -410,6 +410,12 @@ function setupGameInputs() {
             handleGuess(val);
             input.value = '';
             input.focus();
+
+            // MULTIPLAYER: Reporter la progression en temps réel
+            if (window.mpReportProgress) {
+                const s = window.getGameState();
+                window.mpReportProgress(s.foundCount, s.totalCount, s.won, s.attempts);
+            }
         }
     };
 

@@ -27,6 +27,16 @@ let state = {
     won: false
 };
 
+export function getGameState() {
+    return {
+        foundCount: state.foundCount,
+        totalCount: state.tokens.filter(t => t.isWord).length,
+        won: state.won,
+        attempts: state.attempts
+    };
+}
+window.getGameState = getGameState;
+
 // ─────────────────────────────────────────────
 // NORMALIZATION
 // ─────────────────────────────────────────────
