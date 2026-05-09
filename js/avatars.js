@@ -1,7 +1,9 @@
 export const AVATARS = [
-    { id: 0, tier: 0, icon: "fa-user", color: "#9ca3af", label: "Débutant" },
-    { id: 1, tier: 1, icon: "fa-seedling", color: "#854d0e", label: "Wiki de Bois" },
+    { id: 0, tier: 0, icon: "fa-seedling", color: "#854d0e", label: "Wiki de Bois" }, // Par défaut
+    { id: 10, tier: 0, icon: "fa-cat", color: "#f59e0b", label: "Félin Curieux" }, // Débloqué dès le début
+    { id: 11, tier: 0, icon: "fa-robot", color: "#3b82f6", label: "Méca-Wiki" }, // Débloqué dès le début
     { id: 2, tier: 2, icon: "fa-mountain", color: "#6b7280", label: "Wiki de Pierre" },
+    { id: 12, tier: 2, icon: "fa-user-ninja", color: "#111827", label: "Ninja des Mots" }, // Débloqué à 100 XP
     { id: 3, tier: 3, icon: "fa-shield-halved", color: "#b45309", label: "Wiki de Bronze" },
     { id: 4, tier: 4, icon: "fa-hammer", color: "#475569", label: "Wiki de Fer" },
     { id: 5, tier: 5, icon: "fa-medal", color: "#94a3b8", label: "Wiki d'Argent" },
