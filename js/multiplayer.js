@@ -8,10 +8,11 @@
  *   pending: { [uid]: { name } }
  * }
  */
-import { db, waitForAuth, getCurrentUser, doc, setDoc, getDoc, updateDoc, onSnapshot, deleteField } from './firebase-app.js';
+import { db, waitForAuth, getCurrentUser, doc, setDoc, getDoc, updateDoc, onSnapshot, deleteField, collection, query, where, getDocs, deleteDoc } from './firebase-app.js';
 import { fetchRandomArticle } from './wiki.js';
 import { initGame } from './game.js';
 import { showInfoModal } from './auth.js';
+import { navigateTo } from './main.js';
 
 let _unsub = null;
 let _roomId = null;
@@ -22,6 +23,19 @@ let _lastRoomData = null; // Cache pour éviter les getDoc() répétitifs
 export async function createRoom({ roomName, username, maxRounds, winMode }) {
     const user = await waitForAuth();
     if (!user) return;
+
+    // Fallback TTL : Nettoyage des anciennes salles de cet utilisateur
+    try {
+        const oldRoomsQuery = query(
+            collection(db, "rooms"), 
+            where("creatorUid", "==", user.uid),
+            where("expireAt", "<", new Date())
+        );
+        const oldSnaps = await getDocs(oldRoomsQuery);
+        oldSnaps.forEach(oldDoc => deleteDoc(oldDoc.ref));
+    } catch (e) { 
+        console.warn("Multiplayer: Cleanup failed", e); 
+    }
 
     const roomId  = _genCode();
     const roomRef = doc(db, "rooms", roomId);
@@ -42,6 +56,7 @@ export async function createRoom({ roomName, username, maxRounds, winMode }) {
         articleId:  null,
         startTime:  null,
         createdAt:  Date.now(),
+        expireAt:   new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // TTL: 30 jours
         players: {
             [user.uid]: { name: username, isHost: true, approved: true, roundScores: {}, totalScore: 0, finished: false, attempts: 0 }
         },
@@ -70,6 +85,13 @@ export async function joinRoom(roomId, username) {
     if (!snap.exists()) throw new Error("Salle introuvable !");
 
     const data = snap.data();
+    
+    // Vérification de l'expiration (Fallback TTL)
+    const expireDate = data.expireAt?.toDate ? data.expireAt.toDate() : new Date(data.expireAt || 0);
+    if (expireDate < new Date()) {
+        throw new Error("Cette salle a expiré (limite de 30 jours).");
+    }
+
     if (data.locked)             throw new Error("Cette salle est verrouillée.");
     if (data.state === "FINISHED") throw new Error("Cette partie est déjà terminée.");
 
@@ -127,9 +149,13 @@ export async function startRound() {
     }
 
     try {
+        // Signaler la recherche à tout le monde
+        await updateDoc(doc(db, "rooms", _roomId), { state: "SEARCHING" });
+
         const article = await fetchRandomArticle();
         if (!article) { 
             showInfoModal("Erreur", "Impossible de charger un article aléatoire depuis Wikipédia.", "error"); 
+            await updateDoc(doc(db, "rooms", _roomId), { state: "WAITING" });
             if (btn) { btn.disabled = false; btn.innerHTML = originalHtml; }
             return; 
         }
@@ -154,6 +180,7 @@ export async function startRound() {
     } catch (err) {
         console.error(err);
         showInfoModal("Erreur", "Une erreur est survenue lors du lancement de la manche.", "error");
+        await updateDoc(doc(db, "rooms", _roomId), { state: "WAITING" });
         if (btn) {
             btn.disabled = false;
             btn.innerHTML = originalHtml;
@@ -197,13 +224,19 @@ export async function nextArticle() {
     const data = snap.data();
     const nextRound = (data.currentRound || 1) + 1;
 
+    // Signaler la recherche
+    await updateDoc(doc(db, "rooms", _roomId), { state: "SEARCHING" });
+
     if (nextRound > data.maxRounds) {
         await updateDoc(doc(db, "rooms", _roomId), { state: "FINISHED" });
         return;
     }
 
     const article = await fetchRandomArticle();
-    if (!article) return;
+    if (!article) {
+        await updateDoc(doc(db, "rooms", _roomId), { state: "WAITING" });
+        return;
+    }
 
     const updates = { 
         state: "PLAYING", 
@@ -296,7 +329,16 @@ function _subscribe(roomId) {
         if (!snap.exists()) return;
         const data = snap.data();
         _lastRoomData = data; // Mise à jour du cache local
-        // console.log(`Multiplayer: Received update for room ${roomId}, state: ${data.state}`);
+
+        // Vérification de l'expiration en temps réel
+        const expireDate = data.expireAt?.toDate ? data.expireAt.toDate() : new Date(data.expireAt || 0);
+        if (expireDate < new Date()) {
+            showInfoModal("Salle expirée", "Cette salle a dépassé la limite de 30 jours et n'est plus accessible.", "info");
+            leaveRoom();
+            navigateTo('home');
+            return;
+        }
+
         const user = getCurrentUser();
 
         // Heartbeat pour la présence
@@ -313,6 +355,8 @@ function _subscribe(roomId) {
             window._mpGameStarted = false;
             window._mpArticleId = null;
             _renderLobby(data, roomId, user);
+        } else if (data.state === "SEARCHING") {
+            _renderSearching(data);
         } else if (data.state === "PLAYING") {
             if (!window._mpGameStarted || window._mpArticleId !== data.articleId) {
                 window._mpGameStarted = true;
@@ -659,6 +703,33 @@ function _showPauseBanner() {
             </div>
         `;
         document.body.appendChild(banner);
+}
+
+// ── ÉCRAN DE RECHERCHE (LOADER SYNC) ──────────────────────────────
+function _renderSearching(data) {
+    const container = document.getElementById('main-container');
+    if (!container) return;
+
+    const hostName = data.players[data.hostId]?.name || "L'hôte";
+
+    container.innerHTML = `
+        <div class="glass" style="max-width:450px; margin:4rem auto; padding:3.5rem 2rem; text-align:center; border-radius:24px; box-shadow:0 20px 50px rgba(0,0,0,0.1);">
+            <div class="loading-spinner" style="margin: 0 auto 2rem; width: 60px; height: 60px; border-width: 6px; border-top-color: var(--accent);"></div>
+            <h2 style="margin:0 0 1rem; font-size:1.6rem; font-weight:800; color:#111827;">Préparation de la manche...</h2>
+            <div style="background:#f3f4f6; padding:1.25rem; border-radius:16px; border:1px solid #e5e7eb;">
+                <p style="color:#4b5563; line-height:1.6; margin:0; font-size:1rem;">
+                    <i class="fa-solid fa-crown" style="color:#fbbf24; margin-right:6px;"></i>
+                    <strong>${hostName}</strong> a lancé la partie !
+                </p>
+                <p style="color:#6b7280; font-size:0.9rem; margin-top:0.5rem;">
+                    Recherche d'un article Wikipédia passionnant en cours...
+                </p>
+            </div>
+            <p style="color:#94a3b8; font-size:0.8rem; margin-top:2rem;">
+                <i class="fa-solid fa-bolt fa-fade"></i> Tenez-vous prêt, ça va commencer !
+            </p>
+        </div>
+    `;
 }
 
 // ── LOBBY ─────────────────────────────────────────────────────────

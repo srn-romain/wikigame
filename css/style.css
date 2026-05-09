@@ -397,17 +397,21 @@ body {
 ══════════════════════════════════ */
 .game-controls {
     position: fixed;
-    bottom: 16px;
+    bottom: 24px;
     left: 50%;
     transform: translateX(-50%);
     width: calc(100% - 2rem);
     max-width: 700px;
-    padding: 0.85rem 1rem;
-    border-radius: var(--radius-lg);
+    padding: 1rem 1.25rem;
+    border-radius: 20px;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 12px;
     z-index: 150;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    background: white !important;
+    border: 2px solid var(--glass-border) !important;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2) !important;
 }
 
 /* Stats bar */
@@ -439,21 +443,24 @@ body {
 }
 
 .wiki-input {
-    background: white;
-    border: 1px solid #ddd;
-    padding: 0.8rem 1rem;
-    border-radius: var(--radius-md);
+    background: #f9fafb;
+    border: 2px solid #e5e7eb;
+    padding: 0 1.25rem;
+    height: 56px;
+    border-radius: 12px;
     color: var(--text-main);
-    font-size: 1rem;
+    font-size: 1.1rem; /* Prevent iOS zoom, ensure visibility */
     font-family: var(--font-ui);
+    font-weight: 600;
     outline: none;
     transition: all 0.2s;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.03);
 }
 
 .wiki-input:focus {
     border-color: var(--accent);
-    box-shadow: 0 0 0 3px rgba(243, 156, 18, 0.15);
+    background: white;
+    box-shadow: 0 0 0 4px rgba(243, 156, 18, 0.15), inset 0 2px 4px rgba(0,0,0,0.02);
 }
 
 #guess-input {
@@ -461,11 +468,11 @@ body {
 }
 
 #submit-guess {
-    width: 52px;
-    height: 52px;
+    width: 56px;
+    height: 56px;
     background: var(--accent);
     border: none;
-    border-radius: var(--radius-md);
+    border-radius: 12px;
     color: white;
     font-size: 1.1rem;
     cursor: pointer;
@@ -481,6 +488,34 @@ body {
 
 #submit-guess:active {
     transform: scale(0.93);
+}
+
+@media (max-width: 600px) {
+    .game-controls {
+        bottom: 0;
+        width: 100%;
+        border-radius: 20px 20px 0 0;
+        padding: 1.25rem 1rem env(safe-area-inset-bottom);
+        box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.15) !important;
+        border-left: none !important;
+        border-right: none !important;
+        border-bottom: none !important;
+    }
+    
+    .wiki-input {
+        height: 52px;
+        font-size: 1rem; /* 16px minimum for iOS */
+    }
+    
+    #submit-guess {
+        height: 52px;
+        width: 52px;
+    }
+    
+    .stats-bar {
+        font-size: 0.7rem;
+        margin-bottom: 4px;
+    }
 }
 
 /* ══════════════════════════════════
