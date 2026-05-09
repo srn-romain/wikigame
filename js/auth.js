@@ -24,10 +24,11 @@ export async function openAuthModal(mode = 'login') {
         // Fetch extended profile from Firestore
         const userDoc = await getDoc(doc(db, "users", user.uid));
         const userData = userDoc.exists() ? userDoc.data() : {
-            pseudo: user.displayName || "",
-            bio: "",
-            gamesPlayed: 0,
-            dailySolved: 0
+            pseudo:           user.displayName || "",
+            bio:              "",
+            dailySolvedTotal: 0,
+            lastDailyDate:    null,
+            dailyFoundToday:  false
         };
         renderProfileModal(modalContainer, user, userData);
     } else {
@@ -91,14 +92,10 @@ function renderProfileModal(container, user, userData) {
                 <p style="color:var(--text-muted); font-size:0.8rem;">${user.email}</p>
             </div>
 
-            <div class="stats-row" style="display:grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 1.5rem;">
+            <div class="stats-row" style="display:grid; grid-template-columns: 1fr; gap: 10px; margin-bottom: 1.5rem;">
                 <div class="glass" style="padding: 12px; text-align:center; border-radius:12px;">
-                    <div style="font-size:1.2rem; font-weight:800; color:var(--primary);">${userData.gamesPlayed || 0}</div>
-                    <div style="font-size:0.65rem; color:var(--text-muted); text-transform:uppercase;">Parties</div>
-                </div>
-                <div class="glass" style="padding: 12px; text-align:center; border-radius:12px;">
-                    <div style="font-size:1.2rem; font-weight:800; color:var(--accent);">${userData.dailySolved || 0}</div>
-                    <div style="font-size:0.65rem; color:var(--text-muted); text-transform:uppercase;">Défis Trouvés</div>
+                    <div style="font-size:1.2rem; font-weight:800; color:var(--accent);">${userData.dailySolvedTotal || 0}</div>
+                    <div style="font-size:0.65rem; color:var(--text-muted); text-transform:uppercase;">Défis Quotidiens Résolus</div>
                 </div>
             </div>
 

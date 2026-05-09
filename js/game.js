@@ -1,5 +1,6 @@
 import { fetchRandomArticle, fetchArticleById } from './wiki.js';
-import { db, doc, updateDoc, increment, getCurrentUser, setDoc } from './firebase-app.js';
+import { db, doc, updateDoc, getCurrentUser } from './firebase-app.js';
+
 
 // ─────────────────────────────────────────────
 // REGEXES
@@ -422,22 +423,21 @@ async function triggerWin(skipSave = false) {
 
     if (window._gameTimer) clearInterval(window._gameTimer);
 
-    // Update User Stats in Firestore
+    // Sauvegarde Firestore uniquement pour le mode daily (pas solo)
     const user = getCurrentUser();
-    if (user && !user.isAnonymous && !skipSave) {
+    if (user && !user.isAnonymous && !skipSave && state.mode === 'daily') {
         try {
-            const updates = { gamesPlayed: increment(1) };
-            if (state.mode === 'daily') {
-                updates.dailySolved = increment(1);
-                const { markDailyAsSolved } = await import('./daily.js');
-                await markDailyAsSolved(user, state.article.id);
-            }
-            
-            const userRef = doc(db, "users", user.uid);
-            await setDoc(userRef, updates, { merge: true });
+            const { markDailyAsSolved } = await import('./daily.js');
+            // markDailyAsSolved gère lui-même l'incrémentation de dailySolvedTotal
+            await markDailyAsSolved(user);
         } catch (e) {
-            console.error("Failed to update stats:", e);
+            console.error("Game: Failed to save daily stats:", e);
         }
+    }
+
+    // Signaler la victoire au mode multijoueur si actif
+    if (state.mode === 'multiplayer' && window.mpReportProgress) {
+        window.mpReportProgress(state.foundCount, state.totalWords, true, state.attempts);
     }
 
     renderGame(); // Full re-render with win state

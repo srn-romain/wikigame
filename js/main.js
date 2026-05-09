@@ -1,10 +1,10 @@
 import { initGame, handleGuess } from './game.js';
 import { createRoom, joinRoom } from './multiplayer.js';
-import { db, waitForAuth, doc, getDoc, setDoc } from './firebase-app.js';
-import { fetchRandomArticle } from './wiki.js';
+import { waitForAuth, getCurrentUser } from './firebase-app.js';
 import { openAuthModal } from './auth.js';
 import { getDailyArticleId, checkDailySolved, getCountdown, getDailySolversCount } from './daily.js';
-import { getCurrentUser } from './firebase-app.js';
+
+
 
 document.addEventListener('DOMContentLoaded', () => {
     setupNavigation();
@@ -72,7 +72,8 @@ async function navigateTo(view) {
     const container = document.getElementById('main-container');
     const controls = document.getElementById('game-controls');
     controls.classList.add('hidden');
-    window.isInMpGame = false;
+    window.isInMpGame     = false;
+    window._mpGameStarted = false; // Reset pour que le listener MP puisse relancer
 
     switch (view) {
         case 'home':
@@ -188,15 +189,36 @@ function renderMultiplayerMenu(container) {
     `;
 
     document.getElementById('create-room-btn').onclick = () => {
-        const name = document.getElementById('username-input').value;
+        const name = document.getElementById('username-input').value.trim();
         if (!name) { alert("Choisissez un pseudo !"); return; }
         createRoom(name);
     };
 
     document.getElementById('join-room-btn').onclick = () => {
-        const name = document.getElementById('username-input').value;
-        const code = document.getElementById('room-code-input').value;
-        if (!name || !code) { alert("Pseudo et Code requis !"); return; }
+        const nameEl = document.getElementById('username-input');
+        const codeEl = document.getElementById('room-code-input');
+        
+        if (!nameEl || !codeEl) {
+            console.error("MP-Debug: Input elements not found in DOM!");
+            return;
+        }
+
+        const name = nameEl.value.trim();
+        const code = codeEl.value.trim().toUpperCase();
+        
+        console.log("MP-Debug: Attempting to join", { name, code, nameLength: name.length, codeLength: code.length });
+
+        if (!name) {
+            alert("Pseudo manquant !");
+            nameEl.focus();
+            return;
+        }
+        if (!code) {
+            alert("Code de salle manquant !");
+            codeEl.focus();
+            return;
+        }
+        
         joinRoom(code, name);
     };
 }
@@ -218,8 +240,8 @@ async function loadDailyChallenge() {
         return;
     }
 
-    // 2. Check if the user already solved it today
-    const isSolved = await checkDailySolved(user, articleId);
+    // 2. Check if the user already solved it today (no articleId needed)
+    const isSolved = await checkDailySolved(user);
 
     // 3. Get total solvers count
     const solversCount = await getDailySolversCount();
