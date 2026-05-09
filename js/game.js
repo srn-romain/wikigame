@@ -14,14 +14,15 @@ const IS_WORD = /^[\p{L}0-9'-]+$/u;
 // ─────────────────────────────────────────────
 let state = {
     article: null,
-    tokens: [],       // Array of token objects for ALL paragraphs
-    titleTokens: [],  // Normalized words from the title
+    tokens: [],
+    titleTokens: [],
     guesses: new Set(),
-    history: [],      // [{word: 'manger', hits: 5}, ...]
+    history: [],
     attempts: 0,
     foundCount: 0,
     totalWords: 0,
     startTime: 0,
+    pausedOffset: 0,   // ms accumulés avant une pause
     mode: 'solo',
     won: false
 };
@@ -119,11 +120,32 @@ function startGame(article, preSolved = false) {
     document.getElementById('game-controls').classList.remove('hidden');
 
     // Timer
+    state.pausedOffset = 0;
     if (window._gameTimer) clearInterval(window._gameTimer);
     window._gameTimer = setInterval(updateTimer, 1000);
 
+    // Pause / reprise (utilisé par le mode multijoueur)
+    let _pausedAt = null;
+    window._pauseTimer = () => {
+        if (_pausedAt !== null) return; // déjà en pause
+        _pausedAt = Date.now();
+        if (window._gameTimer) { clearInterval(window._gameTimer); window._gameTimer = null; }
+        const el = document.getElementById('stat-timer');
+        if (el) el.style.opacity = '0.4';
+    };
+    window._resumeTimer = () => {
+        if (_pausedAt === null) return; // pas en pause
+        state.pausedOffset += Date.now() - _pausedAt;
+        _pausedAt = null;
+        if (!window._gameTimer) {
+            window._gameTimer = setInterval(updateTimer, 1000);
+        }
+        const el = document.getElementById('stat-timer');
+        if (el) el.style.opacity = '1';
+    };
+
     if (preSolved) {
-        triggerWin(true); // pass true to skip re-saving stats
+        triggerWin(true);
     }
 }
 
@@ -474,7 +496,7 @@ function updateStats() {
 function updateTimer() {
     const el = document.getElementById('stat-timer');
     if (!el) return;
-    const elapsed = Math.floor((Date.now() - state.startTime) / 1000);
+    const elapsed = Math.floor((Date.now() - state.startTime - state.pausedOffset) / 1000);
     const m = Math.floor(elapsed / 60).toString().padStart(2, '0');
     const s = (elapsed % 60).toString().padStart(2, '0');
     el.textContent = `${m}:${s}`;

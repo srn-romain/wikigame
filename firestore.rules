@@ -1,0 +1,40 @@
+# Règles Firestore à copier dans :
+# Firebase Console → Firestore → Rules
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── USERS : lecture/écriture réservée au propriétaire ──
+    match /users/{uid} {
+      allow read:  if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // ── DAILIES : lecture publique, écriture auth ──
+    match /dailies/{dateId} {
+      allow read:  if true;
+      allow write: if request.auth != null;
+    }
+
+    // ── ROOMS (mode compétition) ──
+    match /rooms/{roomId} {
+      // Lecture : tout utilisateur authentifié
+      allow read: if request.auth != null;
+
+      // Création : utilisateur authentifié
+      allow create: if request.auth != null;
+
+      // Mise à jour :
+      //   - le créateur peut tout modifier
+      //   - un participant peut modifier son propre champ players.{uid}
+      //   - n'importe quel auth peut s'ajouter en pending
+      allow update: if request.auth != null;
+
+      // Suppression : créateur uniquement
+      allow delete: if request.auth != null
+        && request.auth.uid == resource.data.creatorUid;
+    }
+
+  }
+}

@@ -154,74 +154,154 @@ function renderHome(container) {
 }
 
 // ─────────────────────────────────────────────
-// MULTIPLAYER
+// MULTIPLAYER MENU — deux formulaires distincts
 // ─────────────────────────────────────────────
 function renderMultiplayerMenu(container) {
     const user = getCurrentUser();
-    const defaultName = (user && !user.isAnonymous) ? (user.displayName || "") : "";
+
+    // Warning for anonymous users
+    if (!user || user.isAnonymous) {
+        container.innerHTML = `
+            <div style="max-width:500px;margin:3rem auto;padding:2rem;text-align:center;border-radius:var(--radius-lg);" class="glass">
+                <i class="fa-solid fa-user-lock" style="font-size:3rem;color:var(--accent);margin-bottom:1rem;"></i>
+                <h2 style="margin:0 0 1rem;">Connexion requise</h2>
+                <p style="color:var(--text-muted);margin:0 0 2rem;">Le mode compétition nécessite un compte pour participer et sauvegarder vos statistiques.</p>
+                <button class="btn-primary" onclick="document.getElementById('user-profile-btn').click()" style="justify-content:center;width:100%;padding:1rem;">
+                    <i class="fa-solid fa-right-to-bracket"></i> Se connecter / S'inscrire
+                </button>
+            </div>
+        `;
+        return;
+    }
+
+    const defaultName = user.displayName || '';
 
     container.innerHTML = `
-        <div class="glass" style="padding: 2rem; text-align: center; border-radius: var(--radius-lg); margin-top:1rem; max-width: 540px; margin-left: auto; margin-right: auto;">
-            <i class="fa-solid fa-users-line" style="font-size: 3rem; color: var(--accent); margin-bottom: 1rem;"></i>
-            <h2 style="margin-bottom:0.5rem;">Mode Compétition</h2>
-            <p style="margin-bottom: 2rem; color: var(--text-muted);">Créez un salon ou rejoignez une partie existante.</p>
-            
-            <div id="lobby-ui" style="display: flex; flex-direction: column; gap: 1rem;">
-                <input type="text" id="username-input" class="wiki-input" placeholder="Votre Pseudo" value="${defaultName}" style="width:100%;">
-                
-                <button id="create-room-btn" class="btn-primary" style="width:100%; justify-content:center;">
-                    <i class="fa-solid fa-plus"></i> Créer une Salle
-                </button>
-                
-                <div style="position: relative; margin: 0.5rem 0;">
-                    <hr style="border: 0; border-top: 1px solid var(--glass-border);">
-                    <span style="position: absolute; top: -9px; left: 50%; transform: translateX(-50%); background: white; padding: 0 10px; color: var(--text-muted); font-size: 0.75rem; font-weight: 700;">OU</span>
+        <div style="max-width:700px;margin:2rem auto;padding:0 1rem;">
+            <div style="text-align:center;margin-bottom:2rem;">
+                <i class="fa-solid fa-users-line" style="font-size:2.5rem;color:var(--accent);margin-bottom:.75rem;"></i>
+                <h2 style="margin:0 0 .25rem;">Mode Compétition</h2>
+                <p style="color:var(--text-muted);font-size:.9rem;">Créez votre salle ou rejoignez-en une existante.</p>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;">
+
+                <!-- ── CRÉER UNE SALLE ── -->
+                <div class="glass" style="padding:1.75rem;border-radius:var(--radius-lg);display:flex;flex-direction:column;gap:1rem;">
+                    <div style="display:flex;align-items:center;gap:10px;margin-bottom:.25rem;">
+                        <div style="background:var(--primary);color:white;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;">
+                            <i class="fa-solid fa-plus"></i>
+                        </div>
+                        <div>
+                            <h3 style="margin:0;font-size:1rem;">Créer une salle</h3>
+                            <p style="margin:0;font-size:.75rem;color:var(--text-muted);">Vous serez l'administrateur</p>
+                        </div>
+                    </div>
+
+                    <div style="display:flex;flex-direction:column;gap:.6rem;">
+                        <label style="font-size:.8rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;">Votre pseudo</label>
+                        <input type="text" id="create-username" class="wiki-input" placeholder="Pseudo" value="${defaultName}" style="width:100%;">
+                    </div>
+
+                    <div style="display:flex;flex-direction:column;gap:.6rem;">
+                        <label style="font-size:.8rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;">Nom de la salle</label>
+                        <input type="text" id="create-roomname" class="wiki-input" placeholder="Ex: La salle de Jean" style="width:100%;">
+                    </div>
+
+                    <div style="display:flex;flex-direction:column;gap:.6rem;">
+                        <label style="font-size:.8rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;">Nombre de manches <span style="font-weight:400;font-size:.75rem;">(1–5, défaut : 3)</span></label>
+                        <div style="display:flex;align-items:center;gap:.75rem;">
+                            <input type="range" id="create-rounds" min="1" max="5" value="3" style="flex:1;accent-color:var(--primary);">
+                            <span id="rounds-display" style="font-family:var(--font-mono);font-weight:800;font-size:1.2rem;color:var(--primary);min-width:1.5rem;text-align:center;">3</span>
+                        </div>
+                    </div>
+
+                    <button id="create-room-btn" class="btn-primary" style="width:100%;justify-content:center;margin-top:.5rem;">
+                        <i class="fa-solid fa-play"></i> Créer la salle
+                    </button>
                 </div>
 
-                <div style="display: flex; flex-direction: column; gap: 1rem;">
-                    <input type="text" id="room-code-input" class="wiki-input" placeholder="Code de salle" style="text-transform: uppercase; text-align: center;">
-                    <button id="join-room-btn" class="btn-accent" style="width: 100%;">
-                        Rejoindre
+                <!-- ── REJOINDRE UNE SALLE ── -->
+                <div class="glass" style="padding:1.75rem;border-radius:var(--radius-lg);display:flex;flex-direction:column;gap:1rem;">
+                    <div style="display:flex;align-items:center;gap:10px;margin-bottom:.25rem;">
+                        <div style="background:var(--accent);color:white;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;">
+                            <i class="fa-solid fa-door-open"></i>
+                        </div>
+                        <div>
+                            <h3 style="margin:0;font-size:1rem;">Rejoindre une salle</h3>
+                            <p style="margin:0;font-size:.75rem;color:var(--text-muted);">Entrez le code fourni par l'hôte</p>
+                        </div>
+                    </div>
+
+                    <div style="display:flex;flex-direction:column;gap:.6rem;">
+                        <label style="font-size:.8rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;">Votre pseudo</label>
+                        <input type="text" id="join-username" class="wiki-input" placeholder="Pseudo" value="${defaultName}" style="width:100%;">
+                    </div>
+
+                    <div style="display:flex;flex-direction:column;gap:.6rem;">
+                        <label style="font-size:.8rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;">Code de la salle</label>
+                        <input type="text" id="join-code" class="wiki-input" placeholder="Ex: AB3KZ" maxlength="5"
+                            style="text-transform:uppercase;text-align:center;font-family:var(--font-mono);font-size:1.5rem;letter-spacing:.2em;width:100%;">
+                    </div>
+
+                    <div style="flex:1;"></div>
+
+                    <button id="join-room-btn" class="btn-accent" style="width:100%;justify-content:center;margin-top:.5rem;">
+                        <i class="fa-solid fa-arrow-right-to-bracket"></i> Rejoindre
                     </button>
                 </div>
             </div>
         </div>
     `;
 
-    document.getElementById('create-room-btn').onclick = () => {
-        const name = document.getElementById('username-input').value.trim();
-        if (!name) { alert("Choisissez un pseudo !"); return; }
-        createRoom(name);
+    // Slider manches
+    const slider  = document.getElementById('create-rounds');
+    const display = document.getElementById('rounds-display');
+    slider.addEventListener('input', () => { display.textContent = slider.value; });
+
+    // Créer
+    document.getElementById('create-room-btn').onclick = async () => {
+        const username  = document.getElementById('create-username').value.trim();
+        const roomName  = document.getElementById('create-roomname').value.trim();
+        const maxRounds = parseInt(document.getElementById('create-rounds').value, 10);
+        if (!username) { alert('Entrez votre pseudo !'); return; }
+        const btn = document.getElementById('create-room-btn');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Création…';
+        try {
+            await createRoom({ username, roomName, maxRounds });
+        } catch (err) {
+            alert('Erreur : ' + (err.message || 'Impossible de créer la salle.'));
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-play"></i> Créer la salle';
+        }
     };
 
-    document.getElementById('join-room-btn').onclick = () => {
-        const nameEl = document.getElementById('username-input');
-        const codeEl = document.getElementById('room-code-input');
-        
-        if (!nameEl || !codeEl) {
-            console.error("MP-Debug: Input elements not found in DOM!");
-            return;
+    // Rejoindre
+    document.getElementById('join-room-btn').onclick = async () => {
+        const username = document.getElementById('join-username').value.trim();
+        const code     = document.getElementById('join-code').value.trim().toUpperCase();
+        if (!username) { alert('Entrez votre pseudo !'); return; }
+        if (!code || code.length !== 5) { alert('Entrez un code de salle valide (5 caractères).'); return; }
+        const btn = document.getElementById('join-room-btn');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Connexion…';
+        try {
+            await joinRoom(code, username);
+        } catch (err) {
+            alert('Erreur : ' + (err.message || 'Impossible de rejoindre la salle.'));
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-arrow-right-to-bracket"></i> Rejoindre';
         }
-
-        const name = nameEl.value.trim();
-        const code = codeEl.value.trim().toUpperCase();
-        
-        console.log("MP-Debug: Attempting to join", { name, code, nameLength: name.length, codeLength: code.length });
-
-        if (!name) {
-            alert("Pseudo manquant !");
-            nameEl.focus();
-            return;
-        }
-        if (!code) {
-            alert("Code de salle manquant !");
-            codeEl.focus();
-            return;
-        }
-        
-        joinRoom(code, name);
     };
+
+    // Forcer uppercase sur le code
+    document.getElementById('join-code').addEventListener('input', e => {
+        e.target.value = e.target.value.toUpperCase();
+    });
 }
+
+
 
 // ─────────────────────────────────────────────
 // DAILY CHALLENGE

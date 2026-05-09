@@ -3,7 +3,7 @@ import {
     getFirestore,
     collection, doc, setDoc, getDoc, updateDoc,
     onSnapshot, increment, serverTimestamp,
-    runTransaction, query, where, getDocs, deleteDoc
+    runTransaction, query, where, getDocs, deleteDoc, deleteField
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import {
     getAuth,
@@ -40,44 +40,50 @@ onAuthStateChanged(auth, async (user) => {
         console.log("Auth: Logged in. UID:", user.uid, "| anon:", user.isAnonymous);
         updateUserProfileUI(user);
 
-        // Only persist data for non-anonymous users
-        if (!user.isAnonymous) {
-            try {
-                const userRef = doc(db, "users", user.uid);
-                const snap    = await getDoc(userRef);
-
-                if (!snap.exists()) {
-                    // First time: create full document
-                    await setDoc(userRef, {
-                        uid:            user.uid,
-                        email:          user.email || null,
-                        pseudo:         user.displayName || null,
-                        bio:            "",
-                        photoURL:       user.photoURL || null,
-                        createdAt:      serverTimestamp(),
-                        lastLoginAt:    serverTimestamp(),
-                        // Stats
-                        gamesPlayed:    0,
-                        dailySolvedTotal: 0,
-                        // Daily state (reset each day)
-                        lastDailyDate:  null,
-                        dailyFoundToday: false
-                    });
-                } else {
-                    // Update only the login timestamp
-                    await updateDoc(userRef, { lastLoginAt: serverTimestamp() });
-                }
-            } catch (e) {
-                console.error("Auth: Error syncing user doc:", e);
-            }
-        }
-
+        // ✅ Résoudre authReady IMMÉDIATEMENT — ne pas bloquer sur Firestore
         if (_authResolve) { _authResolve(user); _authResolve = null; }
+
+        // Sync Firestore en arrière-plan uniquement pour les utilisateurs connectés
+        if (!user.isAnonymous) {
+            _syncUserDoc(user); // async, non bloquant
+        }
     } else {
         console.log("Auth: No user – signing in anonymously...");
-        signInAnonymously(auth).catch(err => console.error("Auth: Anon error:", err));
+        signInAnonymously(auth).catch(err => {
+            console.error("Auth: Anon sign-in error:", err);
+            // Résoudre quand même avec null pour éviter le blocage infini
+            if (_authResolve) { _authResolve(null); _authResolve = null; }
+        });
     }
 });
+
+async function _syncUserDoc(user) {
+    try {
+        const userRef = doc(db, "users", user.uid);
+        const snap    = await getDoc(userRef);
+        if (!snap.exists()) {
+            await setDoc(userRef, {
+                uid:              user.uid,
+                email:            user.email || null,
+                pseudo:           user.displayName || null,
+                bio:              "",
+                photoURL:         user.photoURL || null,
+                createdAt:        serverTimestamp(),
+                lastLoginAt:      serverTimestamp(),
+                gamesPlayed:      0,
+                dailySolvedTotal: 0,
+                lastDailyDate:    null,
+                dailyFoundToday:  false
+            });
+        } else {
+            await updateDoc(userRef, { lastLoginAt: serverTimestamp() });
+        }
+    } catch (e) {
+        console.error("Auth: Error syncing user doc:", e);
+    }
+}
+
+
 
 function getCurrentUser() { return currentUser; }
 function waitForAuth()    { return authReady; }
@@ -108,6 +114,6 @@ export {
     sendPasswordResetEmail, deleteUser,
     collection, doc, setDoc, getDoc, updateDoc,
     onSnapshot, increment, serverTimestamp,
-    runTransaction, query, where, getDocs, deleteDoc,
+    runTransaction, query, where, getDocs, deleteDoc, deleteField,
     waitForAuth, getCurrentUser
 };
