@@ -175,6 +175,15 @@ function renderGame() {
     // ── Main Content Area ──
     const contentArea = document.createElement('section');
     contentArea.className = 'wiki-area';
+
+    // Slot pour le panneau admin (injecté par multiplayer.js)
+    if (state.mode === 'multiplayer') {
+        const adminSlot = document.createElement('div');
+        adminSlot.id = 'mp-admin-slot';
+        adminSlot.style.marginBottom = '1rem';
+        contentArea.appendChild(adminSlot);
+    }
+
     layout.appendChild(contentArea);
 
     // ── Right Sidebar (Players - Multiplayer Only) ──

@@ -216,6 +216,15 @@ function renderMultiplayerMenu(container) {
                         </div>
                     </div>
 
+                    <div style="display:flex;flex-direction:column;gap:.6rem;">
+                        <label style="font-size:.8rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;">Mode de victoire</label>
+                        <select id="create-win-mode" class="wiki-input" style="width:100%; cursor:pointer; font-size:0.85rem; padding: 0.6rem;">
+                            <option value="1">🚀 Mode 1 : Premier arrivé (Arrête les autres)</option>
+                            <option value="2">🏁 Mode 2 : Tout le monde finit (Score au temps)</option>
+                            <option value="3">⏱️ Mode 3 : Countdown 1min (Après le 1er)</option>
+                        </select>
+                    </div>
+
                     <button id="create-room-btn" class="btn-primary" style="width:100%;justify-content:center;margin-top:.5rem;">
                         <i class="fa-solid fa-play"></i> Créer la salle
                     </button>
@@ -264,6 +273,8 @@ function renderMultiplayerMenu(container) {
         const username  = document.getElementById('create-username').value.trim();
         const roomName  = document.getElementById('create-roomname').value.trim();
         const maxRounds = parseInt(document.getElementById('create-rounds').value, 10);
+        const winMode   = parseInt(document.getElementById('create-win-mode').value, 10);
+
         if (!username) { 
             showInfoModal("Pseudo manquant", "Veuillez entrer un pseudo pour créer une salle.", "error"); 
             return; 
@@ -272,7 +283,7 @@ function renderMultiplayerMenu(container) {
         btn.disabled = true;
         btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Création…';
         try {
-            await createRoom({ username, roomName, maxRounds });
+            await createRoom({ username, roomName, maxRounds, winMode });
         } catch (err) {
             showInfoModal("Échec de création", err.message || "Impossible de créer la salle.", "error");
             btn.disabled = false;

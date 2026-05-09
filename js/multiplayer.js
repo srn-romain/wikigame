@@ -17,7 +17,7 @@ let _unsub = null;
 let _roomId = null;
 
 // ── CRÉER UNE SALLE ──────────────────────────────────────────────
-export async function createRoom({ roomName, username, maxRounds }) {
+export async function createRoom({ roomName, username, maxRounds, winMode }) {
     const user = await waitForAuth();
     if (!user) return;
 
@@ -32,6 +32,7 @@ export async function createRoom({ roomName, username, maxRounds }) {
         state:      "WAITING",
         locked:     false,
         maxRounds:  maxRounds || 3,
+        winMode:    winMode || 1,
         currentRound: 1,
         articleId:  null,
         startTime:  null,
@@ -123,7 +124,13 @@ export async function startRound() {
     const data = snap.data();
 
     // Remettre finished à false pour tous les joueurs
-    const updates = { state: "PLAYING", articleId: article.id, startTime: Date.now() };
+    const updates = { 
+        state: "PLAYING", 
+        articleId: article.id, 
+        startTime: Date.now(),
+        roundWinner: deleteField(),
+        countdownEnd: deleteField()
+    };
     Object.keys(data.players || {}).forEach(uid => {
         updates[`players.${uid}.finished`] = false;
         updates[`players.${uid}.attempts`] = 0;
@@ -154,7 +161,14 @@ export async function nextArticle() {
     const article = await fetchRandomArticle();
     if (!article) return;
 
-    const updates = { state: "PLAYING", articleId: article.id, startTime: Date.now(), currentRound: nextRound };
+    const updates = { 
+        state: "PLAYING", 
+        articleId: article.id, 
+        startTime: Date.now(), 
+        currentRound: nextRound,
+        roundWinner: deleteField(),
+        countdownEnd: deleteField()
+    };
     Object.keys(data.players || {}).forEach(uid => {
         updates[`players.${uid}.finished`] = false;
         updates[`players.${uid}.attempts`] = 0;
@@ -164,25 +178,51 @@ export async function nextArticle() {
 
 // ── RAPPORT DE PROGRESSION ────────────────────────────────────────
 export async function reportProgress(found, total, finished, attempts) {
+    if (!_roomId) return;
     const user = getCurrentUser();
-    if (!_roomId || !user) return;
+    if (!user) return;
 
-    const snap = await getDoc(doc(db, "rooms", _roomId));
+    const roomRef = doc(db, "rooms", _roomId);
+    const snap = await getDoc(roomRef);
+    if (!snap.exists()) return;
     const data = snap.data();
+
     const round = data.currentRound || 1;
+    const updates = {};
+    
+    // Calcul du score (mots trouvés)
+    let scoreForRound = found;
 
-    const updates = {
-        [`players.${user.uid}.finished`]: finished,
-        [`players.${user.uid}.attempts`]: attempts,
-        [`players.${user.uid}.roundScores.${round}`]: found
-    };
+    // Mode 2 : Bonus de vitesse si l'article est trouvé
+    if (data.winMode === 2 && finished && !data.players[user.uid]?.finished) {
+        const elapsedSec = Math.floor((Date.now() - data.startTime) / 1000);
+        // Bonus dégressif : 200 points si trouvé en 10s, 0 si > 3min30
+        const timeBonus = Math.max(0, 200 - Math.floor(elapsedSec / 1)); 
+        scoreForRound += timeBonus;
+    }
 
-    // Recalculer le total
+    updates[`players.${user.uid}.roundScores.${round}`] = scoreForRound;
+    updates[`players.${user.uid}.finished`] = finished;
+    updates[`players.${user.uid}.attempts`] = attempts;
+
+    // Recalculer le score total
     const existing = data.players?.[user.uid]?.roundScores || {};
-    const total_score = Object.values({ ...existing, [round]: found }).reduce((a, b) => a + b, 0);
+    const total_score = Object.values({ ...existing, [round]: scoreForRound }).reduce((a, b) => a + b, 0);
     updates[`players.${user.uid}.totalScore`] = total_score;
 
-    await updateDoc(doc(db, "rooms", _roomId), updates);
+    // Logique de fin de manche
+    if (finished && data.state === "PLAYING") {
+        if (data.winMode === 1) {
+            // Mode 1 : Stop immédiat pour tout le monde
+            updates.state = "PAUSED";
+            updates.roundWinner = user.uid;
+        } else if (data.winMode === 3 && !data.countdownEnd) {
+            // Mode 3 : Déclenchement du compte à rebours de 1 minute
+            updates.countdownEnd = Date.now() + 60000;
+        }
+    }
+
+    await updateDoc(roomRef, updates);
 }
 
 // ── SUBSCRIPTION ──────────────────────────────────────────────────
@@ -215,6 +255,7 @@ function _subscribe(roomId) {
                 _updateAdminPanel(data);
             }
             _updateLivePlayers(data);
+            _updateCountdown(data);
         } else if (data.state === "PAUSED") {
             if (window._pauseTimer) window._pauseTimer();
             _showPauseBanner();
@@ -273,33 +314,72 @@ function _updateLivePlayers(data) {
 
 // ── PANNEAU ADMIN (pendant la partie) ────────────────────────────
 function _injectAdminPanel(data) {
-    if (document.getElementById('mp-admin-panel')) return;
+    const slot = document.getElementById('mp-admin-slot');
+    if (!slot || document.getElementById('mp-admin-panel')) return;
 
     const panel = document.createElement('div');
     panel.id = 'mp-admin-panel';
     panel.style.cssText = `
-        position: fixed; top: 70px; right: 16px; z-index: 200;
         background: white; border: 1px solid #e5e7eb; border-radius: 14px;
-        padding: 14px 18px; box-shadow: 0 8px 30px rgba(0,0,0,0.12);
-        display: flex; flex-direction: column; gap: 8px; min-width: 200px;
+        padding: 12px 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;
+        margin-bottom: 1.5rem; width: 100%;
     `;
     panel.innerHTML = `
-        <div style="font-weight:800; font-size:0.8rem; text-transform:uppercase; letter-spacing:.05em; color:#6b7280; margin-bottom:4px;">
+        <div style="font-weight:800; font-size:0.75rem; text-transform:uppercase; letter-spacing:.05em; color:#6b7280; display:flex; align-items:center; gap:8px;">
             <i class="fa-solid fa-crown" style="color:gold;"></i> Admin
         </div>
-        <div id="mp-round-info" style="font-size:0.85rem; color:#374151; font-weight:600;"></div>
-        <button id="mp-pause-btn" onclick="window._mpPause()" style="all:unset; cursor:pointer; background:#f3f4f6; padding:7px 12px; border-radius:8px; font-size:0.82rem; font-weight:600; text-align:center; transition:background .15s;">
-            <i class="fa-solid fa-pause"></i> Pause
-        </button>
-        <button id="mp-next-btn" onclick="window._mpNext()" style="all:unset; cursor:pointer; background:var(--accent); color:white; padding:7px 12px; border-radius:8px; font-size:0.82rem; font-weight:600; text-align:center;">
-            <i class="fa-solid fa-forward"></i> Article suivant
-        </button>
-        <button id="mp-stop-btn" onclick="window._mpStop()" style="all:unset; cursor:pointer; background:#fef2f2; color:#dc2626; padding:7px 12px; border-radius:8px; font-size:0.82rem; font-weight:600; text-align:center;">
-            <i class="fa-solid fa-stop"></i> Arrêter
-        </button>
+        <div id="mp-round-info" style="font-size:0.85rem; color:#374151; font-weight:700; margin-right:auto;"></div>
+        
+        <div style="display:flex; gap:8px;">
+            <button id="mp-pause-btn" onclick="window._mpPause()" style="all:unset; cursor:pointer; background:#f3f4f6; color:#374151; border:1px solid #d1d5db; padding:6px 14px; border-radius:8px; font-size:0.8rem; font-weight:600; display:flex; align-items:center; gap:6px; transition:all 0.2s;">
+                <i class="fa-solid fa-pause"></i> Pause
+            </button>
+            <button id="mp-next-btn" onclick="window._mpNext()" style="all:unset; cursor:pointer; background:var(--accent); color:white; padding:6px 14px; border-radius:8px; font-size:0.8rem; font-weight:600; display:flex; align-items:center; gap:6px;">
+                <i class="fa-solid fa-forward"></i> Suivant
+            </button>
+            <button id="mp-stop-btn" onclick="window._mpStop()" style="all:unset; cursor:pointer; background:#fef2f2; color:#dc2626; padding:6px 14px; border-radius:8px; font-size:0.8rem; font-weight:600; display:flex; align-items:center; gap:6px;">
+                <i class="fa-solid fa-stop"></i> Arrêter
+            </button>
+        </div>
     `;
-    document.body.appendChild(panel);
+    slot.appendChild(panel);
     _updateAdminPanel(data);
+}
+
+// ── COMPTE À REBOURS (Mode 3) ─────────────────────────────────────
+function _updateCountdown(data) {
+    const slot = document.getElementById('mp-admin-slot');
+    if (!slot) return;
+
+    let banner = document.getElementById('mp-countdown-banner');
+
+    if (data.countdownEnd && data.state === "PLAYING") {
+        const remaining = Math.max(0, Math.floor((data.countdownEnd - Date.now()) / 1000));
+        
+        if (!banner) {
+            banner = document.createElement('div');
+            banner.id = 'mp-countdown-banner';
+            banner.style.cssText = `
+                background: #fffbeb; border: 1px solid #fde68a; border-radius: 12px;
+                padding: 10px 15px; margin-bottom: 1rem; display: flex; align-items: center; justify-content: center; gap: 10px;
+                font-weight: 800; color: #92400e; width: 100%;
+            `;
+            slot.insertBefore(banner, slot.firstChild);
+        }
+        
+        banner.innerHTML = `
+            <i class="fa-solid fa-hourglass-start fa-spin"></i>
+            <span>DERNIÈRE MINUTE ! <span style="font-family:var(--font-mono); font-size:1.2rem;">${remaining}</span>s</span>
+        `;
+        
+        if (remaining <= 0 && data.creatorUid === getCurrentUser()?.uid) {
+            // L'admin arrête la manche automatiquement à la fin du countdown
+            stopGame(); 
+        }
+    } else {
+        banner?.remove();
+    }
 }
 
 function _updateAdminPanel(data) {
@@ -312,6 +392,17 @@ function _updateAdminPanel(data) {
         pauseBtn.innerHTML = paused
             ? '<i class="fa-solid fa-play"></i> Reprendre'
             : '<i class="fa-solid fa-pause"></i> Pause';
+        
+        // Amélioration visuelle dynamique
+        if (paused) {
+            pauseBtn.style.background = 'var(--primary)';
+            pauseBtn.style.color = 'white';
+            pauseBtn.style.borderColor = 'transparent';
+        } else {
+            pauseBtn.style.background = '#f3f4f6';
+            pauseBtn.style.color = '#374151';
+            pauseBtn.style.borderColor = '#d1d5db';
+        }
     }
 }
 
@@ -321,20 +412,50 @@ function _removeAdminPanel() {
 
 function _showPauseBanner() {
     if (document.getElementById('mp-pause-banner')) return;
-    const banner = document.createElement('div');
-    banner.id = 'mp-pause-banner';
-    banner.style.cssText = `
-        position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:300;
-        display:flex; align-items:center; justify-content:center;
-    `;
-    banner.innerHTML = `
-        <div style="background:white; padding:2rem 3rem; border-radius:16px; text-align:center;">
-            <i class="fa-solid fa-pause" style="font-size:2rem; color:var(--accent); margin-bottom:1rem;"></i>
-            <h2 style="margin:0;">Partie en pause</h2>
-            <p style="color:#6b7280; margin-top:.5rem;">En attente de l'hôte…</p>
-        </div>
-    `;
-    document.body.appendChild(banner);
+    
+    // Récupérer les infos de la salle pour savoir si c'est une pause admin ou une fin de manche Mode 1
+    const roomId = _roomId;
+    getDoc(doc(db, "rooms", roomId)).then(snap => {
+        if (!snap.exists()) return;
+        const data = snap.data();
+        const winner = data.roundWinner ? (data.players[data.roundWinner]?.name || "Un joueur") : null;
+
+        const banner = document.createElement('div');
+        banner.id = 'mp-pause-banner';
+        banner.style.cssText = `
+            position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:300;
+            display:flex; align-items:center; justify-content:center;
+            backdrop-filter: blur(4px);
+        `;
+        
+        const user = getCurrentUser();
+        const isAdmin = user && data.creatorUid === user.uid;
+
+        const content = winner 
+            ? `
+                <i class="fa-solid fa-trophy" style="font-size:3rem; color:#f1c40f; margin-bottom:1rem;"></i>
+                <h2 style="margin:0; font-size:1.8rem;">Article trouvé !</h2>
+                <p style="color:#6b7280; margin-top:.75rem; font-size:1.1rem;">Bravo à <strong>${winner}</strong></p>
+                <p style="color:#94a3b8; font-size:0.85rem; margin-top:1.5rem;">L'hôte va bientôt lancer la suite…</p>
+            `
+            : `
+                <i class="fa-solid fa-pause" style="font-size:2rem; color:var(--accent); margin-bottom:1rem;"></i>
+                <h2 style="margin:0;">Partie en pause</h2>
+                <p style="color:#6b7280; margin-top:.5rem;">${isAdmin ? "Vous avez mis la partie en pause." : "En attente de l'hôte…"}</p>
+                ${isAdmin ? `
+                    <button onclick="window._mpPause()" class="btn-primary" style="margin-top:2rem; width:100%; justify-content:center;">
+                        <i class="fa-solid fa-play"></i> Reprendre la partie
+                    </button>
+                ` : ''}
+            `;
+
+        banner.innerHTML = `
+            <div class="glass" style="background:white; padding:3rem; border-radius:24px; text-align:center; box-shadow:0 20px 50px rgba(0,0,0,0.2); max-width:90%; width:400px;">
+                ${content}
+            </div>
+        `;
+        document.body.appendChild(banner);
+    });
 }
 
 // ── LOBBY ─────────────────────────────────────────────────────────
