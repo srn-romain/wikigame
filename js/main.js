@@ -91,6 +91,7 @@ async function navigateTo(view) {
             break;
 
         case 'multiplayer':
+            await waitForAuth();
             renderMultiplayerMenu(container);
             break;
     }
@@ -158,6 +159,7 @@ function renderHome(container) {
 // ─────────────────────────────────────────────
 function renderMultiplayerMenu(container) {
     const user = getCurrentUser();
+    console.log("Multiplayer: Current user check:", user ? user.uid : "null", "isAnonymous:", user?.isAnonymous);
 
     // Warning for anonymous users
     if (!user || user.isAnonymous) {

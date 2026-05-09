@@ -114,28 +114,45 @@ export async function toggleLock() {
 }
 
 export async function startRound() {
-    const article = await fetchRandomArticle();
-    if (!article) { 
-        showInfoModal("Erreur", "Impossible de charger un article aléatoire depuis Wikipédia.", "error"); 
-        return; 
+    const btn = document.getElementById('mp-start-btn');
+    const originalHtml = btn ? btn.innerHTML : '';
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Recherche d\'un article…';
     }
 
-    const snap = await getDoc(doc(db, "rooms", _roomId));
-    const data = snap.data();
+    try {
+        const article = await fetchRandomArticle();
+        if (!article) { 
+            showInfoModal("Erreur", "Impossible de charger un article aléatoire depuis Wikipédia.", "error"); 
+            if (btn) { btn.disabled = false; btn.innerHTML = originalHtml; }
+            return; 
+        }
 
-    // Remettre finished à false pour tous les joueurs
-    const updates = { 
-        state: "PLAYING", 
-        articleId: article.id, 
-        startTime: Date.now(),
-        roundWinner: deleteField(),
-        countdownEnd: deleteField()
-    };
+        const snap = await getDoc(doc(db, "rooms", _roomId));
+        const data = snap.data();
+
+        // Remettre finished à false pour tous les joueurs
+        const updates = { 
+            state: "PLAYING", 
+            articleId: article.id, 
+            startTime: Date.now(),
+            roundWinner: deleteField(),
+            countdownEnd: deleteField()
+        };
     Object.keys(data.players || {}).forEach(uid => {
         updates[`players.${uid}.finished`] = false;
         updates[`players.${uid}.attempts`] = 0;
     });
     await updateDoc(doc(db, "rooms", _roomId), updates);
+    } catch (err) {
+        console.error(err);
+        showInfoModal("Erreur", "Une erreur est survenue lors du lancement de la manche.", "error");
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = originalHtml;
+        }
+    }
 }
 
 export async function pauseGame() {
@@ -436,7 +453,14 @@ function _showPauseBanner() {
                 <i class="fa-solid fa-trophy" style="font-size:3rem; color:#f1c40f; margin-bottom:1rem;"></i>
                 <h2 style="margin:0; font-size:1.8rem;">Article trouvé !</h2>
                 <p style="color:#6b7280; margin-top:.75rem; font-size:1.1rem;">Bravo à <strong>${winner}</strong></p>
-                <p style="color:#94a3b8; font-size:0.85rem; margin-top:1.5rem;">L'hôte va bientôt lancer la suite…</p>
+                ${isAdmin ? `
+                    <button onclick="window._mp${data.currentRound < data.maxRounds ? 'Next' : 'Stop'}()" class="btn-primary" style="margin-top:2rem; width:100%; justify-content:center;">
+                        <i class="fa-solid fa-${data.currentRound < data.maxRounds ? 'forward' : 'square-poll-vertical'}"></i>
+                        ${data.currentRound < data.maxRounds ? 'Manche suivante' : 'Voir les résultats'}
+                    </button>
+                ` : `
+                    <p style="color:#94a3b8; font-size:0.85rem; margin-top:1.5rem;">L'hôte va bientôt lancer la suite…</p>
+                `}
             `
             : `
                 <i class="fa-solid fa-pause" style="font-size:2rem; color:var(--accent); margin-bottom:1rem;"></i>
@@ -517,7 +541,7 @@ function _renderLobby(data, roomId, user) {
                 <span style="font-size:0.85rem;font-weight:600;"><i class="fa-solid fa-lock${data.locked ? '' : '-open'}" style="margin-right:6px;"></i>${data.locked ? 'Salle verrouillée' : 'Salle ouverte'}</span>
                 <button onclick="window._mpToggleLock()" style="all:unset;cursor:pointer;background:${data.locked ? '#fee2e2' : '#d1fae5'};color:${data.locked ? '#991b1b' : '#065f46'};padding:4px 12px;border-radius:6px;font-size:0.8rem;font-weight:700;">${data.locked ? 'Ouvrir' : 'Verrouiller'}</button>
             </div>
-            <button onclick="window._mpStart()" class="btn-accent" style="width:100%;justify-content:center;font-size:1rem;" ${players.length < 1 ? 'disabled' : ''}>
+            <button id="mp-start-btn" onclick="window._mpStart()" class="btn-accent" style="width:100%;justify-content:center;font-size:1rem;" ${players.length < 1 ? 'disabled' : ''}>
                 <i class="fa-solid fa-play"></i> Démarrer la partie
             </button>
         </div>` : `
