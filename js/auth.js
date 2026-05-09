@@ -186,7 +186,8 @@ function setupProfileEvents(container, user, userData) {
 
     logoutBtn.onclick = async () => {
         await signOut(auth);
-        container.classList.add('hidden');
+        // Redirection vers l'accueil (nettoyage URL) et rechargement
+        window.location.href = window.location.origin + window.location.pathname;
     };
 
     deleteBtn.onclick = () => {
@@ -202,7 +203,7 @@ function setupProfileEvents(container, user, userData) {
                     async () => {
                         try {
                             await deleteUser(user);
-                            container.classList.add('hidden');
+                            window.location.reload();
                         } catch (e) {
                             msgEl.textContent = "Action récente requise. Reconnectez-vous.";
                             msgEl.style.color = "var(--danger)";
@@ -236,6 +237,34 @@ function showConfirmModal(title, text, confirmBtnText, onConfirm) {
         overlay.remove();
         onConfirm();
     };
+}
+
+/**
+ * Affiche une modale d'information stylisée (remplace alert)
+ */
+export function showInfoModal(title, text, type = 'info') {
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    overlay.style.zIndex = "2000";
+    
+    let icon = 'fa-circle-info';
+    let color = 'var(--accent)';
+    if (type === 'error') { icon = 'fa-circle-exclamation'; color = 'var(--danger)'; }
+    if (type === 'success') { icon = 'fa-circle-check'; color = 'var(--primary)'; }
+
+    overlay.innerHTML = `
+        <div class="auth-modal" style="max-width: 400px; text-align: center; padding: 2.5rem;">
+            <i class="fa-solid ${icon}" style="font-size: 3.5rem; color: ${color}; margin-bottom: 1.5rem;"></i>
+            <h2 style="margin-bottom: 1rem; color: var(--text-main)!important;">${title}</h2>
+            <p style="margin-bottom: 2rem; color: var(--text-muted)!important; line-height: 1.5; font-size: 0.95rem;">${text}</p>
+            <button class="btn-primary" style="width: 100%; justify-content: center; padding: 0.8rem;" id="info-ok">Compris</button>
+        </div>
+    `;
+    document.body.appendChild(overlay);
+    
+    // Fermer au clic sur le bouton ou sur l'overlay
+    overlay.querySelector('#info-ok').onclick = () => overlay.remove();
+    overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
 }
 
 function setupFormEvents(container, initialMode) {
@@ -291,7 +320,7 @@ function setupFormEvents(container, initialMode) {
     googleBtn.onclick = async () => {
         try {
             await signInWithPopup(auth, googleProvider);
-            container.classList.add('hidden');
+            window.location.reload();
         } catch (e) {
             errorEl.textContent = e.message;
             errorEl.style.display = 'block';
@@ -310,7 +339,7 @@ function setupFormEvents(container, initialMode) {
             } else {
                 await createUserWithEmailAndPassword(auth, email, password);
             }
-            container.classList.add('hidden');
+            window.location.reload();
         } catch (e) {
             errorEl.textContent = formatError(e.code);
             errorEl.style.display = 'block';

@@ -11,6 +11,7 @@
 import { db, waitForAuth, getCurrentUser, doc, setDoc, getDoc, updateDoc, onSnapshot, deleteField } from './firebase-app.js';
 import { fetchRandomArticle } from './wiki.js';
 import { initGame } from './game.js';
+import { showInfoModal } from './auth.js';
 
 let _unsub = null;
 let _roomId = null;
@@ -113,7 +114,10 @@ export async function toggleLock() {
 
 export async function startRound() {
     const article = await fetchRandomArticle();
-    if (!article) { alert("Impossible de charger un article."); return; }
+    if (!article) { 
+        showInfoModal("Erreur", "Impossible de charger un article aléatoire depuis Wikipédia.", "error"); 
+        return; 
+    }
 
     const snap = await getDoc(doc(db, "rooms", _roomId));
     const data = snap.data();
@@ -210,6 +214,7 @@ function _subscribe(roomId) {
             if (data.creatorUid === user?.uid) {
                 _updateAdminPanel(data);
             }
+            _updateLivePlayers(data);
         } else if (data.state === "PAUSED") {
             if (window._pauseTimer) window._pauseTimer();
             _showPauseBanner();
@@ -232,6 +237,38 @@ function _startGame(articleId, roomData) {
     if (user && roomData.creatorUid === user.uid) {
         setTimeout(() => _injectAdminPanel(roomData), 300);
     }
+}
+
+// ── LIVE PLAYERS LIST ─────────────────────────────────────────────
+function _updateLivePlayers(data) {
+    const listEl = document.getElementById('players-live-list');
+    if (!listEl) return;
+    
+    const round = data.currentRound || 1;
+    const players = Object.values(data.players || {}).filter(p => p.approved);
+    
+    // Sort players by words found in current round (descending)
+    players.sort((a, b) => {
+        const scoreA = a.roundScores?.[round] || 0;
+        const scoreB = b.roundScores?.[round] || 0;
+        return scoreB - scoreA;
+    });
+
+    listEl.innerHTML = players.map(p => {
+        const found = p.roundScores?.[round] || 0;
+        const finishedIcon = p.finished ? '<i class="fa-solid fa-check-circle" style="color:#27ae60;"></i>' : '';
+        return `
+            <div class="guess-item">
+                <span style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; display:flex; gap:6px; align-items:center;">
+                    ${p.name} ${finishedIcon}
+                </span>
+                <div style="display:flex; gap:8px; align-items:center;">
+                    <span style="font-size:0.7rem; color:var(--text-muted);"><i class="fa-solid fa-bullseye"></i> ${p.attempts || 0}</span>
+                    <div class="guess-badge" style="background:var(--primary); color:white;">${found}</div>
+                </div>
+            </div>
+        `;
+    }).join('');
 }
 
 // ── PANNEAU ADMIN (pendant la partie) ────────────────────────────

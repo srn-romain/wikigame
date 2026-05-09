@@ -1,7 +1,7 @@
 import { initGame, handleGuess } from './game.js';
 import { createRoom, joinRoom } from './multiplayer.js';
 import { waitForAuth, getCurrentUser } from './firebase-app.js';
-import { openAuthModal } from './auth.js';
+import { openAuthModal, showInfoModal } from './auth.js';
 import { getDailyArticleId, checkDailySolved, getCountdown, getDailySolversCount } from './daily.js';
 
 
@@ -209,7 +209,7 @@ function renderMultiplayerMenu(container) {
                     </div>
 
                     <div style="display:flex;flex-direction:column;gap:.6rem;">
-                        <label style="font-size:.8rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;">Nombre de manches <span style="font-weight:400;font-size:.75rem;">(1–5, défaut : 3)</span></label>
+                        <label style="font-size:.8rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;">Nombre de manches</label>
                         <div style="display:flex;align-items:center;gap:.75rem;">
                             <input type="range" id="create-rounds" min="1" max="5" value="3" style="flex:1;accent-color:var(--primary);">
                             <span id="rounds-display" style="font-family:var(--font-mono);font-weight:800;font-size:1.2rem;color:var(--primary);min-width:1.5rem;text-align:center;">3</span>
@@ -264,14 +264,17 @@ function renderMultiplayerMenu(container) {
         const username  = document.getElementById('create-username').value.trim();
         const roomName  = document.getElementById('create-roomname').value.trim();
         const maxRounds = parseInt(document.getElementById('create-rounds').value, 10);
-        if (!username) { alert('Entrez votre pseudo !'); return; }
+        if (!username) { 
+            showInfoModal("Pseudo manquant", "Veuillez entrer un pseudo pour créer une salle.", "error"); 
+            return; 
+        }
         const btn = document.getElementById('create-room-btn');
         btn.disabled = true;
         btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Création…';
         try {
             await createRoom({ username, roomName, maxRounds });
         } catch (err) {
-            alert('Erreur : ' + (err.message || 'Impossible de créer la salle.'));
+            showInfoModal("Échec de création", err.message || "Impossible de créer la salle.", "error");
             btn.disabled = false;
             btn.innerHTML = '<i class="fa-solid fa-play"></i> Créer la salle';
         }
@@ -281,15 +284,21 @@ function renderMultiplayerMenu(container) {
     document.getElementById('join-room-btn').onclick = async () => {
         const username = document.getElementById('join-username').value.trim();
         const code     = document.getElementById('join-code').value.trim().toUpperCase();
-        if (!username) { alert('Entrez votre pseudo !'); return; }
-        if (!code || code.length !== 5) { alert('Entrez un code de salle valide (5 caractères).'); return; }
+        if (!username) { 
+            showInfoModal("Pseudo manquant", "Veuillez entrer un pseudo pour rejoindre une salle.", "error"); 
+            return; 
+        }
+        if (!code || code.length !== 5) { 
+            showInfoModal("Code invalide", "Veuillez entrer un code de salle à 5 caractères.", "error"); 
+            return; 
+        }
         const btn = document.getElementById('join-room-btn');
         btn.disabled = true;
         btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Connexion…';
         try {
             await joinRoom(code, username);
         } catch (err) {
-            alert('Erreur : ' + (err.message || 'Impossible de rejoindre la salle.'));
+            showInfoModal("Échec de connexion", err.message || "Impossible de rejoindre la salle.", "error");
             btn.disabled = false;
             btn.innerHTML = '<i class="fa-solid fa-arrow-right-to-bracket"></i> Rejoindre';
         }

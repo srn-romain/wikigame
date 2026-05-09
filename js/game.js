@@ -176,6 +176,20 @@ function renderGame() {
     const contentArea = document.createElement('section');
     contentArea.className = 'wiki-area';
     layout.appendChild(contentArea);
+
+    // ── Right Sidebar (Players - Multiplayer Only) ──
+    if (state.mode === 'multiplayer') {
+        const rightSidebar = document.createElement('aside');
+        rightSidebar.className = 'players-sidebar glass';
+        rightSidebar.id = 'players-sidebar';
+        rightSidebar.innerHTML = `
+            <div class="sidebar-header">
+                <i class="fa-solid fa-users"></i> Joueurs
+            </div>
+            <div id="players-live-list" class="guesses-list"></div>
+        `;
+        layout.appendChild(rightSidebar);
+    }
     
     container.appendChild(layout);
 
