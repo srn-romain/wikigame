@@ -11,6 +11,15 @@ document.addEventListener('DOMContentLoaded', () => {
     setupGameInputs();
     setupAuthListeners();
     navigateTo('home');
+
+    // Register PWA Service Worker
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('./service-worker.js')
+                .then(reg => console.log('PWA: Service Worker registered'))
+                .catch(err => console.log('PWA: Service Worker failed', err));
+        });
+    }
 });
 
 // ─────────────────────────────────────────────
