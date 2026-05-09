@@ -1,5 +1,6 @@
 import { fetchRandomArticle, fetchArticleById } from './wiki.js';
-import { db, doc, updateDoc, getCurrentUser } from './firebase-app.js';
+import { db, doc, updateDoc, getCurrentUser, getDoc } from './firebase-app.js';
+import { saveSoloProgress, deleteSoloDraft } from './solo.js';
 
 
 // ─────────────────────────────────────────────
@@ -24,7 +25,8 @@ let state = {
     startTime: 0,
     pausedOffset: 0,   // ms accumulés avant une pause
     mode: 'solo',
-    won: false
+    won: false,
+    draftId: null
 };
 
 export function isGameActive() {
@@ -64,10 +66,11 @@ function normalize(str) {
 // ─────────────────────────────────────────────
 // INIT
 // ─────────────────────────────────────────────
-export async function initGame(mode, articleId = null, preSolved = false) {
-    console.log(`Game: Initializing mode="${mode}" articleId=${articleId}`);
+export async function initGame(mode, articleId = null, preSolved = false, draftId = null) {
+    console.log(`Game: Initializing mode="${mode}" articleId=${articleId} draftId=${draftId}`);
     state.mode = mode;
     state.won = false;
+    state.draftId = draftId;
 
     // Show loading
     const container = document.getElementById('main-container');
@@ -97,21 +100,41 @@ export async function initGame(mode, articleId = null, preSolved = false) {
     }
 
     console.log("Game: Article loaded successfully:", article.title);
-    startGame(article, preSolved);
+
+    // Charger les données du brouillon si présent
+    let savedGuesses = [];
+    let savedAttempts = 0;
+    if (draftId) {
+        try {
+            const { db, doc, getDoc } = await import('./firebase-app.js');
+            const dSnap = await getDoc(doc(db, "solo_drafts", draftId));
+            if (dSnap.exists()) {
+                const dData = dSnap.data();
+                savedGuesses = dData.guesses || [];
+                savedAttempts = dData.attempts || 0;
+            }
+        } catch (e) { console.error("Game: Failed to load draft details", e); }
+    }
+
+    startGame(article, preSolved, savedGuesses, savedAttempts);
 }
 
-// ─────────────────────────────────────────────
-// START
-// ─────────────────────────────────────────────
-function startGame(article, preSolved = false) {
+// ── START ──
+function startGame(article, preSolved = false, savedGuesses = [], savedAttempts = 0) {
     console.log("Game: Starting Level with article:", article);
     state.article = article;
 
-    state.guesses = new Set();
-    state.attempts = 0;
+    state.guesses = new Set(savedGuesses);
+    state.attempts = savedAttempts;
     state.foundCount = 0;
     state.startTime = Date.now();
     state.won = false;
+    state.history = [];
+
+    // Reconstruct history from saved guesses (simplified)
+    savedGuesses.forEach(g => {
+        state.history.push({ word: g, clean: g, hits: '?' }); // '?' because we don't know exact hits per guess from here
+    });
 
     // Tokenize title
     state.titleTokens = (article.title.match(TOKEN_REGEX) || [])
@@ -124,11 +147,15 @@ function startGame(article, preSolved = false) {
         const raw = para.match(TOKEN_REGEX) || [];
         raw.forEach(token => {
             const isWord = IS_WORD.test(token);
+            const clean = isWord ? normalize(token) : null;
+            const revealed = !isWord || state.guesses.has(clean);
+            if (revealed && isWord) state.foundCount++;
+
             state.tokens.push({
                 text: token,
-                clean: isWord ? normalize(token) : null,
+                clean,
                 isWord,
-                revealed: !isWord // punctuation is always visible
+                revealed
             });
         });
         // Add paragraph separator (double newline token)
@@ -228,6 +255,28 @@ function renderGame() {
         layout.appendChild(rightSidebar);
     }
     
+    // ── Solo Save Indicator ──
+    if (state.mode === 'solo' && state.draftId) {
+        const saveInfo = document.createElement('div');
+        saveInfo.className = 'save-status';
+        saveInfo.id = 'solo-save-status';
+        saveInfo.innerHTML = '<i class="fa-solid fa-cloud-check"></i> Sauvegarde auto active';
+        saveInfo.style.cssText = "position:absolute; top:1rem; right:1rem; font-size:0.7rem; color:var(--text-muted); opacity:0.7;";
+        contentArea.appendChild(saveInfo);
+
+        // Add Quit button to sidebar
+        const quitBtn = document.createElement('div');
+        quitBtn.style.padding = "1rem";
+        quitBtn.style.borderTop = "1px solid var(--glass-border)";
+        quitBtn.style.marginTop = "auto";
+        quitBtn.innerHTML = `
+            <button onclick="window.navigateTo('solo')" class="btn-primary" style="width:100%; justify-content:center; background:#475569; padding:0.6rem; font-size:0.85rem;">
+                <i class="fa-solid fa-person-running"></i> Quitter et Sauvegarder
+            </button>
+        `;
+        sidebar.appendChild(quitBtn);
+    }
+
     container.appendChild(layout);
 
     // Render components inside contentArea instead of container
@@ -433,6 +482,21 @@ export function handleGuess(rawInput) {
         revealWordInDOM(cleanInput, hitCount);
     }
 
+    // Sauvegarde auto du brouillon Solo
+    if (state.draftId) {
+        const statusEl = document.getElementById('solo-save-status');
+        if (statusEl) statusEl.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Synchronisation...';
+        
+        saveSoloProgress(state.draftId, state.guesses, state.attempts, state.foundCount)
+            .then(() => {
+                if (statusEl) statusEl.innerHTML = '<i class="fa-solid fa-cloud-check"></i> Sauvegarde auto active';
+            })
+            .catch(err => {
+                console.error(err);
+                if (statusEl) statusEl.innerHTML = '<i class="fa-solid fa-circle-exclamation" style="color:red"></i> Erreur de sauvegarde';
+            });
+    }
+
     updateCloseMatches();
     updateGuessesSidebar();
     updateStats();
@@ -495,6 +559,12 @@ async function triggerWin(skipSave = false) {
     state.tokens.forEach(t => { if (t.isWord) t.revealed = true; });
 
     if (window._gameTimer) clearInterval(window._gameTimer);
+
+    // Supprimer le brouillon si gagné
+    if (state.draftId) {
+        deleteSoloDraft(state.draftId).catch(console.error);
+        state.draftId = null;
+    }
 
     // Sauvegarde Firestore
     const user = getCurrentUser();

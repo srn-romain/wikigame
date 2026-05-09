@@ -3,6 +3,7 @@ import { createRoom, joinRoom } from './multiplayer.js';
 import { waitForAuth, getCurrentUser } from './firebase-app.js';
 import { openAuthModal, showInfoModal, showConfirmModal } from './auth.js';
 import { getDailyArticleId, checkDailySolved, getCountdown, getDailySolversCount } from './daily.js';
+import { getSoloDrafts, createSoloDraft, deleteSoloDraft } from './solo.js';
 
 
 
@@ -76,7 +77,7 @@ function setupAuthListeners() {
     };
 }
 
-async function navigateTo(view) {
+export async function navigateTo(view) {
     if (window.isGameActive && window.isGameActive()) {
         const confirmed = await showConfirmModal(
             "Partie en cours",
@@ -95,6 +96,8 @@ async function navigateTo(view) {
     }
 
     console.log(`Main: Navigating to view="${view}"`);
+    window.scrollTo(0, 0);
+
     const container = document.getElementById('main-container');
     const controls = document.getElementById('game-controls');
     controls.classList.add('hidden');
@@ -107,8 +110,8 @@ async function navigateTo(view) {
             break;
 
         case 'solo':
-            console.log("Main: Initializing solo game...");
-            await initGame('solo');
+            await waitForAuth();
+            renderSoloDashboard(container);
             break;
 
         case 'daily':
@@ -619,13 +622,136 @@ function renderHome(container) {
                             <span><b style="color: #111827;">La victoire :</b> La partie s'arrête dès que vous parvenez à trouver le <b>titre principal</b> de la page.</span>
                         </li>
                     </ul>
-                    <p style="font-style: italic; color: #6b7280; font-size: 0.9rem;">
-                        Astuce : Observez la ponctuation et la longueur des blocs pour déduire s'il s'agit d'un nom propre, d'un verbe ou d'une date !
-                    </p>
-                </div>
             </div>
         </div>
     `;
+}
+
+// ─────────────────────────────────────────────
+// SOLO DASHBOARD (Brouillons)
+// ─────────────────────────────────────────────
+async function renderSoloDashboard(container) {
+    console.log("Main: Rendering Solo Dashboard...");
+    const user = getCurrentUser();
+    
+    if (!user || user.isAnonymous) {
+        container.innerHTML = `
+            <div style="max-width:500px;margin:3rem auto;padding:2.5rem;text-align:center;border-radius:var(--radius-lg);" class="glass">
+                <i class="fa-solid fa-user-lock" style="font-size:3rem;color:var(--accent);margin-bottom:1rem;"></i>
+                <h2 style="margin:0 0 1rem;">Sauvegarde Solo</h2>
+                <p style="color:var(--text-muted);margin:0 0 2rem;">Connectez-vous pour pouvoir sauvegarder vos parties en cours et les reprendre plus tard !</p>
+                <div style="display:flex; flex-direction:column; gap:10px;">
+                    <button class="btn-primary" onclick="document.getElementById('user-profile-btn').click()" style="justify-content:center;width:100%;padding:1rem;">
+                        <i class="fa-solid fa-right-to-bracket"></i> Se connecter / S'inscrire
+                    </button>
+                    <button class="btn-accent" onclick="window.initSoloNoDraft()" style="background:#475569; box-shadow:none;">
+                         Jouer sans sauvegarder
+                    </button>
+                </div>
+            </div>
+        `;
+        window.initSoloNoDraft = () => initGame('solo');
+        return;
+    }
+
+    container.innerHTML = `
+        <div class="loading-screen">
+            <div class="loading-spinner"></div>
+            <p>Chargement de vos brouillons...</p>
+        </div>
+    `;
+
+    try {
+        const drafts = await getSoloDrafts(user.uid);
+        const canStartNew = drafts.length < 5;
+
+        container.innerHTML = `
+            <div style="max-width:800px; margin:2rem auto; padding:0 1rem;">
+                <div class="glass" style="padding:2.5rem; border-radius:24px;">
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:2rem; flex-wrap:wrap; gap:1.5rem;">
+                        <div>
+                            <h2 style="font-size:1.8rem; font-weight:800; color:#111827; margin:0;">Mode Solo</h2>
+                            <p style="color:#6b7280; margin:5px 0 0;">Gérez vos parties en cours (${drafts.length}/5)</p>
+                        </div>
+                        <button id="btn-new-solo" class="btn-accent" ${!canStartNew ? 'disabled' : ''} style="padding:0.8rem 1.5rem; ${!canStartNew ? 'opacity:0.5; cursor:not-allowed;' : ''}">
+                            <i class="fa-solid fa-plus"></i> Nouvelle Partie
+                        </button>
+                    </div>
+
+                    ${!canStartNew ? `
+                        <div style="background:#fef2f2; border:1px solid #fecaca; color:#dc2626; padding:1rem; border-radius:12px; margin-bottom:1.5rem; font-size:0.85rem; display:flex; align-items:center; gap:10px;">
+                            <i class="fa-solid fa-circle-info"></i>
+                            Limite atteinte : Vous devez terminer une partie en cours avant d'en lancer une nouvelle.
+                        </div>
+                    ` : ''}
+
+                    <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap:1rem;">
+                        ${drafts.length === 0 ? `
+                            <div style="grid-column:1/-1; padding:4rem 2rem; text-align:center; border:2px dashed #e5e7eb; border-radius:20px; color:#9ca3af;">
+                                <i class="fa-solid fa-folder-open" style="font-size:2rem; margin-bottom:1rem; display:block;"></i>
+                                Aucun brouillon en cours. Lancez une nouvelle partie !
+                            </div>
+                        ` : drafts.map(d => {
+                            const remainingDays = Math.ceil((d.expireDate - new Date()) / (1000 * 60 * 60 * 24));
+                            return `
+                                <div class="feature-card" style="background:white; border:1px solid #e5e7eb; padding:1.5rem; border-radius:16px; position:relative; transition:all 0.2s; cursor:pointer;" onclick="window.loadSolo('${d.id}', '${d.articleId}')">
+                                    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:1rem;">
+                                        <div style="background: #f3f4f6; color: #4b5563; padding: 4px 8px; border-radius: 6px; font-size: 0.65rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;">
+                                            <i class="fa-solid fa-clock"></i> Expire dans ${remainingDays}j
+                                        </div>
+                                        <button onclick="event.stopPropagation(); window.confirmDeleteSolo('${d.id}')" style="all:unset; cursor:pointer; color:#9ca3af; font-size:0.9rem; padding:4px;" title="Supprimer">
+                                            <i class="fa-solid fa-trash-can"></i>
+                                        </button>
+                                    </div>
+                                    <h3 style="font-size:1.1rem; color:#111827; margin:0 0 10px; line-height:1.3; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">Article Mystère</h3>
+                                    <div style="display:flex; gap:15px; font-size:0.85rem; color:#6b7280;">
+                                        <span><i class="fa-solid fa-bullseye" style="color:var(--accent);"></i> ${d.attempts} essais</span>
+                                        <span><i class="fa-solid fa-font" style="color:var(--primary);"></i> ${d.foundCount} mots</span>
+                                    </div>
+                                    <div style="margin-top:1.2rem; display:flex; align-items:center; color:var(--primary); font-weight:700; font-size:0.9rem; gap:6px;">
+                                        Reprendre <i class="fa-solid fa-arrow-right" style="font-size:0.8rem;"></i>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Handlers
+        const btnNew = document.getElementById('btn-new-solo');
+        if (btnNew && canStartNew) {
+            btnNew.onclick = async () => {
+                btnNew.disabled = true;
+                btnNew.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Création...';
+                try {
+                    const { draftId, article } = await createSoloDraft(user.uid);
+                    await initGame('solo', article.id, false, draftId);
+                } catch (e) {
+                    showInfoModal("Erreur", e.message, "error");
+                    btnNew.disabled = false;
+                    btnNew.innerHTML = '<i class="fa-solid fa-plus"></i> Nouvelle Partie';
+                }
+            };
+        }
+
+        window.loadSolo = (draftId, articleId) => {
+            initGame('solo', articleId, false, draftId);
+        };
+
+        window.confirmDeleteSolo = async (id) => {
+            const ok = await showConfirmModal("Supprimer ?", "Voulez-vous vraiment abandonner cette partie ? Cette action est irréversible.", "Supprimer");
+            if (ok) {
+                await deleteSoloDraft(id);
+                renderSoloDashboard(container);
+            }
+        };
+
+    } catch (e) {
+        console.error(e);
+        container.innerHTML = `<div class="glass wiki-content error-box">Erreur de chargement des brouillons.</div>`;
+    }
 }
 
 // ─────────────────────────────────────────────
