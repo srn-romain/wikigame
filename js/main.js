@@ -552,15 +552,21 @@ function renderHome(container) {
                 Un défi de culture et de déduction logique.
             </p>
 
-            <div class="home-btns" style="margin-bottom: 5rem; display: flex; justify-content: center; gap: 15px; max-width: 750px; margin-left: auto; margin-right: auto;">
-                <button class="btn-accent" style="flex: 1; padding: 1.1rem 0; justify-content: center;" onclick="document.querySelector('[data-view=daily]').click()">
-                    <i class="fa-solid fa-calendar-check"></i> Défi Quotidien
+            <div class="home-btns" style="margin-bottom: 5rem; display: flex; justify-content: center; gap: 12px; max-width: 950px; margin-left: auto; margin-right: auto; flex-wrap: wrap;">
+                <button class="btn-primary" style="flex: 1; min-width: 180px; padding: 1.1rem 0; justify-content: center; background: linear-gradient(135deg, #166534 0%, #15803d 100%); border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 4px 15px rgba(22, 101, 52, 0.3);" onclick="document.querySelector('[data-view=daily]').click()">
+                    <i class="fa-solid fa-calendar-check" style="font-size: 0.9rem; opacity: 0.9;"></i> Défi Quotidien
                 </button>
-                <button class="btn-primary" style="flex: 1; padding: 1.1rem 0; justify-content: center;" onclick="document.querySelector('[data-view=solo]').click()">
-                    <i class="fa-solid fa-play"></i> Mode Solo
+                <button class="btn-primary" style="flex: 1; min-width: 180px; padding: 1.1rem 0; justify-content: center; background: linear-gradient(135deg, #334155 0%, #475569 100%); border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 4px 15px rgba(51, 65, 85, 0.2);" onclick="document.querySelector('[data-view=solo]').click()">
+                    <i class="fa-solid fa-play" style="font-size: 0.9rem; opacity: 0.9;"></i> Mode Solo
                 </button>
-                <button class="btn-primary" style="flex: 1; padding: 1.1rem 0; justify-content: center; background: #2563eb; box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3);" onclick="document.querySelector('[data-view=multiplayer]').click()">
-                    <i class="fa-solid fa-users"></i> Compétition
+                <button class="btn-primary" style="flex: 1; min-width: 180px; padding: 1.1rem 0; justify-content: center; background: linear-gradient(135deg, #991b1b 0%, #b91c1c 100%); border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 4px 15px rgba(153, 27, 27, 0.3);" onclick="document.querySelector('[data-view=multiplayer]').click()">
+                    <i class="fa-solid fa-users" style="font-size: 0.9rem; opacity: 0.9;"></i> Compétition
+                </button>
+                <button class="btn-primary" style="flex: 1; min-width: 180px; padding: 1.1rem 0; justify-content: center; background: linear-gradient(135deg, #a16207 0%, #ca8a04 100%); border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 4px 15px rgba(161, 98, 7, 0.2);" onclick="document.querySelector('[data-view=ranking]').click()">
+                    <i class="fa-solid fa-ranking-star" style="font-size: 0.9rem; opacity: 0.9;"></i> Classement
+                </button>
+                <button class="btn-primary" style="flex: 1; min-width: 180px; padding: 1.1rem 0; justify-content: center; background: linear-gradient(135deg, #075985 0%, #0369a1 100%); border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 4px 15px rgba(7, 89, 133, 0.2);" onclick="document.querySelector('[data-view=missions]').click()">
+                    <i class="fa-solid fa-scroll" style="font-size: 0.9rem; opacity: 0.9;"></i> Missions
                 </button>
             </div>
 
