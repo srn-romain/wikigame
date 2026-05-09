@@ -79,6 +79,27 @@ async function _syncUserDoc(user) {
         } else {
             const data = snap.data();
             const updates = { lastLoginAt: serverTimestamp() };
+            
+            // Gestion de l'assiduité (Missions)
+            const todayStr = new Date().toISOString().split('T')[0];
+            const lastDay = data.lastActiveDay || "";
+            
+            if (lastDay !== todayStr) {
+                updates.lastActiveDay = todayStr;
+                updates.daysPlayed = increment(1);
+                
+                // Calcul de la série (streak)
+                const yesterday = new Date();
+                yesterday.setDate(yesterday.getDate() - 1);
+                const yesterdayStr = yesterday.toISOString().split('T')[0];
+                
+                if (lastDay === yesterdayStr) {
+                    updates.streak = increment(1);
+                } else {
+                    updates.streak = 1;
+                }
+            }
+
             // S'assurer que les anciens utilisateurs ont les champs nécessaires pour le classement
             if (data.xp === undefined) updates.xp = 0;
             if (data.isPublic === undefined) updates.isPublic = true;

@@ -502,8 +502,11 @@ async function triggerWin(skipSave = false) {
 
     if (user && !user.isAnonymous && !skipSave && isPublicMode) {
         try {
-            const { incrementGlobalStat, doc, db, updateDoc, increment } = await import('./firebase-app.js');
-            
+            const { incrementGlobalStat, doc, db, updateDoc, increment, getDoc } = await import('./firebase-app.js');
+            const userRef = doc(db, "users", user.uid);
+            const userSnap = await getDoc(userRef);
+            const userData = userSnap.exists() ? userSnap.data() : {};
+
             // Logique spécifique au mode Quotidien
             if (state.mode === 'daily') {
                 const { markDailyAsSolved } = await import('./daily.js');
@@ -514,11 +517,36 @@ async function triggerWin(skipSave = false) {
             incrementGlobalStat('totalGamesPlayed');
             incrementGlobalStat('soloGamesPlayed');
             
+            // Stats Utilisateur pour Missions
+            const updates = {
+                totalGamesPlayed: increment(1),
+                totalWins: increment(1)
+            };
+
+            // Calcul du temps et efficacité
+            const durationSec = state.timer || 0;
+            const attempts = state.attempts || 0;
+            
+            if (durationSec < 120) updates.fastWins = increment(1);
+            if (durationSec < 60) updates.ultraFastWins = increment(1);
+            if (durationSec < 30) updates.godSpeedWins = increment(1);
+            if (attempts <= 10) updates.efficientWins = increment(1);
+            if (attempts === 1) updates.oneShotWins = increment(1);
+
+            // Mots révélés dans cette partie
+            const revealedWords = state.tokens.filter(t => t.isWord && t.revealed).length;
+            updates.totalWordsRevealed = increment(revealedWords);
+
+            // Record tentatives
+            if (!userData.maxAttemptsInOneGame || attempts > userData.maxAttemptsInOneGame) {
+                updates.maxAttemptsInOneGame = attempts;
+            }
+
             // Attribution XP différentiée (Nouveaux barèmes)
             const xpToAdd = (state.mode === 'daily') ? 10 : 2;
-            await updateDoc(doc(db, "users", user.uid), { 
-                xp: increment(xpToAdd) 
-            });
+            updates.xp = increment(xpToAdd);
+
+            await updateDoc(userRef, updates);
 
         } catch (e) {
             console.error("Game: Failed to save victory stats:", e);

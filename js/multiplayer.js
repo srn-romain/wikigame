@@ -366,11 +366,21 @@ async function _checkMultiplayerRewards(data) {
     if (xpToAdd > 0) {
         const { db, updateDoc, doc, increment } = await import("./firebase-app.js");
         try {
-            await updateDoc(doc(db, "users", user.uid), { xp: increment(xpToAdd) });
+            const updates = { 
+                xp: increment(xpToAdd),
+                mpGamesPlayed: increment(1)
+            };
+            if (rank === 1) updates.mpWins = increment(1);
+            
+            await updateDoc(doc(db, "users", user.uid), updates);
             console.log(`Competition Rewards: +${xpToAdd} XP (Rank #${rank}/${N})`);
         } catch (e) {
             console.error("Competition Rewards: Error updating XP", e);
         }
+    } else {
+        // Même si 0 XP gagné, on compte la partie jouée
+        const { db, updateDoc, doc, increment } = await import("./firebase-app.js");
+        await updateDoc(doc(db, "users", user.uid), { mpGamesPlayed: increment(1) }).catch(() => {});
     }
     
     localStorage.setItem(rewardKey, "true");

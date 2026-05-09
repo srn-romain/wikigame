@@ -115,8 +115,225 @@ async function navigateTo(view) {
         case 'ranking':
             renderRanking(container);
             break;
+
+        case 'missions':
+            renderMissions(container);
+            break;
     }
 }
+
+const MISSIONS_DATA = [
+    // TIER 1: Wiki de Bois (0-9)
+    { id: 0, tier: 1, title: "Bienvenue", desc: "Jouer votre première partie", goal: 1, stat: "totalGamesPlayed", icon: "fa-door-open" },
+    { id: 1, tier: 1, title: "Premier pas", desc: "Gagner 1 partie (Solo ou Quotidien)", goal: 1, stat: "totalWins", icon: "fa-trophy" },
+    { id: 2, tier: 1, title: "Apprenti", desc: "Atteindre 10 XP", goal: 10, stat: "xp", icon: "fa-star" },
+    { id: 3, tier: 1, title: "Explorateur", desc: "Jouer 5 parties au total", goal: 5, stat: "totalGamesPlayed", icon: "fa-map" },
+    { id: 4, tier: 1, title: "Ponctuel", desc: "Compléter 1 défi quotidien", goal: 1, stat: "dailySolvedCount", icon: "fa-calendar-check" },
+    { id: 5, tier: 1, title: "Social", desc: "Participer à 1 compétition multijoueur", goal: 1, stat: "mpGamesPlayed", icon: "fa-users" },
+    { id: 6, tier: 1, title: "Persistant", desc: "Faire 50 essais dans une seule partie", goal: 50, stat: "maxAttemptsInOneGame", icon: "fa-brain" },
+    { id: 7, tier: 1, title: "Curieux", desc: "Révéler 500 mots au total", goal: 500, stat: "totalWordsRevealed", icon: "fa-eye" },
+    { id: 8, tier: 1, title: "Habitué", desc: "Jouer 3 jours différents", goal: 3, stat: "daysPlayed", icon: "fa-clock-rotate-left" },
+    { id: 9, tier: 1, title: "Maître du Bois", desc: "Atteindre 30 XP", goal: 30, stat: "xp", icon: "fa-tree" },
+
+    // TIER 2: Wiki de Bronze (10-19)
+    { id: 10, tier: 2, title: "Vétéran", desc: "Jouer 20 parties au total", goal: 20, stat: "totalGamesPlayed", icon: "fa-shield-halved" },
+    { id: 11, tier: 2, title: "Collectionneur", desc: "Gagner 10 parties", goal: 10, stat: "totalWins", icon: "fa-medal" },
+    { id: 12, tier: 2, title: "Fidèle", desc: "Compléter 5 défis quotidiens", goal: 5, stat: "dailySolvedCount", icon: "fa-calendar-days" },
+    { id: 13, tier: 2, title: "Compétiteur", desc: "Jouer 10 parties multijoueur", goal: 10, stat: "mpGamesPlayed", icon: "fa-user-group" },
+    { id: 14, tier: 2, title: "Ascension", desc: "Atteindre 100 XP", goal: 100, stat: "xp", icon: "fa-arrow-up-right-dots" },
+    { id: 15, tier: 2, title: "Lecteur", desc: "Révéler 2000 mots au total", goal: 2000, stat: "totalWordsRevealed", icon: "fa-book-open" },
+    { id: 16, tier: 2, title: "Rapide", desc: "Gagner une partie en moins de 2 minutes", goal: 1, stat: "fastWins", icon: "fa-bolt" },
+    { id: 17, tier: 2, title: "Savant", desc: "Trouver un article avec moins de 10 essais", goal: 1, stat: "efficientWins", icon: "fa-graduation-cap" },
+    { id: 18, tier: 2, title: "Série", desc: "Jouer 5 jours consécutifs", goal: 5, stat: "streak", icon: "fa-fire" },
+    { id: 19, tier: 2, title: "Maître de Bronze", desc: "Atteindre 250 XP", goal: 250, stat: "xp", icon: "fa-award" },
+
+    // TIER 3: Wiki d'Argent (20-29)
+    { id: 20, tier: 3, title: "Expert", desc: "Jouer 50 parties au total", goal: 50, stat: "totalGamesPlayed", icon: "fa-user-tie" },
+    { id: 21, tier: 3, title: "Vainqueur", desc: "Gagner 25 parties", goal: 25, stat: "totalWins", icon: "fa-crown" },
+    { id: 22, tier: 3, title: "Assidu", desc: "Compléter 15 défis quotidiens", goal: 15, stat: "dailySolvedCount", icon: "fa-calendar-plus" },
+    { id: 23, tier: 3, title: "Podium", desc: "Finir premier dans 5 compétitions", goal: 5, stat: "mpWins", icon: "fa-ranking-star" },
+    { id: 24, tier: 3, title: "Érudit", desc: "Atteindre 500 XP", goal: 500, stat: "xp", icon: "fa-book" },
+    { id: 25, tier: 3, title: "百科事典", desc: "Révéler 10000 mots au total", goal: 10000, stat: "totalWordsRevealed", icon: "fa-globe" },
+    { id: 26, tier: 3, title: "Éclair", desc: "Gagner en moins de 60 secondes", goal: 1, stat: "ultraFastWins", icon: "fa-bolt-lightning" },
+    { id: 27, tier: 3, title: "Sniper", desc: "Trouver un article en exactement 1 essai", goal: 1, stat: "oneShotWins", icon: "fa-crosshairs" },
+    { id: 28, tier: 3, title: "Légende", desc: "Jouer 30 jours au total", goal: 30, stat: "daysPlayed", icon: "fa-hourglass-half" },
+    { id: 29, tier: 3, title: "Maître d'Argent", desc: "Atteindre 1000 XP", goal: 1000, stat: "xp", icon: "fa-gem" },
+
+    // TIER 4: Wiki d'Or (30-39)
+    { id: 30, tier: 4, title: "Divinité", desc: "Jouer 200 parties au total", goal: 200, stat: "totalGamesPlayed", icon: "fa-spaghetti-monster-vermillion" },
+    { id: 31, tier: 4, title: "Insubmersible", desc: "Gagner 100 parties", goal: 100, stat: "totalWins", icon: "fa-anchor" },
+    { id: 32, tier: 4, title: "Chronos", desc: "Compléter 50 défis quotidiens", goal: 50, stat: "dailySolvedCount", icon: "fa-stopwatch" },
+    { id: 33, tier: 4, title: "Empereur", desc: "Gagner 25 compétitions multijoueur", goal: 25, stat: "mpWins", icon: "fa-chess-king" },
+    { id: 34, tier: 4, title: "Prestige", desc: "Atteindre 5000 XP", goal: 5000, stat: "xp", icon: "fa-certificate" },
+    { id: 35, tier: 4, title: "Omniscient", desc: "Révéler 50000 mots au total", goal: 50000, stat: "totalWordsRevealed", icon: "fa-brain" },
+    { id: 36, tier: 4, title: "Maître du temps", desc: "Gagner en moins de 30 secondes", goal: 1, stat: "godSpeedWins", icon: "fa-wind" },
+    { id: 37, tier: 4, title: "Perfectionniste", desc: "Gagner 5 parties sans aucune erreur", goal: 5, stat: "flawlessWins", icon: "fa-check-double" },
+    { id: 38, tier: 4, title: "Infatigable", desc: "Avoir une série de 30 jours", goal: 30, stat: "streak", icon: "fa-infinity" },
+    { id: 39, tier: 4, title: "Maître d'Or", desc: "Atteindre 10000 XP", goal: 10000, stat: "xp", icon: "fa-coins" }
+];
+
+async function renderMissions(container) {
+    container.innerHTML = `
+        <div class="loading-screen">
+            <div class="loading-spinner"></div>
+            <p>Chargement de vos missions...</p>
+        </div>
+    `;
+
+    const { db, getDoc, doc, getCurrentUser } = await import("./firebase-app.js");
+    const user = getCurrentUser();
+
+    if (!user || user.isAnonymous) {
+        container.innerHTML = `
+            <div class="glass" style="max-width:500px; margin:4rem auto; padding:3rem; text-align:center;">
+                <i class="fa-solid fa-lock" style="font-size:3rem; color:var(--accent); margin-bottom:1rem;"></i>
+                <h2>Connectez-vous</h2>
+                <p style="color:var(--text-muted); margin-top:1rem;">Vous devez avoir un compte pour suivre votre progression et accomplir des missions.</p>
+                <button class="btn-primary" onclick="window.openAuthModal()" style="margin-top:2rem; width:100%; justify-content:center;">Se connecter</button>
+            </div>
+        `;
+        return;
+    }
+
+    try {
+        const snap = await getDoc(doc(db, "users", user.uid));
+        const userData = snap.data() || {};
+        
+        // Stats de l'utilisateur (on complète avec des valeurs par défaut)
+        const stats = {
+            xp: userData.xp || 0,
+            totalGamesPlayed: userData.totalGamesPlayed || 0,
+            totalWins: userData.totalWins || (userData.dailyHistory ? userData.dailyHistory.length : 0),
+            dailySolvedCount: userData.dailyHistory ? userData.dailyHistory.length : 0,
+            mpGamesPlayed: userData.mpGamesPlayed || 0,
+            mpWins: userData.mpWins || 0,
+            totalWordsRevealed: userData.totalWordsRevealed || 0,
+            maxAttemptsInOneGame: userData.maxAttemptsInOneGame || 0,
+            daysPlayed: userData.daysPlayed || 1,
+            streak: userData.streak || 0,
+            fastWins: userData.fastWins || 0,
+            ultraFastWins: userData.ultraFastWins || 0,
+            godSpeedWins: userData.godSpeedWins || 0,
+            efficientWins: userData.efficientWins || 0,
+            oneShotWins: userData.oneShotWins || 0,
+            flawlessWins: userData.flawlessWins || 0
+        };
+
+        // Calculer le nombre de missions réussies par palier
+        const successes = MISSIONS_DATA.map(m => (stats[m.stat] || 0) >= m.goal);
+        const totalSuccessCount = successes.filter(s => s).length;
+
+        // Déterminer les paliers débloqués
+        // Wiki de Bois (Tier 1) : Toujours débloqué
+        // Wiki de Bronze (Tier 2) : Débloqué si 9 missions réussies
+        // Wiki d'Argent (Tier 3) : Débloqué si 18 missions réussies
+        // Wiki d'Or (Tier 4) : Débloqué si 27 missions réussies
+        const unlockedTiers = {
+            1: true,
+            2: totalSuccessCount >= 9,
+            3: totalSuccessCount >= 18,
+            4: totalSuccessCount >= 27
+        };
+
+        const tierNames = ["", "Wiki de Bois", "Wiki de Bronze", "Wiki d'Argent", "Wiki d'Or"];
+        const tierColors = ["", "#854d0e", "#92400e", "#64748b", "#d97706"];
+
+        container.innerHTML = `
+            <div style="max-width:1000px; margin: 2rem auto; padding: 0 1rem;">
+                <div style="text-align:center; margin-bottom: 3rem;">
+                    <h1 style="font-size:2.5rem; color:#111827; font-weight:800;"><i class="fa-solid fa-scroll" style="color:var(--primary);"></i> Vos Missions</h1>
+                    <p style="color:#4b5563; font-weight:600;">Complétez des défis pour débloquer de nouveaux paliers de prestige.</p>
+                </div>
+
+                ${[1, 2, 3, 4].map(t => {
+                    const isLocked = !unlockedTiers[t];
+                    const tierMissions = MISSIONS_DATA.filter(m => m.tier === t);
+                    const tierSuccessCount = tierMissions.filter(m => (stats[m.stat] || 0) >= m.goal).length;
+
+                    return `
+                        <div style="margin-bottom:4rem; ${isLocked ? 'opacity:0.6; filter:grayscale(1);' : ''}">
+                            <div style="display:flex; align-items:center; gap:15px; margin-bottom:1.5rem;">
+                                <div style="width:50px; height:50px; border-radius:12px; background:${tierColors[t]}; color:white; display:flex; align-items:center; justify-content:center; font-size:1.5rem;">
+                                    <i class="fa-solid ${isLocked ? 'fa-lock' : 'fa-award'}"></i>
+                                </div>
+                                <div>
+                                    <h2 style="margin:0; font-size:1.5rem; color:#111827;">${tierNames[t]}</h2>
+                                    <p style="margin:0; font-size:0.9rem; color:#6b7280;">Progression : ${tierSuccessCount} / 10 missions</p>
+                                </div>
+                            </div>
+
+                            <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap:1.5rem;">
+                                ${tierMissions.map(m => {
+                                    const current = stats[m.stat] || 0;
+                                    const isDone = current >= m.goal;
+                                    const percent = Math.min(100, (current / m.goal) * 100);
+
+                                    return `
+                                        <div class="glass mission-card ${isDone ? 'mission-done' : ''} ${isLocked ? 'locked' : ''}" 
+                                             style="padding:1.5rem; position:relative; overflow:hidden; cursor:${isLocked ? 'not-allowed' : 'pointer'};"
+                                             onclick="${isLocked ? '' : `window._showMissionDetail(${m.id}, ${current}, ${m.goal})`}">
+                                            <div style="display:flex; gap:15px; align-items:flex-start;">
+                                                <div style="width:40px; height:40px; border-radius:10px; background:${isDone ? '#dcfce7' : '#f3f4f6'}; color:${isDone ? '#166534' : '#6b7280'}; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                                                    <i class="fa-solid ${m.icon}"></i>
+                                                </div>
+                                                <div style="flex:1;">
+                                                    <h3 style="margin:0; font-size:1rem; color:#111827;">${m.title}</h3>
+                                                    <p style="margin:5px 0 15px; font-size:0.8rem; color:#6b7280; line-height:1.4;">${m.desc}</p>
+                                                    
+                                                    <div style="height:6px; background:#e5e7eb; border-radius:10px; overflow:hidden;">
+                                                        <div style="height:100%; width:${percent}%; background:${isDone ? '#10b981' : 'var(--primary)'}; transition:width 0.5s;"></div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            ${isDone ? '<i class="fa-solid fa-circle-check" style="position:absolute; top:10px; right:10px; color:#10b981; font-size:1.2rem;"></i>' : ''}
+                                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        `;
+
+    } catch (e) {
+        console.error("Missions: Error loading", e);
+        container.innerHTML = `<div class="glass" style="margin:2rem auto; text-align:center; padding:3rem;"><p style="color:#ef4444; font-weight:800;">Erreur lors du chargement des missions.</p></div>`;
+    }
+}
+
+window._showMissionDetail = (id, current, goal) => {
+    const mission = MISSIONS_DATA.find(m => m.id === id);
+    if (!mission) return;
+
+    const overlay = document.createElement('div');
+    overlay.className = 'auth-modal-overlay';
+    overlay.innerHTML = `
+        <div class="auth-modal glass" style="max-width:400px; text-align:center;">
+            <div style="width:80px; height:80px; background:rgba(var(--primary-rgb), 0.1); color:var(--primary); border-radius:20px; display:flex; align-items:center; justify-content:center; font-size:2.5rem; margin:0 auto 1.5rem;">
+                <i class="fa-solid ${mission.icon}"></i>
+            </div>
+            <h2 style="margin-bottom:0.5rem;">${mission.title}</h2>
+            <p style="color:var(--text-muted); margin-bottom:2rem;">${mission.desc}</p>
+            
+            <div style="background:#f9fafb; padding:1.5rem; border-radius:15px; border:1px solid #e5e7eb; margin-bottom:2rem;">
+                <div style="display:flex; justify-content:space-between; margin-bottom:0.75rem; font-weight:800;">
+                    <span style="color:#111827;">Progression</span>
+                    <span style="color:var(--primary);">${current} / ${goal}</span>
+                </div>
+                <div style="height:12px; background:#e5e7eb; border-radius:10px; overflow:hidden;">
+                    <div style="height:100%; width:${Math.min(100, (current/goal)*100)}%; background:var(--primary); transition:width 1s cubic-bezier(0.34, 1.56, 0.64, 1);"></div>
+                </div>
+                <p style="margin-top:1rem; font-size:0.8rem; color:#6b7280; font-weight:600;">
+                    ${current >= goal ? 'Mission accomplie ! Bravo.' : `Encore ${goal - current} à accomplir.`}
+                </p>
+            </div>
+            
+            <button class="btn-primary" style="width:100%; justify-content:center;" onclick="this.closest('.auth-modal-overlay').remove()">Continuer</button>
+        </div>
+    `;
+    document.body.appendChild(overlay);
+};
 
 
 // ─────────────────────────────────────────────
