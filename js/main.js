@@ -135,41 +135,101 @@ const MISSIONS_DATA = [
     { id: 8, tier: 1, title: "Habitué", desc: "Jouer 3 jours différents", goal: 3, stat: "daysPlayed", icon: "fa-clock-rotate-left", xpReward: 10 },
     { id: 9, tier: 1, title: "Maître du Bois", desc: "Atteindre 30 XP totaux", goal: 30, stat: "xp", icon: "fa-tree", xpReward: 10 },
 
-    // TIER 2: Wiki de Bronze (10-19)
-    { id: 10, tier: 2, title: "Vétéran", desc: "Jouer 20 parties au total", goal: 20, stat: "totalGamesPlayed", icon: "fa-shield-halved", xpReward: 15 },
-    { id: 11, tier: 2, title: "Collectionneur", desc: "Gagner 10 parties", goal: 10, stat: "totalWins", icon: "fa-medal", xpReward: 20 },
-    { id: 12, tier: 2, title: "Fidèle", desc: "Compléter 5 défis quotidiens", goal: 5, stat: "dailySolvedCount", icon: "fa-calendar-days", xpReward: 20 },
-    { id: 13, tier: 2, title: "Compétiteur", desc: "Jouer 10 parties multijoueur", goal: 10, stat: "mpGamesPlayed", icon: "fa-user-group", xpReward: 20 },
-    { id: 14, tier: 2, title: "Ascension", desc: "Atteindre 100 XP totaux", goal: 100, stat: "xp", icon: "fa-arrow-up-right-dots", xpReward: 25 },
-    { id: 15, tier: 2, title: "Lecteur", desc: "Révéler 2000 mots au total", goal: 2000, stat: "totalWordsRevealed", icon: "fa-book-open", xpReward: 25 },
-    { id: 16, tier: 2, title: "Rapide", desc: "Gagner une partie en moins de 2 minutes", goal: 1, stat: "fastWins", icon: "fa-bolt", xpReward: 25 },
-    { id: 17, tier: 2, title: "Savant", desc: "Trouver un article avec moins de 10 essais", goal: 1, stat: "efficientWins", icon: "fa-graduation-cap", xpReward: 25 },
-    { id: 18, tier: 2, title: "Série", desc: "Jouer 5 jours consécutifs", goal: 5, stat: "streak", icon: "fa-fire", xpReward: 25 },
-    { id: 19, tier: 2, title: "Maître de Bronze", desc: "Atteindre 250 XP totaux", goal: 250, stat: "xp", icon: "fa-award", xpReward: 25 },
+    // TIER 2: Wiki de Pierre (40-49)
+    { id: 40, tier: 2, title: "Tailleur", desc: "Jouer 10 parties au total", goal: 10, stat: "totalGamesPlayed", icon: "fa-hammer", xpReward: 12 },
+    { id: 41, tier: 2, title: "Solide", desc: "Gagner 5 parties au total", goal: 5, stat: "totalWins", icon: "fa-cube", xpReward: 15 },
+    { id: 42, tier: 2, title: "Fondation", desc: "Atteindre 60 XP totaux", goal: 60, stat: "xp", icon: "fa-building-columns", xpReward: 15 },
+    { id: 43, tier: 2, title: "Régulier", desc: "Compléter 3 défis quotidiens", goal: 3, stat: "dailySolvedCount", icon: "fa-calendar-day", xpReward: 15 },
+    { id: 44, tier: 2, title: "Défieur", desc: "Participer à 3 compétitions multijoueur", goal: 3, stat: "mpGamesPlayed", icon: "fa-user-ninja", xpReward: 15 },
+    { id: 45, tier: 2, title: "Observateur", desc: "Révéler 1000 mots au total", goal: 1000, stat: "totalWordsRevealed", icon: "fa-glasses", xpReward: 15 },
+    { id: 46, tier: 2, title: "Endurant", desc: "Faire 100 essais dans une seule partie", goal: 100, stat: "maxAttemptsInOneGame", icon: "fa-mountain", xpReward: 15 },
+    { id: 47, tier: 2, title: "Présent", desc: "Jouer 5 jours différents", goal: 5, stat: "daysPlayed", icon: "fa-calendar-check", xpReward: 15 },
+    { id: 48, tier: 2, title: "Petit feu", desc: "Avoir une série de 3 jours", goal: 3, stat: "streak", icon: "fa-fire-burner", xpReward: 15 },
+    { id: 49, tier: 2, title: "Maître de Pierre", desc: "Atteindre 80 XP totaux", goal: 80, stat: "xp", icon: "fa-mountain-sun", xpReward: 15 },
 
-    // TIER 3: Wiki d'Argent (20-29)
-    { id: 20, tier: 3, title: "Expert", desc: "Jouer 50 parties au total", goal: 50, stat: "totalGamesPlayed", icon: "fa-user-tie", xpReward: 35 },
-    { id: 21, tier: 3, title: "Vainqueur", desc: "Gagner 25 parties", goal: 25, stat: "totalWins", icon: "fa-crown", xpReward: 40 },
-    { id: 22, tier: 3, title: "Assidu", desc: "Compléter 15 défis quotidiens", goal: 15, stat: "dailySolvedCount", icon: "fa-calendar-plus", xpReward: 40 },
-    { id: 23, tier: 3, title: "Podium", desc: "Finir premier dans 5 compétitions", goal: 5, stat: "mpWins", icon: "fa-ranking-star", xpReward: 45 },
-    { id: 24, tier: 3, title: "Érudit", desc: "Atteindre 500 XP totaux", goal: 500, stat: "xp", icon: "fa-book", xpReward: 50 },
-    { id: 25, tier: 3, title: "Encyclopédie", desc: "Révéler 10000 mots au total", goal: 10000, stat: "totalWordsRevealed", icon: "fa-globe", xpReward: 50 },
-    { id: 26, tier: 3, title: "Éclair", desc: "Gagner en moins de 60 secondes", goal: 1, stat: "ultraFastWins", icon: "fa-bolt-lightning", xpReward: 50 },
-    { id: 27, tier: 3, title: "Sniper", desc: "Trouver un article en exactement 1 essai", goal: 1, stat: "oneShotWins", icon: "fa-crosshairs", xpReward: 50 },
-    { id: 28, tier: 3, title: "Légende", desc: "Jouer 30 jours au total", goal: 30, stat: "daysPlayed", icon: "fa-hourglass-half", xpReward: 50 },
-    { id: 29, tier: 3, title: "Maître d'Argent", desc: "Atteindre 1000 XP totaux", goal: 1000, stat: "xp", icon: "fa-gem", xpReward: 50 },
+    // TIER 3: Wiki de Bronze (10-19)
+    { id: 10, tier: 3, title: "Vétéran", desc: "Jouer 20 parties au total", goal: 20, stat: "totalGamesPlayed", icon: "fa-shield-halved", xpReward: 15 },
+    { id: 11, tier: 3, title: "Collectionneur", desc: "Gagner 10 parties", goal: 10, stat: "totalWins", icon: "fa-medal", xpReward: 20 },
+    { id: 12, tier: 3, title: "Fidèle", desc: "Compléter 5 défis quotidiens", goal: 5, stat: "dailySolvedCount", icon: "fa-calendar-days", xpReward: 20 },
+    { id: 13, tier: 3, title: "Compétiteur", desc: "Jouer 10 parties multijoueur", goal: 10, stat: "mpGamesPlayed", icon: "fa-user-group", xpReward: 20 },
+    { id: 14, tier: 3, title: "Ascension", desc: "Atteindre 150 XP totaux", goal: 150, stat: "xp", icon: "fa-arrow-up-right-dots", xpReward: 25 },
+    { id: 15, tier: 3, title: "Lecteur", desc: "Révéler 2500 mots au total", goal: 2500, stat: "totalWordsRevealed", icon: "fa-book-open", xpReward: 25 },
+    { id: 16, tier: 3, title: "Rapide", desc: "Gagner une partie en moins de 2 minutes", goal: 1, stat: "fastWins", icon: "fa-bolt", xpReward: 25 },
+    { id: 17, tier: 3, title: "Savant", desc: "Trouver un article avec moins de 10 essais", goal: 1, stat: "efficientWins", icon: "fa-graduation-cap", xpReward: 25 },
+    { id: 18, tier: 3, title: "Série", desc: "Jouer 5 jours consécutifs", goal: 5, stat: "streak", icon: "fa-fire", xpReward: 25 },
+    { id: 19, tier: 3, title: "Maître de Bronze", desc: "Atteindre 300 XP totaux", goal: 300, stat: "xp", icon: "fa-award", xpReward: 25 },
 
-    // TIER 4: Wiki d'Or (30-39)
-    { id: 30, tier: 4, title: "Divinité", desc: "Jouer 200 parties au total", goal: 200, stat: "totalGamesPlayed", icon: "fa-spaghetti-monster-vermillion", xpReward: 75 },
-    { id: 31, tier: 4, title: "Insubmersible", desc: "Gagner 100 parties", goal: 100, stat: "totalWins", icon: "fa-anchor", xpReward: 80 },
-    { id: 32, tier: 4, title: "Chronos", desc: "Compléter 50 défis quotidiens", goal: 50, stat: "dailySolvedCount", icon: "fa-stopwatch", xpReward: 80 },
-    { id: 33, tier: 4, title: "Empereur", desc: "Gagner 25 compétitions multijoueur", goal: 25, stat: "mpWins", icon: "fa-chess-king", xpReward: 90 },
-    { id: 34, tier: 4, title: "Prestige", desc: "Atteindre 5000 XP totaux", goal: 5000, stat: "xp", icon: "fa-certificate", xpReward: 100 },
-    { id: 35, tier: 4, title: "Omniscient", desc: "Révéler 50000 mots au total", goal: 50000, stat: "totalWordsRevealed", icon: "fa-brain", xpReward: 100 },
-    { id: 36, tier: 4, title: "Maître du temps", desc: "Gagner en moins de 30 secondes", goal: 1, stat: "godSpeedWins", icon: "fa-wind", xpReward: 100 },
-    { id: 37, tier: 4, title: "Perfectionniste", desc: "Gagner 5 parties avec moins de 5 erreurs", goal: 5, stat: "lowErrorWins", icon: "fa-check-double", xpReward: 100 },
-    { id: 38, tier: 4, title: "Infatigable", desc: "Avoir une série de 30 jours", goal: 30, stat: "streak", icon: "fa-infinity", xpReward: 100 },
-    { id: 39, tier: 4, title: "Maître d'Or", desc: "Atteindre 10000 XP totaux", goal: 10000, stat: "xp", icon: "fa-coins", xpReward: 100 }
+    // TIER 4: Wiki de Fer (50-59)
+    { id: 50, tier: 4, title: "Forgeur", desc: "Jouer 40 parties au total", goal: 40, stat: "totalGamesPlayed", icon: "fa-fire-extinguisher", xpReward: 30 },
+    { id: 51, tier: 4, title: "Acier", desc: "Gagner 20 parties au total", goal: 20, stat: "totalWins", icon: "fa-hand-fist", xpReward: 30 },
+    { id: 52, tier: 4, title: "Structure", desc: "Atteindre 500 XP totaux", goal: 500, stat: "xp", icon: "fa-building", xpReward: 30 },
+    { id: 53, tier: 4, title: "Assidu", desc: "Compléter 10 défis quotidiens", goal: 10, stat: "dailySolvedCount", icon: "fa-calendar-week", xpReward: 30 },
+    { id: 54, tier: 4, title: "Guerrier", desc: "Gagner 5 compétitions multijoueur", goal: 5, stat: "mpWins", icon: "fa-sword", xpReward: 30 },
+    { id: 55, tier: 4, title: "Analyste", desc: "Révéler 5000 mots au total", goal: 5000, stat: "totalWordsRevealed", icon: "fa-magnifying-glass-chart", xpReward: 30 },
+    { id: 56, tier: 4, title: "Persévérant", desc: "Avoir une série de 7 jours", goal: 7, stat: "streak", icon: "fa-bolt-lightning", xpReward: 35 },
+    { id: 57, tier: 4, title: "Inébranlable", desc: "Jouer 15 jours différents", goal: 15, stat: "daysPlayed", icon: "fa-clock", xpReward: 35 },
+    { id: 58, tier: 4, title: "Efficace", desc: "Gagner une partie avec moins de 5 essais", goal: 1, stat: "efficientWins", icon: "fa-bullseye", xpReward: 35 },
+    { id: 59, tier: 4, title: "Maître de Fer", desc: "Atteindre 750 XP totaux", goal: 750, stat: "xp", icon: "fa-dumbbell", xpReward: 40 },
+
+    // TIER 5: Wiki d'Argent (20-29)
+    { id: 20, tier: 5, title: "Expert", desc: "Jouer 75 parties au total", goal: 75, stat: "totalGamesPlayed", icon: "fa-user-tie", xpReward: 35 },
+    { id: 21, tier: 5, title: "Vainqueur", desc: "Gagner 35 parties", goal: 35, stat: "totalWins", icon: "fa-crown", xpReward: 40 },
+    { id: 22, tier: 5, title: "Méthodique", desc: "Compléter 20 défis quotidiens", goal: 20, stat: "dailySolvedCount", icon: "fa-calendar-plus", xpReward: 40 },
+    { id: 23, tier: 5, title: "Podium", desc: "Finir premier dans 10 compétitions", goal: 10, stat: "mpWins", icon: "fa-ranking-star", xpReward: 45 },
+    { id: 24, tier: 5, title: "Érudit", desc: "Atteindre 1000 XP totaux", goal: 1000, stat: "xp", icon: "fa-book", xpReward: 50 },
+    { id: 25, tier: 5, title: "Encyclopédie", desc: "Révéler 15000 mots au total", goal: 15000, stat: "totalWordsRevealed", icon: "fa-globe", xpReward: 50 },
+    { id: 26, tier: 5, title: "Éclair", desc: "Gagner en moins de 60 secondes", goal: 1, stat: "ultraFastWins", icon: "fa-bolt-lightning", xpReward: 50 },
+    { id: 27, tier: 5, title: "Sniper", desc: "Trouver un article en exactement 1 essai", goal: 1, stat: "oneShotWins", icon: "fa-crosshairs", xpReward: 50 },
+    { id: 28, tier: 5, title: "Légende", desc: "Jouer 30 jours au total", goal: 30, stat: "daysPlayed", icon: "fa-hourglass-half", xpReward: 50 },
+    { id: 29, tier: 5, title: "Maître d'Argent", desc: "Atteindre 1500 XP totaux", goal: 1500, stat: "xp", icon: "fa-gem", xpReward: 50 },
+
+    // TIER 6: Wiki d'Or (30-39)
+    { id: 30, tier: 6, title: "Divinité", desc: "Jouer 200 parties au total", goal: 200, stat: "totalGamesPlayed", icon: "fa-spaghetti-monster-vermillion", xpReward: 75 },
+    { id: 31, tier: 6, title: "Insubmersible", desc: "Gagner 100 parties", goal: 100, stat: "totalWins", icon: "fa-anchor", xpReward: 80 },
+    { id: 32, tier: 6, title: "Chronos", desc: "Compléter 50 défis quotidiens", goal: 50, stat: "dailySolvedCount", icon: "fa-stopwatch", xpReward: 80 },
+    { id: 33, tier: 6, title: "Empereur", desc: "Gagner 25 compétitions multijoueur", goal: 25, stat: "mpWins", icon: "fa-chess-king", xpReward: 90 },
+    { id: 34, tier: 6, title: "Prestige", desc: "Atteindre 5000 XP totaux", goal: 5000, stat: "xp", icon: "fa-certificate", xpReward: 100 },
+    { id: 35, tier: 6, title: "Omniscient", desc: "Révéler 50000 mots au total", goal: 50000, stat: "totalWordsRevealed", icon: "fa-brain", xpReward: 100 },
+    { id: 36, tier: 6, title: "Maître du temps", desc: "Gagner en moins de 30 secondes", goal: 1, stat: "godSpeedWins", icon: "fa-wind", xpReward: 100 },
+    { id: 37, tier: 6, title: "Perfectionniste", desc: "Gagner 5 parties avec moins de 5 erreurs", goal: 5, stat: "lowErrorWins", icon: "fa-check-double", xpReward: 100 },
+    { id: 38, tier: 6, title: "Infatigable", desc: "Avoir une série de 30 jours", goal: 30, stat: "streak", icon: "fa-infinity", xpReward: 100 },
+    { id: 39, tier: 6, title: "Maître d'Or", desc: "Atteindre 10000 XP totaux", goal: 10000, stat: "xp", icon: "fa-coins", xpReward: 100 },
+
+    // TIER 7: Wiki de Platine (60-69)
+    { id: 60, tier: 7, title: "Noble", desc: "Jouer 500 parties au total", goal: 500, stat: "totalGamesPlayed", icon: "fa-gem", xpReward: 200 },
+    { id: 61, tier: 7, title: "Imbattable", desc: "Gagner 250 parties au total", goal: 250, stat: "totalWins", icon: "fa-trophy", xpReward: 250 },
+    { id: 62, tier: 7, title: "Élite", desc: "Atteindre 25000 XP totaux", goal: 25000, stat: "xp", icon: "fa-star-halved", xpReward: 250 },
+    { id: 63, tier: 7, title: "Dévoué", desc: "Compléter 100 défis quotidiens", goal: 100, stat: "dailySolvedCount", icon: "fa-calendar-check", xpReward: 300 },
+    { id: 64, tier: 7, title: "Suprématie", desc: "Gagner 50 compétitions multijoueur", goal: 50, stat: "mpWins", icon: "fa-crown", xpReward: 350 },
+    { id: 65, tier: 7, title: "Bibliothécaire", desc: "Révéler 100000 mots au total", goal: 100000, stat: "totalWordsRevealed", icon: "fa-book-atlas", xpReward: 400 },
+    { id: 66, tier: 7, title: "Ininterrompu", desc: "Avoir une série de 60 jours", goal: 60, stat: "streak", icon: "fa-link", xpReward: 400 },
+    { id: 67, tier: 7, title: "Ancien", desc: "Jouer 100 jours différents", goal: 100, stat: "daysPlayed", icon: "fa-landmark", xpReward: 400 },
+    { id: 68, tier: 7, title: "Précision", desc: "Gagner 20 parties avec moins de 5 erreurs", goal: 20, stat: "lowErrorWins", icon: "fa-bullseye", xpReward: 500 },
+    { id: 69, tier: 7, title: "Maître de Platine", desc: "Atteindre 50000 XP totaux", goal: 50000, stat: "xp", icon: "fa-medal", xpReward: 1000 },
+
+    // TIER 8: Wiki de Diamant (70-79)
+    { id: 70, tier: 8, title: "Éternel", desc: "Jouer 1000 parties au total", goal: 1000, stat: "totalGamesPlayed", icon: "fa-infinity", xpReward: 1000 },
+    { id: 71, tier: 8, title: "Légendaire", desc: "Gagner 500 parties au total", goal: 500, stat: "totalWins", icon: "fa-wand-magic-sparkles", xpReward: 1000 },
+    { id: 72, tier: 8, title: "Transcendance", desc: "Atteindre 100000 XP totaux", goal: 100000, stat: "xp", icon: "fa-mountain-city", xpReward: 1500 },
+    { id: 73, tier: 8, title: "Immortel", desc: "Compléter 250 défis quotidiens", goal: 250, stat: "dailySolvedCount", icon: "fa-hourglass-end", xpReward: 2000 },
+    { id: 74, tier: 8, title: "Souverain", desc: "Gagner 100 compétitions multijoueur", goal: 100, stat: "mpWins", icon: "fa-khanda", xpReward: 2500 },
+    { id: 75, tier: 8, title: "Omniprésent", desc: "Révéler 500000 mots au total", goal: 500000, stat: "totalWordsRevealed", icon: "fa-earth-americas", xpReward: 3000 },
+    { id: 76, tier: 8, title: "Indestructible", desc: "Avoir une série de 100 jours", goal: 100, stat: "streak", icon: "fa-shield-heart", xpReward: 3000 },
+    { id: 77, tier: 8, title: "Pionnier", desc: "Jouer 200 jours différents", goal: 200, stat: "daysPlayed", icon: "fa-compass", xpReward: 3000 },
+    { id: 78, tier: 8, title: "Sonic", desc: "Gagner 10 parties en moins de 30 secondes", goal: 10, stat: "godSpeedWins", icon: "fa-bolt", xpReward: 4000 },
+    { id: 79, tier: 8, title: "Maître de Diamant", desc: "Atteindre 250000 XP totaux", goal: 250000, stat: "xp", icon: "fa-diamond", xpReward: 10000 },
+
+    // TIER 9: Wiki d'Émeraude (80-89)
+    { id: 80, tier: 9, title: "Ancêtre", desc: "Jouer 2000 parties au total", goal: 2000, stat: "totalGamesPlayed", icon: "fa-person-cane", xpReward: 5000 },
+    { id: 81, tier: 9, title: "Dieu du Wiki", desc: "Gagner 1000 parties au total", goal: 1000, stat: "totalWins", icon: "fa-ankh", xpReward: 5000 },
+    { id: 82, tier: 9, title: "Infini", desc: "Atteindre 1000000 XP totaux", goal: 1000000, stat: "xp", icon: "fa-atom", xpReward: 10000 },
+    { id: 83, tier: 9, title: "Le Saint Gréal", desc: "Compléter 365 défis quotidiens", goal: 365, stat: "dailySolvedCount", icon: "fa-trophy", xpReward: 20000 },
+    { id: 84, tier: 9, title: "Maître de l'Univers", desc: "Gagner 250 compétitions multijoueur", goal: 250, stat: "mpWins", icon: "fa-galaxy", xpReward: 20000 },
+    { id: 85, tier: 9, title: "Omniscient Réel", desc: "Révéler 1000000 mots au total", goal: 1000000, stat: "totalWordsRevealed", icon: "fa-brain", xpReward: 30000 },
+    { id: 86, tier: 9, title: "Obsessionnel", desc: "Avoir une série de 365 jours", goal: 365, stat: "streak", icon: "fa-fire-extinguisher", xpReward: 50000 },
+    { id: 87, tier: 9, title: "Citoyen d'Honneur", desc: "Jouer 365 jours différents", goal: 365, stat: "daysPlayed", icon: "fa-city", xpReward: 50000 },
+    { id: 88, tier: 9, title: "Lumière", desc: "Gagner 50 parties en moins de 30 secondes", goal: 50, stat: "godSpeedWins", icon: "fa-lightbulb", xpReward: 100000 },
+    { id: 89, tier: 9, title: "Maître d'Émeraude", desc: "Atteindre 5000000 XP totaux", goal: 5000000, stat: "xp", icon: "fa-gem", xpReward: 250000 }
 ];
 
 async function renderMissions(container) {
@@ -234,11 +294,16 @@ async function renderMissions(container) {
             1: true,
             2: totalSuccessCount >= 9,
             3: totalSuccessCount >= 18,
-            4: totalSuccessCount >= 27
+            4: totalSuccessCount >= 27,
+            5: totalSuccessCount >= 36,
+            6: totalSuccessCount >= 45,
+            7: totalSuccessCount >= 54,
+            8: totalSuccessCount >= 63,
+            9: totalSuccessCount >= 72
         };
 
-        const tierNames = ["", "Wiki de Bois", "Wiki de Bronze", "Wiki d'Argent", "Wiki d'Or"];
-        const tierColors = ["", "#854d0e", "#92400e", "#64748b", "#d97706"];
+        const tierNames = ["", "Wiki de Bois", "Wiki de Pierre", "Wiki de Bronze", "Wiki de Fer", "Wiki d'Argent", "Wiki d'Or", "Wiki de Platine", "Wiki de Diamant", "Wiki d'Émeraude"];
+        const tierColors = ["", "#854d0e", "#6b7280", "#b45309", "#475569", "#94a3b8", "#d97706", "#cbd5e1", "#0ea5e9", "#10b981"];
 
         container.innerHTML = `
             <div style="max-width:1000px; margin: 2rem auto; padding: 0 1rem;">
@@ -247,7 +312,7 @@ async function renderMissions(container) {
                     <p style="color:white; font-weight:600;">Complétez des défis pour débloquer de nouveaux paliers de prestige.</p>
                     <div style="margin-top: 1rem; display: inline-flex; gap: 1rem; flex-wrap: wrap; justify-content: center;">
                         <span style="background: rgba(255,255,255,0.1); backdrop-filter: blur(5px); color: white; padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; border: 1px solid rgba(255,255,255,0.2);">
-                            <i class="fa-solid fa-gift" style="color:var(--accent); margin-right:5px;"></i> Bonus de palier : <b>+10 à +40 XP</b>
+                            <i class="fa-solid fa-gift" style="color:var(--accent); margin-right:5px;"></i> Bonus de palier : <b>+10 à +90 XP</b>
                         </span>
                         <span style="background: rgba(255,255,255,0.1); backdrop-filter: blur(5px); color: white; padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; border: 1px solid rgba(255,255,255,0.2);">
                             <i class="fa-solid fa-crown" style="color:#fbbf24; margin-right:5px;"></i> Grand Maître : <b>+300 XP</b>
@@ -255,7 +320,7 @@ async function renderMissions(container) {
                     </div>
                 </div>
 
-                ${[1, 2, 3, 4].map(t => {
+                ${[1, 2, 3, 4, 5, 6, 7, 8, 9].map(t => {
                     const isLocked = !unlockedTiers[t];
                     const tierMissions = MISSIONS_DATA.filter(m => m.tier === t);
                     const tierSuccessCount = tierMissions.filter(m => (stats[m.stat] || 0) >= m.goal).length;
