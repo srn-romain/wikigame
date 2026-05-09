@@ -596,9 +596,35 @@ export function openAvatarCatalog(userData, onSelect) {
                 ${AVATARS.map(avatar => {
                     const isLocked = avatar.tier > userTier;
                     const isSelected = userData.avatarId === avatar.id;
+                    
+                    const xpReqs = {
+                        1: 30,
+                        2: 100,
+                        3: 300,
+                        4: 750,
+                        5: 1500,
+                        6: 10000,
+                        7: 50000,
+                        8: 250000,
+                        9: 5000000
+                    };
+                    
+                    let unlockText = "";
+                    if (avatar.tier === 0) {
+                        unlockText = "Débloqué dès le début";
+                    } else if (avatar.label.startsWith("Wiki d")) {
+                        // Transform "Wiki de Pierre" to "Débloqué au palier de Pierre"
+                        const palier = avatar.label.replace("Wiki ", "");
+                        unlockText = `Débloqué au palier ${palier}`;
+                    } else {
+                        unlockText = `Débloqué à ${xpReqs[avatar.tier]} XP`;
+                    }
+
                     return `
                         <div class="avatar-item ${isLocked ? 'locked' : ''} ${isSelected ? 'selected' : ''}" 
+
                              data-id="${avatar.id}"
+                             title="${unlockText}"
                              style="display:flex; flex-direction:column; align-items:center; gap:8px; cursor:${isLocked ? 'not-allowed' : 'pointer'}; position:relative; padding: 10px; border-radius: 12px; transition:all 0.2s; border: 2px solid ${isSelected ? 'var(--primary)' : 'transparent'}; background: ${isSelected ? 'rgba(166, 216, 102, 0.1)' : 'transparent'};">
                             
                             <div class="avatar-placeholder" style="width:50px; height:50px; background:${isLocked ? '#e5e7eb' : avatar.color}; color:white; font-size:1.5rem; filter:${isLocked ? 'grayscale(1) opacity(0.5)' : 'none'};">
