@@ -216,27 +216,28 @@ function setupProfileEvents(container, user, userData) {
     };
 }
 
-function showConfirmModal(title, text, confirmBtnText, onConfirm) {
-    const overlay = document.createElement('div');
-    overlay.className = 'modal-overlay';
-    overlay.style.zIndex = "1000";
-    overlay.innerHTML = `
-        <div class="auth-modal" style="max-width: 400px; text-align: center;">
-            <h2 style="margin-bottom: 1rem; color: var(--text-main)!important;">${title}</h2>
-            <p style="margin-bottom: 2rem; color: var(--text-muted)!important;">${text}</p>
-            <div style="display: flex; gap: 10px; justify-content: center;">
-                <button class="btn-primary" style="background: #f3f4f6; color: var(--text-main); border: 1px solid #ddd; box-shadow: none;" id="cancel-confirm">Annuler</button>
-                <button class="btn-accent" style="background: var(--danger); color:white; box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);" id="exec-confirm">${confirmBtnText}</button>
+export function showConfirmModal(title, text, confirmBtnText = "Confirmer") {
+    return new Promise(resolve => {
+        const overlay = document.createElement('div');
+        overlay.className = 'modal-overlay';
+        overlay.style.zIndex = "2000";
+        overlay.innerHTML = `
+            <div class="auth-modal glass" style="max-width: 400px; text-align: center; padding: 2.5rem; background: white;">
+                <i class="fa-solid fa-circle-exclamation" style="font-size: 3.5rem; color: var(--danger); margin-bottom: 1.5rem;"></i>
+                <h2 style="margin-bottom: 1rem; color: var(--text-main)!important;">${title}</h2>
+                <p style="margin-bottom: 2rem; color: var(--text-muted)!important; line-height: 1.5; font-size: 0.95rem;">${text}</p>
+                <div style="display: flex; gap: 12px; width: 100%;">
+                    <button class="btn-primary" style="flex:1; background: #f3f4f6; color: var(--text-main); border: 1px solid #ddd; justify-content:center;" id="cancel-confirm">Annuler</button>
+                    <button class="btn-primary" style="flex:1; background: var(--danger); color:white; border:none; justify-content:center;" id="exec-confirm">${confirmBtnText}</button>
+                </div>
             </div>
-        </div>
-    `;
-    document.body.appendChild(overlay);
-    
-    overlay.querySelector('#cancel-confirm').onclick = () => overlay.remove();
-    overlay.querySelector('#exec-confirm').onclick = () => {
-        overlay.remove();
-        onConfirm();
-    };
+        `;
+        document.body.appendChild(overlay);
+        
+        overlay.querySelector('#cancel-confirm').onclick = () => { overlay.remove(); resolve(false); };
+        overlay.querySelector('#exec-confirm').onclick = () => { overlay.remove(); resolve(true); };
+        overlay.onclick = (e) => { if (e.target === overlay) { overlay.remove(); resolve(false); } };
+    });
 }
 
 /**

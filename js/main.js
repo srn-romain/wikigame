@@ -1,7 +1,7 @@
 import { initGame, handleGuess } from './game.js';
 import { createRoom, joinRoom } from './multiplayer.js';
 import { waitForAuth, getCurrentUser } from './firebase-app.js';
-import { openAuthModal, showInfoModal } from './auth.js';
+import { openAuthModal, showInfoModal, showConfirmModal } from './auth.js';
 import { getDailyArticleId, checkDailySolved, getCountdown, getDailySolversCount } from './daily.js';
 
 
@@ -68,6 +68,18 @@ function setupAuthListeners() {
 }
 
 async function navigateTo(view) {
+    if (window.isGameActive && window.isGameActive()) {
+        const confirmed = await showConfirmModal(
+            "Partie en cours",
+            "Attention : vous avez une partie en cours. Si vous changez de page maintenant, votre progression sera perdue et aucun score ne sera enregistré dans vos statistiques. Souhaitez-vous vraiment quitter ?",
+            "Quitter la partie"
+        );
+        if (!confirmed) return;
+
+        // Reset game state if we confirmed exit
+        if (window.resetGameState) window.resetGameState();
+    }
+
     console.log(`Main: Navigating to view="${view}"`);
     const container = document.getElementById('main-container');
     const controls = document.getElementById('game-controls');

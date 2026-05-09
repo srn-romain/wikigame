@@ -27,6 +27,19 @@ let state = {
     won: false
 };
 
+export function isGameActive() {
+    return state.article !== null && !state.won && state.attempts > 0;
+}
+window.isGameActive = isGameActive;
+
+export function resetGameState() {
+    state.article = null;
+    state.won = false;
+    const controls = document.getElementById('game-controls');
+    if (controls) controls.classList.add('hidden');
+}
+window.resetGameState = resetGameState;
+
 export function getGameState() {
     return {
         foundCount: state.foundCount,

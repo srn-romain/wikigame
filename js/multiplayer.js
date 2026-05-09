@@ -67,7 +67,7 @@ export async function joinRoom(roomId, username) {
 
     const data = snap.data();
     if (data.locked)             throw new Error("Cette salle est verrouillée.");
-    if (data.state !== "WAITING") throw new Error("La partie a déjà commencé !");
+    if (data.state === "FINISHED") throw new Error("Cette partie est déjà terminée.");
 
     // Déjà approuvé ? Reconnexion directe
     if (data.players?.[user.uid]?.approved) {
@@ -139,7 +139,8 @@ export async function startRound() {
             articleId: article.id, 
             startTime: Date.now(),
             roundWinner: deleteField(),
-            countdownEnd: deleteField()
+            countdownEnd: deleteField(),
+            roundFinished: deleteField()
         };
     Object.keys(data.players || {}).forEach(uid => {
         updates[`players.${uid}.finished`] = false;
@@ -206,7 +207,8 @@ export async function nextArticle() {
         startTime: Date.now(), 
         currentRound: nextRound,
         roundWinner: deleteField(),
-        countdownEnd: deleteField()
+        countdownEnd: deleteField(),
+        roundFinished: deleteField()
     };
     Object.keys(data.players || {}).forEach(uid => {
         updates[`players.${uid}.finished`] = false;
@@ -276,6 +278,16 @@ function _subscribe(roomId) {
         console.log(`Multiplayer: Received update for room ${roomId}, state: ${data.state}`);
         const user = getCurrentUser();
 
+        // Heartbeat pour la présence
+        if (!window._mpHeartbeat) {
+            window._mpHeartbeat = setInterval(() => {
+                const u = getCurrentUser();
+                if (u && _roomId) {
+                    updateDoc(doc(db, "rooms", _roomId), { [`players.${u.uid}.lastSeen`]: Date.now() });
+                }
+            }, 20000);
+        }
+
         if (data.state === "WAITING") {
             window._mpGameStarted = false;
             window._mpArticleId = null;
@@ -327,31 +339,76 @@ function _updateLivePlayers(data) {
     const listEl = document.getElementById('players-live-list');
     if (!listEl) return;
     
+    const user = getCurrentUser();
+    const isAdmin = user && data.creatorUid === user.uid;
     const round = data.currentRound || 1;
-    const players = Object.values(data.players || {}).filter(p => p.approved);
     
-    // Sort players by words found in current round (descending)
-    players.sort((a, b) => {
+    // Players (approved) avec leur UID
+    const players = Object.entries(data.players || {}).filter(([uid, p]) => p.approved);
+    
+    // Tri par mots trouvés dans la manche en cours
+    players.sort(([uidA, a], [uidB, b]) => {
         const scoreA = a.roundScores?.[round] || 0;
         const scoreB = b.roundScores?.[round] || 0;
         return scoreB - scoreA;
     });
 
-    listEl.innerHTML = players.map(p => {
+    let html = players.map(([uid, p]) => {
         const found = p.roundScores?.[round] || 0;
-        const finishedIcon = p.finished ? '<i class="fa-solid fa-check-circle" style="color:#27ae60;"></i>' : '';
+        const finishedIcon = p.finished ? '<i class="fa-solid fa-check-circle" style="color:#10b981;"></i>' : '';
+        const isOffline = p.lastSeen && (Date.now() - p.lastSeen > 45000);
+        const isMe = user && uid === user.uid;
+        
+        let style = `display:flex; align-items:center; gap:10px; padding:8px 12px; border-radius:10px; margin-bottom:6px; border:1px solid #e5e7eb; transition:all 0.3s; position:relative;`;
+        
+        if (isMe) {
+            style += `outline: 2px solid var(--accent); outline-offset: -2px; box-shadow: 0 4px 12px rgba(243, 156, 18, 0.15);`;
+        }
+
+        if (p.finished) {
+            style += `background:#ecfdf5; border-color:#10b981;`;
+        } else if (isOffline) {
+            style += `background:#f9fafb; border-color:#f3f4f6; opacity:0.6; filter:grayscale(1);`;
+        } else {
+            style += `background:white;`;
+        }
+
         return `
-            <div class="guess-item">
-                <span style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; display:flex; gap:6px; align-items:center;">
+            <div style="${style}">
+                <span style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; display:flex; gap:6px; align-items:center; font-size:0.85rem; font-weight:${isMe ? '800' : '600'}; color:${isOffline ? '#9ca3af' : 'var(--text-main)'}">
+                    ${isMe ? '<i class="fa-solid fa-caret-right" style="color:var(--accent);"></i>' : ''}
                     ${p.name} ${finishedIcon}
                 </span>
                 <div style="display:flex; gap:8px; align-items:center;">
-                    <span style="font-size:0.7rem; color:var(--text-muted);"><i class="fa-solid fa-bullseye"></i> ${p.attempts || 0}</span>
-                    <div class="guess-badge" style="background:var(--primary); color:white;">${found}</div>
+                    <span style="font-size:0.65rem; color:#9ca3af;"><i class="fa-solid fa-bullseye"></i> ${p.attempts || 0}</span>
+                    <div class="guess-badge" style="background:${p.finished ? '#10b981' : 'var(--primary)'}; color:white; min-width:24px; height:24px; padding:0 6px;">${found}</div>
                 </div>
             </div>
         `;
     }).join('');
+
+    // Afficher les demandes en attente pour l'admin
+    const pending = Object.entries(data.pending || {});
+    if (isAdmin && pending.length > 0) {
+        html += `
+            <div style="border-top:1px dashed #d1d5db; margin-top:1rem; padding-top:1rem;">
+                <p style="font-size:0.65rem; font-weight:800; color:var(--accent); text-transform:uppercase; margin-bottom:0.75rem; letter-spacing:0.05em;">
+                    <i class="fa-solid fa-user-clock"></i> Demandes (${pending.length})
+                </p>
+                ${pending.map(([uid, p]) => `
+                    <div style="display:flex; justify-content:space-between; align-items:center; background:#fffbeb; padding:6px 10px; border-radius:8px; margin-bottom:5px; border:1px solid #fde68a;">
+                        <span style="font-size:0.75rem; font-weight:600; color:#92400e; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-right:8px;">${p.name}</span>
+                        <div style="display:flex; gap:4px;">
+                            <button onclick="window._mpApprove('${uid}')" style="all:unset; cursor:pointer; color:#065f46; background:#d1fae5; width:22px; height:22px; display:flex; align-items:center; justify-content:center; border-radius:4px; font-size:0.75rem;"><i class="fa-solid fa-check"></i></button>
+                            <button onclick="window._mpReject('${uid}')" style="all:unset; cursor:pointer; color:#991b1b; background:#fee2e2; width:22px; height:22px; display:flex; align-items:center; justify-content:center; border-radius:4px; font-size:0.75rem;"><i class="fa-solid fa-xmark"></i></button>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    }
+
+    listEl.innerHTML = html;
 }
 
 // ── PANNEAU ADMIN (pendant la partie) ────────────────────────────
@@ -402,7 +459,9 @@ function _updateCountdown(data) {
                 if (remaining <= 0) {
                     clearInterval(_countdownInterval);
                     _countdownInterval = null;
-                    if (data.creatorUid === getCurrentUser()?.uid) stopGame();
+                    if (data.creatorUid === getCurrentUser()?.uid) {
+                        updateDoc(doc(db, "rooms", _roomId), { state: "PAUSED", roundFinished: true });
+                    }
                 }
             }, 1000);
         }
@@ -470,6 +529,7 @@ function _showPauseBanner() {
         if (!snap.exists()) return;
         const data = snap.data();
         const winner = data.roundWinner ? (data.players[data.roundWinner]?.name || "Un joueur") : null;
+        const isTimeUp = data.roundFinished;
 
         const banner = document.createElement('div');
         banner.id = 'mp-pause-banner';
@@ -486,8 +546,9 @@ function _showPauseBanner() {
         const pauserName = pauserUid ? (data.players[pauserUid]?.name || "Un joueur") : null;
         const canResume = user && user.uid === pauserUid;
 
-        const content = winner 
-            ? `
+        let content = "";
+        if (winner) {
+            content = `
                 <i class="fa-solid fa-trophy" style="font-size:3rem; color:#f1c40f; margin-bottom:1rem;"></i>
                 <h2 style="margin:0; font-size:1.8rem;">Article trouvé !</h2>
                 <p style="color:#6b7280; margin-top:.75rem; font-size:1.1rem;">Bravo à <strong>${winner}</strong></p>
@@ -499,8 +560,23 @@ function _showPauseBanner() {
                 ` : `
                     <p style="color:#94a3b8; font-size:0.85rem; margin-top:1.5rem;">L'hôte va bientôt lancer la suite…</p>
                 `}
-            `
-            : `
+            `;
+        } else if (isTimeUp) {
+            content = `
+                <i class="fa-solid fa-hourglass-end" style="font-size:3rem; color:var(--accent); margin-bottom:1rem;"></i>
+                <h2 style="margin:0; font-size:1.8rem;">Temps écoulé !</h2>
+                <p style="color:#6b7280; margin-top:.75rem; font-size:1.1rem;">La manche est terminée.</p>
+                ${isAdmin ? `
+                    <button onclick="window._mp${data.currentRound < data.maxRounds ? 'Next' : 'Stop'}()" class="btn-primary" style="margin-top:2rem; width:100%; justify-content:center;">
+                        <i class="fa-solid fa-${data.currentRound < data.maxRounds ? 'forward' : 'square-poll-vertical'}"></i>
+                        ${data.currentRound < data.maxRounds ? 'Manche suivante' : 'Voir les résultats'}
+                    </button>
+                ` : `
+                    <p style="color:#94a3b8; font-size:0.85rem; margin-top:1.5rem;">L'hôte va bientôt lancer la suite…</p>
+                `}
+            `;
+        } else {
+            content = `
                 <i class="fa-solid fa-pause" style="font-size:2rem; color:var(--accent); margin-bottom:1rem;"></i>
                 <h2 style="margin:0;">Partie en pause</h2>
                 <p style="color:#6b7280; margin-top:.5rem;"><strong>${pauserName}</strong> a mis la partie en pause.</p>
@@ -512,6 +588,7 @@ function _showPauseBanner() {
                     <p style="color:#94a3b8; font-size:0.85rem; margin-top:1.5rem;">En attente de reprise par ${pauserName}…</p>
                 `}
             `;
+        }
 
         banner.innerHTML = `
             <div class="glass" style="background:white; padding:3rem; border-radius:24px; text-align:center; box-shadow:0 20px 50px rgba(0,0,0,0.2); max-width:90%; width:400px;">
