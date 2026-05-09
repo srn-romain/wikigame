@@ -93,9 +93,13 @@ function renderProfileModal(container, user, userData) {
                 <button class="close-modal" id="close-auth">&times;</button>
                 
                 <div style="text-align:center; margin-bottom: 1.5rem;">
-                    <div class="avatar-placeholder" style="width:70px; height:70px; font-size:1.8rem; margin: 0 auto 0.75rem;">
+                    <div class="avatar-placeholder" id="avatar-preview-container" style="width:70px; height:70px; font-size:1.8rem; margin: 0 auto 0.75rem; position:relative;">
                         ${user.photoURL ? `<img src="${user.photoURL}" class="avatar-img" style="width:70px; height:70px;">` : `<i class="fa-solid fa-user-astronaut"></i>`}
+                        <button id="change-photo-btn" style="position:absolute; bottom:0; right:0; background:var(--primary); color:white; border:none; width:26px; height:26px; border-radius:50%; cursor:pointer; font-size:0.75rem; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 6px rgba(0,0,0,0.3); border:2px solid white; z-index:10;">
+                            <i class="fa-solid fa-camera"></i>
+                        </button>
                     </div>
+                    <input type="file" id="photo-input" accept="image/*" style="display:none;">
                     <h2 style="margin-bottom:0.25rem;">Mon Profil</h2>
                     <p style="color:var(--text-muted); font-size:0.8rem;">${user.email}</p>
                 </div>
@@ -184,8 +188,90 @@ function setupProfileEvents(container, user, userData) {
     const deleteBtn = document.getElementById('delete-account-btn');
     const resetBtn = document.getElementById('reset-pwd-profile');
     const msgEl = document.getElementById('profile-msg');
+    
+    // Photo handling
+    const changePhotoBtn = document.getElementById('change-photo-btn');
+    const photoInput = document.getElementById('photo-input');
+    const avatarPreview = document.getElementById('avatar-preview-container');
 
-    closeBtn.onclick = () => container.classList.add('hidden');
+    if (changePhotoBtn && photoInput) {
+        changePhotoBtn.onclick = () => photoInput.click();
+        photoInput.onchange = async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            // Limite de 500 Ko (Firestore a une limite de 1 Mo par doc, Base64 ajoute ~33%)
+            if (file.size > 500 * 1024) {
+                msgEl.textContent = "Image trop lourde (max 500 Ko).";
+                msgEl.style.display = 'block';
+                msgEl.style.color = "var(--danger)";
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = async (event) => {
+                const base64 = event.target.result;
+                try {
+                    changePhotoBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+                    
+                    // Update Firestore (Firebase Auth photoURL is limited and doesn't support Base64)
+                    await updateDoc(doc(db, "users", user.uid), { photoURL: base64 });
+
+                    // UI Update
+                    const img = avatarPreview.querySelector('img');
+                    if (img) {
+                        img.src = base64;
+                    } else {
+                        avatarPreview.innerHTML = `<img src="${base64}" class="avatar-img" style="width:70px; height:70px;">` + changePhotoBtn.outerHTML;
+                        // Need to re-bind since we replaced HTML
+                        document.getElementById('change-photo-btn').onclick = () => photoInput.click();
+                    }
+                    
+                    msgEl.textContent = "Photo mise à jour avec succès !";
+                    msgEl.style.display = 'block';
+                    msgEl.style.color = "var(--primary)";
+                } catch (err) {
+                    msgEl.textContent = "Erreur lors de la mise à jour.";
+                    msgEl.style.display = 'block';
+                } finally {
+                    const btn = document.getElementById('change-photo-btn');
+                    if (btn) btn.innerHTML = '<i class="fa-solid fa-camera"></i>';
+                }
+            };
+            reader.readAsDataURL(file);
+        };
+    }
+
+    // Dirty state tracking
+    let isDirty = false;
+    const markDirty = () => { isDirty = true; };
+    const pseudoIn = document.getElementById('profile-pseudo');
+    const bioIn = document.getElementById('profile-bio');
+    const publicIn = document.getElementById('profile-public');
+
+    if (pseudoIn) pseudoIn.oninput = markDirty;
+    if (bioIn) bioIn.oninput = markDirty;
+    if (publicIn) publicIn.onchange = markDirty;
+
+    const handleClose = async () => {
+        if (isDirty) {
+            const result = await showUnsavedChangesModal();
+            if (result === 'cancel') return;
+            if (result === 'save') {
+                const ok = await performSave();
+                if (!ok) return; // Keep modal open if save failed
+            }
+        }
+        container.classList.add('hidden');
+        // On détache aussi l'écouteur global temporaire si nécessaire
+        window.profileIsDirty = false;
+    };
+
+    // Pour que main.js puisse aussi vérifier
+    window.profileIsDirty = () => isDirty;
+    window.profileHandleClose = handleClose;
+
+    closeBtn.onclick = handleClose;
 
     const root = document.getElementById('profile-modal-root');
     const historyBtn = document.getElementById('view-daily-history');
@@ -224,7 +310,7 @@ function setupProfileEvents(container, user, userData) {
         }
     };
 
-    saveBtn.onclick = async () => {
+    const performSave = async () => {
         const pseudo = document.getElementById('profile-pseudo').value;
         const bio = document.getElementById('profile-bio').value;
         const isPublic = document.getElementById('profile-public').checked;
@@ -237,16 +323,21 @@ function setupProfileEvents(container, user, userData) {
             msgEl.textContent = "Profil mis à jour !";
             msgEl.style.display = 'block';
             msgEl.style.color = "var(--primary)";
+            isDirty = false; // Reset dirty state
             setTimeout(() => msgEl.style.display = 'none', 3000);
+            return true;
         } catch (e) {
             msgEl.textContent = "Erreur lors de la sauvegarde.";
             msgEl.style.color = "var(--danger)";
             msgEl.style.display = 'block';
+            return false;
         } finally {
             saveBtn.disabled = false;
             saveBtn.textContent = "Sauvegarder les modifications";
         }
     };
+
+    saveBtn.onclick = performSave;
 
     logoutBtn.onclick = async () => {
         await signOut(auth);
@@ -330,6 +421,31 @@ export function showInfoModal(title, text, type = 'info') {
     // Fermer au clic sur le bouton ou sur l'overlay
     overlay.querySelector('#info-ok').onclick = () => overlay.remove();
     overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+}
+
+export function showUnsavedChangesModal() {
+    return new Promise(resolve => {
+        const overlay = document.createElement('div');
+        overlay.className = 'modal-overlay';
+        overlay.style.zIndex = "3000";
+        overlay.innerHTML = `
+            <div class="auth-modal glass" style="max-width: 400px; text-align: center; padding: 2.5rem; background: white;">
+                <i class="fa-solid fa-floppy-disk" style="font-size: 3.5rem; color: var(--accent); margin-bottom: 1.5rem; opacity:0.5;"></i>
+                <h2 style="margin-bottom: 1rem; color: var(--text-main)!important;">Modifications non enregistrées</h2>
+                <p style="margin-bottom: 2rem; color: var(--text-muted)!important; line-height: 1.5; font-size: 0.95rem;">Vous avez des modifications en cours. Souhaitez-vous les enregistrer avant de quitter ?</p>
+                <div style="display: flex; flex-direction:column; gap: 10px; width: 100%;">
+                    <button class="btn-primary" style="width:100%; justify-content:center;" id="save-exit">Sauvegarder et quitter</button>
+                    <button class="btn-primary" style="width:100%; background: #f3f4f6; color: var(--text-main); border: 1px solid #ddd; justify-content:center;" id="discard-exit">Quitter sans enregistrer</button>
+                    <button class="btn-primary" style="width:100%; background: transparent; color: var(--text-muted); border: none; justify-content:center; font-size:0.85rem;" id="stay-here">Annuler</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+        
+        overlay.querySelector('#save-exit').onclick = () => { overlay.remove(); resolve('save'); };
+        overlay.querySelector('#discard-exit').onclick = () => { overlay.remove(); resolve('discard'); };
+        overlay.querySelector('#stay-here').onclick = () => { overlay.remove(); resolve('cancel'); };
+    });
 }
 
 function setupFormEvents(container, initialMode) {

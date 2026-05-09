@@ -116,6 +116,12 @@ async function _syncUserDoc(user) {
             
             await updateDoc(userRef, updates);
         }
+
+        // 🔄 Rafraîchir l'UI avec les données fraîches de Firestore (Pseudo et Photo)
+        const finalSnap = await getDoc(userRef);
+        if (finalSnap.exists()) {
+            updateUserProfileUI(user, finalSnap.data());
+        }
     } catch (e) {
         console.error("Auth: Error syncing user doc:", e);
     }
@@ -135,14 +141,22 @@ export async function incrementGlobalStat(statName) {
 function getCurrentUser() { return currentUser; }
 function waitForAuth()    { return authReady; }
 
-function updateUserProfileUI(user) {
+function updateUserProfileUI(user, firestoreData = null) {
     const btn = document.getElementById('user-profile-btn');
     const adminArea = document.getElementById('admin-nav-area');
     if (!btn) return;
 
     const isAnon = user.isAnonymous;
-    const name   = user.displayName || user.email?.split('@')[0] || `Joueur-${user.uid.slice(0, 4)}`;
-    const photo  = user.photoURL;
+    
+    // Préférer les données Firestore si disponibles, sinon utiliser Auth
+    const name = (firestoreData && firestoreData.pseudo) 
+        ? firestoreData.pseudo 
+        : (user.displayName || user.email?.split('@')[0] || `Joueur-${user.uid.slice(0, 4)}`);
+        
+    const photo = (firestoreData && firestoreData.photoURL) 
+        ? firestoreData.photoURL 
+        : user.photoURL;
+
     const isAdmin = user.uid === "xwX5eCsUqpRLIBAI3K5Y7y70HLp1";
 
     // 1. Gérer le bouton Admin (Indépendant)

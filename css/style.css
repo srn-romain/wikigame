@@ -139,9 +139,11 @@ body {
     overflow: hidden;
 }
 
-.user-profile .avatar-placeholder {
+.user-profile .avatar-placeholder, 
+.user-profile .avatar-img {
     width: 34px;
     height: 34px;
+    flex-shrink: 0;
 }
 
 /* ══════════════════════════════════
