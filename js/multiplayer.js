@@ -337,8 +337,43 @@ function _subscribe(roomId) {
         } else if (data.state === "FINISHED") {
             if (window._pauseTimer) window._pauseTimer();
             _renderLeaderboard(data);
+            _checkMultiplayerRewards(data);
         }
     });
+}
+
+async function _checkMultiplayerRewards(data) {
+    const user = getCurrentUser();
+    if (!user || user.isAnonymous) return;
+    
+    // Éviter les doubles récompenses pour la même session/salle
+    const rewardKey = `reward_mp_${_roomId}`;
+    if (localStorage.getItem(rewardKey)) return;
+    
+    const players = Object.entries(data.players || {})
+        .sort(([, a], [, b]) => b.totalScore - a.totalScore);
+    
+    const N = players.length;
+    if (N < 2) return; // Pas de points si on est tout seul
+
+    const myIndex = players.findIndex(([uid]) => uid === user.uid);
+    if (myIndex === -1) return;
+    
+    const rank = myIndex + 1;
+    // Formule : XP = max(0, min(8, (N - rank) * 2))
+    const xpToAdd = Math.max(0, Math.min(8, (N - rank) * 2));
+    
+    if (xpToAdd > 0) {
+        const { db, updateDoc, doc, increment } = await import("./firebase-app.js");
+        try {
+            await updateDoc(doc(db, "users", user.uid), { xp: increment(xpToAdd) });
+            console.log(`Competition Rewards: +${xpToAdd} XP (Rank #${rank}/${N})`);
+        } catch (e) {
+            console.error("Competition Rewards: Error updating XP", e);
+        }
+    }
+    
+    localStorage.setItem(rewardKey, "true");
 }
 
 // ── DÉMARRAGE DU JEU ─────────────────────────────────────────────

@@ -514,8 +514,8 @@ async function triggerWin(skipSave = false) {
             incrementGlobalStat('totalGamesPlayed');
             incrementGlobalStat('soloGamesPlayed');
             
-            // Attribution XP différentiée
-            const xpToAdd = (state.mode === 'daily') ? 50 : 25;
+            // Attribution XP différentiée (Nouveaux barèmes)
+            const xpToAdd = (state.mode === 'daily') ? 10 : 2;
             await updateDoc(doc(db, "users", user.uid), { 
                 xp: increment(xpToAdd) 
             });

@@ -676,12 +676,32 @@ async function renderRanking(container) {
                     </table>
                 </div>
 
-                <div style="margin-top:3rem; padding: 1.5rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; text-align:center; box-shadow:0 4px 12px rgba(0,0,0,0.02);">
-                    <h4 style="margin:0 0 0.5rem; color:#111827; font-size:1.1rem; font-weight:800;">Comment gagner des points ?</h4>
-                    <p style="color:#374151; font-size:0.95rem; margin:0; line-height:1.5; font-weight:600;">
-                        <span style="display:inline-block; background:#dcfce7; color:#166534; padding:4px 10px; border-radius:6px; font-weight:800; margin-right:5px; border:1px solid #bbf7d0;">+50 XP</span> Défis Quotidiens &nbsp;&nbsp;
-                        <span style="display:inline-block; background:#dbeafe; color:#1e40af; padding:4px 10px; border-radius:6px; font-weight:800; margin-right:5px; border:1px solid #bfdbfe;">+25 XP</span> Parties Solo
-                    </p>
+                <div style="margin-top:3rem; padding: 2rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 16px; box-shadow:0 4px 12px rgba(0,0,0,0.02);">
+                    <h4 style="margin:0 0 1rem; color:#111827; font-size:1.2rem; font-weight:800; text-align:center;">Système de Progression (XP)</h4>
+                    
+                    <div style="display:flex; flex-wrap:wrap; gap:1rem; justify-content:center; margin-bottom:1.5rem;">
+                        <div style="flex:1; min-width:180px; padding:1rem; background:white; border-radius:12px; border:1px solid #e5e7eb; text-align:center;">
+                            <span style="display:inline-block; background:#dcfce7; color:#166534; padding:4px 10px; border-radius:6px; font-weight:800; margin-bottom:8px;">+10 XP</span>
+                            <div style="font-weight:700; font-size:0.9rem; color:#111827;">Défis Quotidiens</div>
+                        </div>
+                        <div style="flex:1; min-width:180px; padding:1rem; background:white; border-radius:12px; border:1px solid #e5e7eb; text-align:center;">
+                            <span style="display:inline-block; background:#dbeafe; color:#1e40af; padding:4px 10px; border-radius:6px; font-weight:800; margin-bottom:8px;">+2 XP</span>
+                            <div style="font-weight:700; font-size:0.9rem; color:#111827;">Parties Solo</div>
+                        </div>
+                        <div style="flex:1; min-width:180px; padding:1rem; background:white; border-radius:12px; border:1px solid #e5e7eb; text-align:center;">
+                            <span style="display:inline-block; background:#fef3c7; color:#92400e; padding:4px 10px; border-radius:6px; font-weight:800; margin-bottom:8px;">0 à 8 XP</span>
+                            <div style="font-weight:700; font-size:0.9rem; color:#111827;">Compétition</div>
+                        </div>
+                    </div>
+
+                    <div style="background:#fff7ed; border-left:4px solid #f97316; padding:1rem; border-radius:0 8px 8px 0; font-size:0.85rem; color:#7c2d12;">
+                        <p style="margin:0 0 0.5rem; font-weight:800;"><i class="fa-solid fa-circle-info"></i> Règles importantes :</p>
+                        <ul style="margin:0; padding-left:1.2rem; line-height:1.6; font-weight:600;">
+                            <li>En <strong>Compétition</strong>, le gain s'adapte au nombre de participants et à votre rang final.</li>
+                            <li>Une victoire à 2 joueurs est plus facile et rapporte donc moins (max 2 XP).</li>
+                            <li>Vous devez <strong>terminer la partie</strong> pour valider vos points. Quitter avant annule le gain.</li>
+                        </ul>
+                    </div>
                 </div>
             </div>
         `;
