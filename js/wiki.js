@@ -59,15 +59,15 @@ export async function fetchRandomArticle() {
         console.log("WikiAPI: Found article:", page.title);
 
         // Process plain text into paragraphs
-        const paragraphs = processPlainText(page.extract, 3, 5);
+        const paragraphs = processPlainText(page.extract, 8); // On prend jusqu'à 8 paragraphes pour atteindre la longueur
         
-        const totalCharCount = paragraphs.join('').length;
+        const totalCharCount = paragraphs.join('\n\n').length;
         console.log(`WikiAPI: Extracted ${paragraphs.length} paragraphs (Total: ${totalCharCount} chars).`);
 
-        // If we have at least 2 paragraphs and enough content
-        if (paragraphs.length < 2 || totalCharCount < 250) {
-            console.warn(`WikiAPI: Article too simple (${paragraphs.length} paragraphs, ${totalCharCount} chars). Retrying...`);
-            await sleep(1000);
+        // Nouveaux critères : Minimum 1100 caractères
+        if (totalCharCount < 1100) {
+            console.warn(`WikiAPI: Article trop court (${totalCharCount} chars). Retrying...`);
+            await sleep(500);
             return fetchRandomArticle();
         }
 
@@ -109,7 +109,7 @@ export async function fetchArticleById(pageId) {
 
         if (!page || !page.extract) throw new Error('Page content missing');
 
-        const paragraphs = processPlainText(page.extract, 3, 5);
+        const paragraphs = processPlainText(page.extract, 8);
 
         return {
             id:    String(pageId),
@@ -126,7 +126,7 @@ export async function fetchArticleById(pageId) {
 /**
  * Split plain text into paragraphs and filter them.
  */
-function processPlainText(text, minP, maxP) {
+function processPlainText(text, maxP) {
     if (!text) return [];
 
     // 1. Remove references [1], [citation needed]

@@ -77,16 +77,18 @@ function setupAuthListeners() {
     };
 }
 
-export async function navigateTo(view) {
+export async function navigateTo(view, force = false) {
     if (window.isGameActive && window.isGameActive()) {
-        const confirmed = await showConfirmModal(
-            "Partie en cours",
-            "Attention : vous avez une partie en cours. Si vous changez de page maintenant, votre progression sera perdue et aucun score ne sera enregistré dans vos statistiques. Souhaitez-vous vraiment quitter ?",
-            "Quitter la partie"
-        );
-        if (!confirmed) return;
+        if (!force) {
+            const confirmed = await showConfirmModal(
+                "Partie en cours",
+                "Attention : vous avez une partie en cours. Si vous changez de page maintenant, votre progression sera perdue et aucun score ne sera enregistré dans vos statistiques. Souhaitez-vous vraiment quitter ?",
+                "Quitter la partie"
+            );
+            if (!confirmed) return;
+        }
 
-        // Reset game state if we confirmed exit
+        // Reset game state
         if (window.resetGameState) window.resetGameState();
     }
 
@@ -133,6 +135,7 @@ export async function navigateTo(view) {
             break;
     }
 }
+window.navigateTo = navigateTo;
 
 const MISSIONS_DATA = [
     // TIER 1: Wiki de Bois (0-9)

@@ -270,7 +270,7 @@ function renderGame() {
         quitBtn.style.borderTop = "1px solid var(--glass-border)";
         quitBtn.style.marginTop = "auto";
         quitBtn.innerHTML = `
-            <button onclick="window.navigateTo('solo')" class="btn-primary" style="width:100%; justify-content:center; background:#475569; padding:0.6rem; font-size:0.85rem;">
+            <button onclick="window.navigateTo('solo', true)" class="btn-primary" style="width:100%; justify-content:center; background:#475569; padding:0.6rem; font-size:0.85rem;">
                 <i class="fa-solid fa-person-running"></i> Quitter et Sauvegarder
             </button>
         `;
