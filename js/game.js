@@ -526,15 +526,17 @@ async function triggerWin(skipSave = false) {
             // Calcul du temps et efficacité
             const durationSec = state.timer || 0;
             const attempts = state.attempts || 0;
+            const revealedWords = state.tokens.filter(t => t.isWord && t.revealed).length;
+            const errors = Math.max(0, attempts - revealedWords);
             
             if (durationSec < 120) updates.fastWins = increment(1);
             if (durationSec < 60) updates.ultraFastWins = increment(1);
             if (durationSec < 30) updates.godSpeedWins = increment(1);
             if (attempts <= 10) updates.efficientWins = increment(1);
             if (attempts === 1) updates.oneShotWins = increment(1);
+            if (errors < 5) updates.lowErrorWins = increment(1);
 
             // Mots révélés dans cette partie
-            const revealedWords = state.tokens.filter(t => t.isWord && t.revealed).length;
             updates.totalWordsRevealed = increment(revealedWords);
 
             // Record tentatives
