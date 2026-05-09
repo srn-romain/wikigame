@@ -282,25 +282,18 @@ async function renderMissions(container) {
         const claimedMissions = userData.claimedMissions || [];
 
         // Calculer le nombre de missions réussies par palier
-        const successes = MISSIONS_DATA.map(m => (stats[m.stat] || 0) >= m.goal);
-        const totalSuccessCount = successes.filter(s => s).length;
+        const tierSuccessCounts = {};
+        [1, 2, 3, 4, 5, 6, 7, 8, 9].map(t => {
+            const tierMissions = MISSIONS_DATA.filter(m => m.tier === t);
+            tierSuccessCounts[t] = tierMissions.filter(m => (stats[m.stat] || 0) >= m.goal).length;
+        });
 
-        // Déterminer les paliers débloqués
-        // Wiki de Bois (Tier 1) : Toujours débloqué
-        // Wiki de Bronze (Tier 2) : Débloqué si 9 missions réussies
-        // Wiki d'Argent (Tier 3) : Débloqué si 18 missions réussies
-        // Wiki d'Or (Tier 4) : Débloqué si 27 missions réussies
-        const unlockedTiers = {
-            1: true,
-            2: totalSuccessCount >= 9,
-            3: totalSuccessCount >= 18,
-            4: totalSuccessCount >= 27,
-            5: totalSuccessCount >= 36,
-            6: totalSuccessCount >= 45,
-            7: totalSuccessCount >= 54,
-            8: totalSuccessCount >= 63,
-            9: totalSuccessCount >= 72
-        };
+        // Déterminer les paliers débloqués séquentiellement
+        const unlockedTiers = { 1: true };
+        for (let t = 2; t <= 9; t++) {
+            // Un palier se débloque si le précédent est complété à au moins 90%
+            unlockedTiers[t] = unlockedTiers[t - 1] && tierSuccessCounts[t - 1] >= 9;
+        }
 
         const tierNames = ["", "Wiki de Bois", "Wiki de Pierre", "Wiki de Bronze", "Wiki de Fer", "Wiki d'Argent", "Wiki d'Or", "Wiki de Platine", "Wiki de Diamant", "Wiki d'Émeraude"];
         const tierColors = ["", "#854d0e", "#6b7280", "#b45309", "#475569", "#94a3b8", "#d97706", "#cbd5e1", "#0ea5e9", "#10b981"];
@@ -342,15 +335,16 @@ async function renderMissions(container) {
 
                             <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap:1.5rem;">
                                 ${tierMissions.map(m => {
-                                    const current = stats[m.stat] || 0;
-                                    const isDone = current >= m.goal;
+                                    const actualValue = stats[m.stat] || 0;
+                                    const current = isLocked ? 0 : actualValue;
+                                    const isDone = !isLocked && actualValue >= m.goal;
                                     const isClaimed = claimedMissions.includes(m.id);
-                                    const percent = Math.min(100, (current / m.goal) * 100);
+                                    const percent = isLocked ? 0 : Math.min(100, (actualValue / m.goal) * 100);
 
                                     return `
                                         <div class="glass mission-card ${isDone ? 'mission-done' : ''} ${isLocked ? 'locked' : ''} ${isClaimed ? 'claimed' : ''}" 
                                              style="padding:1.5rem; position:relative; overflow:hidden; cursor:${isLocked ? 'not-allowed' : 'pointer'};"
-                                             onclick="${isLocked ? '' : `window._showMissionDetail(${m.id}, ${current}, ${m.goal}, ${isClaimed})`}">
+                                             onclick="${isLocked ? '' : `window._showMissionDetail(${m.id}, ${actualValue}, ${m.goal}, ${isClaimed})`}">
                                             <div style="display:flex; gap:15px; align-items:flex-start;">
                                                 <div style="width:40px; height:40px; border-radius:10px; background:${isDone ? (isClaimed ? '#f1f5f9' : '#dcfce7') : '#f3f4f6'}; color:${isDone ? (isClaimed ? '#94a3b8' : '#166534') : '#6b7280'}; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
                                                     <i class="fa-solid ${m.icon}"></i>
