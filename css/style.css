@@ -130,14 +130,18 @@ body {
 }
 
 .avatar-placeholder {
-    width: 34px;
-    height: 34px;
     border-radius: 50%;
     background: linear-gradient(135deg, var(--primary), #7c3aed);
     display: flex;
     justify-content: center;
     align-items: center;
     box-shadow: 0 0 12px var(--primary-glow);
+    overflow: hidden;
+}
+
+.user-profile .avatar-placeholder {
+    width: 34px;
+    height: 34px;
 }
 
 /* ══════════════════════════════════
@@ -680,8 +684,8 @@ body {
    AUTH MODAL & PROFILE
  ══════════════════════════════════ */
 .avatar-img {
-    width: 34px;
-    height: 34px;
+    width: 100%;
+    height: 100%;
     border-radius: 50%;
     object-fit: cover;
     border: 2px solid var(--primary);

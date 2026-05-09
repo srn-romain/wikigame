@@ -60,7 +60,12 @@ function renderAuthForm(container, mode) {
                         <label>Mot de passe</label>
                         <a href="#" id="forgot-password" style="font-size:0.75rem; color:var(--primary); text-decoration:none;">Oublié ?</a>
                     </div>
-                    <input type="password" id="auth-password" placeholder="••••••••" required>
+                    <div style="position:relative;">
+                        <input type="password" id="auth-password" placeholder="••••••••" required style="padding-right: 40px; width: 100%;">
+                        <button type="button" id="toggle-password" style="position:absolute; right:10px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; color:var(--text-muted); font-size:0.9rem; padding: 5px; z-index:10; display:flex; align-items:center;">
+                            <i class="fa-solid fa-eye"></i>
+                        </button>
+                    </div>
                 </div>
                 <button type="submit" id="auth-submit" class="btn-primary" style="margin-top:0.5rem; justify-content:center;">
                     Chargement...
@@ -339,6 +344,16 @@ function setupFormEvents(container, initialMode) {
         login: document.getElementById('tab-login'),
         signup: document.getElementById('tab-signup')
     };
+    const togglePwd = document.getElementById('toggle-password');
+    const pwdInput = document.getElementById('auth-password');
+
+    if (togglePwd && pwdInput) {
+        togglePwd.onclick = () => {
+            const isPwd = pwdInput.type === 'password';
+            pwdInput.type = isPwd ? 'text' : 'password';
+            togglePwd.innerHTML = `<i class="fa-solid ${isPwd ? 'fa-eye-slash' : 'fa-eye'}"></i>`;
+        };
+    }
 
     let currentMode = initialMode;
 

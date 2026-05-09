@@ -55,6 +55,24 @@ window.getGameState = getGameState;
 // ─────────────────────────────────────────────
 // NORMALIZATION
 // ─────────────────────────────────────────────
+async function fetchTitleSynonyms(title) {
+    const words = title.split(/[\s,.'-]+/).filter(w => w.length > 3);
+    for (const w of words) {
+        try {
+            const clean = w.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            const res = await fetch(`https://api.datamuse.com/words?ml=${clean}&max=1`);
+            const data = await res.json();
+            if (data && data[0]) {
+                state.synonyms[clean] = data[0].word;
+            }
+        } catch (e) {}
+    }
+    updateCloseMatches();
+}
+
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
 function normalize(str) {
     return str
         .toLowerCase()
@@ -126,10 +144,18 @@ function startGame(article, preSolved = false, savedGuesses = [], savedAttempts 
 
     state.guesses = new Set(savedGuesses);
     state.attempts = savedAttempts;
-    state.foundCount = 0;
-    state.startTime = Date.now();
     state.won = false;
     state.history = [];
+    state.synonyms = {}; // Cache pour les indices
+
+    // Reconstruct foundCount
+    let count = 0;
+    article.paragraphs.forEach(p => {
+        // Need to tokenize to count correctly, but let's estimate or better: wait for tokenize to finish
+    });
+
+    // Fetch synonyms for title words to help player
+    fetchTitleSynonyms(article.title).catch(console.error);
 
     // Reconstruct history from saved guesses (simplified)
     savedGuesses.forEach(g => {
@@ -323,7 +349,14 @@ function renderTitle(target) {
             span.className = 'wiki-word hidden';
             span.dataset.len = token.length;
             span.dataset.clean = clean;
-            span.textContent = token; // MASQUED BY CSS (color = background)
+            span.textContent = token; 
+            
+            const hint = getBestMatchingGuess(clean);
+            if (hint) {
+                span.classList.add('close-match');
+                span.setAttribute('data-hint', hint);
+            }
+
             span.addEventListener('click', handleWordClick);
         }
         titleWords.appendChild(span);
@@ -388,8 +421,11 @@ function renderContent(target) {
             span.dataset.clean = tokenObj.clean;
             span.textContent = tokenObj.text;
 
-            const isClose = checkCloseMatch(tokenObj.clean);
-            if (isClose) span.classList.add('close-match');
+            const hint = getBestMatchingGuess(tokenObj.clean);
+            if (hint) {
+                span.classList.add('close-match');
+                span.setAttribute('data-hint', hint);
+            }
 
             span.addEventListener('click', handleWordClick);
         }
@@ -410,15 +446,23 @@ function createParagraphDiv() {
  * Check if a hidden word has a "close" match with any guessed word.
  * Close = the guessed word is a substring of the hidden word or vice versa (min 3 chars).
  */
-function checkCloseMatch(cleanWord) {
-    if (!cleanWord || cleanWord.length < 3) return false;
+function getBestMatchingGuess(cleanWord) {
+    if (!cleanWord || cleanWord.length < 3) return null;
+    let best = null;
     for (const guess of state.guesses) {
         if (guess.length < 3) continue;
+        // Same stem or inclusion
         if (cleanWord.includes(guess) || guess.includes(cleanWord)) {
-            return true;
+            if (!best || Math.abs(guess.length - cleanWord.length) < Math.abs(best.length - cleanWord.length)) {
+                best = guess;
+            }
         }
     }
-    return false;
+    // Also check for pre-fetched synonyms
+    if (!best && state.synonyms && state.synonyms[cleanWord]) {
+        return state.synonyms[cleanWord];
+    }
+    return best;
 }
 
 // ─────────────────────────────────────────────
@@ -543,10 +587,13 @@ function updateCloseMatches() {
     const hiddenSpans = document.querySelectorAll('#wiki-body .wiki-word.hidden');
     hiddenSpans.forEach(span => {
         const clean = span.dataset.clean;
-        if (checkCloseMatch(clean)) {
+        const hint = getBestMatchingGuess(clean);
+        if (hint) {
             span.classList.add('close-match');
+            span.setAttribute('data-hint', hint);
         } else {
             span.classList.remove('close-match');
+            span.removeAttribute('data-hint');
         }
     });
 }

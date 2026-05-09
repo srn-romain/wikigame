@@ -744,7 +744,7 @@ async function renderSoloDashboard(container) {
         if (btnNew && canStartNew) {
             btnNew.onclick = async () => {
                 btnNew.disabled = true;
-                btnNew.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Création...';
+                btnNew.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Recherche...';
                 try {
                     const { draftId, article } = await createSoloDraft(user.uid);
                     await initGame('solo', article.id, false, draftId);
