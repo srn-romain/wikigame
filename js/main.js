@@ -326,7 +326,7 @@ async function renderMissions(container) {
         const tierSuccessCounts = {};
         [1, 2, 3, 4, 5, 6, 7, 8, 9].map(t => {
             const tierMissions = MISSIONS_DATA.filter(m => m.tier === t);
-            tierSuccessCounts[t] = tierMissions.filter(m => (stats[m.stat] || 0) >= m.goal).length;
+            tierSuccessCounts[t] = tierMissions.filter(m => (stats[m.stat] || 0) >= m.goal || claimedMissions.includes(m.id)).length;
         });
 
         // Déterminer les paliers débloqués séquentiellement
@@ -357,7 +357,19 @@ async function renderMissions(container) {
                 ${[1, 2, 3, 4, 5, 6, 7, 8, 9].map(t => {
                     const isLocked = !unlockedTiers[t];
                     const tierMissions = MISSIONS_DATA.filter(m => m.tier === t);
-                    const tierSuccessCount = tierMissions.filter(m => (stats[m.stat] || 0) >= m.goal).length;
+                    const tierSuccessCount = tierMissions.filter(m => (stats[m.stat] || 0) >= m.goal || claimedMissions.includes(m.id)).length;
+                    const displaySuccessCount = isLocked ? 0 : tierSuccessCount;
+
+                    let orangeText = '';
+                    if (isLocked) {
+                        if (unlockedTiers[t-1]) {
+                            const prevTierCount = tierSuccessCounts[t-1] || 0;
+                            const missionsLeft = 9 - prevTierCount;
+                            orangeText = `<p style="margin:5px 0 0; font-size:0.85rem; color:#f97316; font-weight:700;">Encore ${missionsLeft} mission${missionsLeft > 1 ? 's' : ''} du palier précédent à valider (${prevTierCount}/9)</p>`;
+                        } else {
+                            orangeText = `<p style="margin:5px 0 0; font-size:0.8rem; color:#f97316; font-weight:600; opacity:0.8;">Débloquez d'abord le palier précédent</p>`;
+                        }
+                    }
 
                     return `
                         <div style="margin-bottom:4rem; ${isLocked ? 'opacity:0.6; filter:grayscale(1);' : ''}">
@@ -368,9 +380,10 @@ async function renderMissions(container) {
                                 <div>
                                     <h2 style="margin:0; font-size:1.5rem; color:#111827;">${tierNames[t]}</h2>
                                     <div style="display:flex; align-items:center; gap:10px;">
-                                        <p style="margin:0; font-size:0.9rem; color:white; font-weight:600;">Progression : ${tierSuccessCount} / 10 missions</p>
-                                        ${tierSuccessCount === 10 ? `<span style="background:var(--accent); color:white; font-size:0.7rem; font-weight:900; padding:2px 8px; border-radius:10px; box-shadow:0 0 10px rgba(var(--accent-rgb), 0.5);">+${[0, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000][t]} XP BONUS</span>` : `<span style="color:rgba(255,255,255,0.7); font-size:0.7rem; font-weight:600;">(Bonus : +${[0, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000][t]} XP)</span>`}
+                                        <p style="margin:0; font-size:0.9rem; color:white; font-weight:600;">Progression : ${displaySuccessCount} / 10 missions</p>
+                                        ${displaySuccessCount === 10 ? `<span style="background:var(--accent); color:white; font-size:0.7rem; font-weight:900; padding:2px 8px; border-radius:10px; box-shadow:0 0 10px rgba(var(--accent-rgb), 0.5);">+${[0, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000][t]} XP BONUS</span>` : `<span style="color:rgba(255,255,255,0.7); font-size:0.7rem; font-weight:600;">(Bonus : +${[0, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000][t]} XP)</span>`}
                                     </div>
+                                    ${orangeText}
                                 </div>
                             </div>
 
