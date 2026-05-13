@@ -222,6 +222,28 @@ function updateUserProfileUI(user, firestoreData = null) {
         <span class="username">${name}</span>
         ${avatarHtml}
     `;
+
+    // Bouton de déconnexion rapide dans la navbar
+    let logoutNavBtn = document.getElementById('nav-logout-btn');
+    if (!isAnon) {
+        if (!logoutNavBtn) {
+            logoutNavBtn = document.createElement('button');
+            logoutNavBtn.id = 'nav-logout-btn';
+            logoutNavBtn.title = 'Se déconnecter';
+            logoutNavBtn.innerHTML = '<i class="fa-solid fa-right-from-bracket"></i>';
+            logoutNavBtn.style.cssText = 'background:transparent; border:none; color:rgba(255,255,255,0.8); font-size:1rem; cursor:pointer; padding:0.4rem 0.6rem; border-radius:6px; transition:all 0.2s; margin-left:4px;';
+            logoutNavBtn.onmouseover = () => { logoutNavBtn.style.background = 'rgba(255,255,255,0.15)'; logoutNavBtn.style.color = 'white'; };
+            logoutNavBtn.onmouseout = () => { logoutNavBtn.style.background = 'transparent'; logoutNavBtn.style.color = 'rgba(255,255,255,0.8)'; };
+            logoutNavBtn.onclick = async (e) => {
+                e.stopPropagation();
+                await signOut(auth);
+                window.location.href = window.location.origin + window.location.pathname;
+            };
+            btn.parentElement.appendChild(logoutNavBtn);
+        }
+    } else {
+        if (logoutNavBtn) logoutNavBtn.remove();
+    }
 }
 
 
