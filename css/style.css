@@ -1643,23 +1643,23 @@ body {
 }
 
 .btn-hero.daily {
-    background: #16a34a;
+    background: #22a55b;
 }
 
 .btn-hero.solo {
-    background: #2563eb;
+    background: #3b7dd8;
 }
 
 .btn-hero.multi {
-    background: #ea580c;
+    background: #d96228;
 }
 
 .btn-hero.rank {
-    background: #db2777;
+    background: #cc3e82;
 }
 
 .btn-hero.mission {
-    background: #9333ea;
+    background: #8b45d4;
 }
 
 
