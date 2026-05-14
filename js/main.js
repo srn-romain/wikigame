@@ -1019,6 +1019,7 @@ function setupGameInputs() {
 
     const submit = () => {
         const val = input.value.trim();
+        console.log(`[Main] Submit triggered with: "${val}"`);
         if (val) {
             handleGuess(val);
             input.value = '';

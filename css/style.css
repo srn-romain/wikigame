@@ -444,6 +444,53 @@ body {
     }
 }
 
+/* NEW: Found and Synonym Hint classes */
+.wiki-word.found {
+    background-color: transparent !important;
+    color: #000000 !important;
+    font-weight: 700;
+}
+
+.wiki-word.synonym-hint {
+    background-color: #333333 !important; /* On garde le noir du bloc .hidden */
+    position: relative;
+    color: transparent !important; /* Le texte original reste caché */
+    cursor: pointer;
+    vertical-align: middle;
+}
+
+.wiki-word.synonym-hint::before {
+    content: attr(data-hint);
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #9ca3af !important; /* Texte gris */
+    font-size: 0.65em;
+    font-weight: 800;
+    font-family: var(--font-mono);
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: clip;
+    pointer-events: none;
+    padding: 0 1px;
+    background-color: rgba(0, 0, 0, 0.4); /* Légère surbrillance sur le bloc noir */
+    border-radius: 3px;
+    z-index: 1;
+}
+
+/* Si on clique pour voir le nombre de lettres (::after), il passe devant le synonyme (::before) */
+.wiki-word.showing-count::after {
+    z-index: 5 !important;
+}
+
+/* On s'assure que le texte ne déborde pas du bloc */
+.wiki-word.synonym-hint::selection {
+    background: transparent;
+}
+
 /* ══════════════════════════════════
    GAME CONTROLS (BOTTOM BAR)
 ══════════════════════════════════ */

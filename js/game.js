@@ -1,5 +1,6 @@
 import { fetchRandomArticle, fetchArticleById } from './wiki.js';
 import confetti from 'https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/+esm';
+import { checkWord, renderSynonymHint, getSynonyms, checkSynonymMatch } from './synonyms.js';
 
 import { db, doc, updateDoc, getCurrentUser, getDoc } from './firebase-app.js';
 import { saveSoloProgress, deleteSoloDraft } from './solo.js';
@@ -366,10 +367,15 @@ function renderTitle(target) {
             span.dataset.clean = clean;
             span.textContent = token; 
             
-            const hint = getBestMatchingGuess(clean);
-            if (hint) {
-                span.classList.add('close-match');
-                span.setAttribute('data-hint', hint);
+            const synHint = checkSynonymMatch(clean, state.guesses);
+            if (synHint) {
+                renderSynonymHint(span, synHint);
+            } else {
+                const hint = getBestMatchingGuess(clean);
+                if (hint) {
+                    span.classList.add('close-match');
+                    span.setAttribute('data-hint', hint);
+                }
             }
 
             span.addEventListener('click', handleWordClick);
@@ -436,10 +442,15 @@ function renderContent(target) {
             span.dataset.clean = tokenObj.clean;
             span.textContent = tokenObj.text;
 
-            const hint = getBestMatchingGuess(tokenObj.clean);
-            if (hint) {
-                span.classList.add('close-match');
-                span.setAttribute('data-hint', hint);
+            const synHint = checkSynonymMatch(tokenObj.clean, state.guesses);
+            if (synHint) {
+                renderSynonymHint(span, synHint);
+            } else {
+                const hint = getBestMatchingGuess(tokenObj.clean);
+                if (hint) {
+                    span.classList.add('close-match');
+                    span.setAttribute('data-hint', hint);
+                }
             }
 
             span.addEventListener('click', handleWordClick);
@@ -504,6 +515,7 @@ function handleWordClick(e) {
 // GUESS HANDLING
 // ─────────────────────────────────────────────
 export function handleGuess(rawInput) {
+    console.log(`[Game] handleGuess called with: "${rawInput}"`);
     if (!rawInput || !state.article || state.won) return;
 
     const cleanInput = normalize(rawInput.trim());
@@ -540,6 +552,9 @@ export function handleGuess(rawInput) {
     if (hitCount > 0) {
         revealWordInDOM(cleanInput, hitCount);
     }
+    
+    // Always search for synonyms even if there are exact hits
+    checkSynonymsForGuess(cleanInput);
 
     // Sauvegarde auto du brouillon Solo (Debounce pour préserver les quotas Firebase)
     if (state.draftId) {
@@ -584,7 +599,7 @@ function revealWordInDOM(cleanWord, count) {
     const hiddenSpans = document.querySelectorAll('#wiki-body .wiki-word.hidden');
     hiddenSpans.forEach(span => {
         if (span.dataset.clean === cleanWord) {
-            span.className = 'wiki-word revealed';
+            span.className = 'wiki-word revealed found';
             span.textContent = span.dataset.original; // USE STORED ORIGINAL
             span.removeEventListener('click', handleWordClick);
             span.classList.add('just-revealed');
@@ -596,11 +611,40 @@ function revealWordInDOM(cleanWord, count) {
     const titleSpans = document.querySelectorAll('#wiki-title .wiki-word.hidden');
     titleSpans.forEach(span => {
         if (span.dataset.clean === cleanWord) {
-            span.className = 'wiki-word revealed';
+            span.className = 'wiki-word revealed found';
             span.textContent = span.dataset.original;
             span.removeEventListener('click', handleWordClick);
         }
     });
+}
+
+
+async function checkSynonymsForGuess(cleanInput) {
+    console.log(`[Game] Checking synonyms and local matches for guess: "${cleanInput}"`);
+    
+    const hiddenSpans = document.querySelectorAll('.wiki-word.hidden:not(.revealed)');
+    console.log(`[Game] Scanning ${hiddenSpans.length} hidden words...`);
+    
+    let matchCount = 0;
+    
+    // We use a Promise.all or a simple loop. Since checkWord might call API, 
+    // we'll be careful, but local checks are instant.
+    for (const span of hiddenSpans) {
+        const targetWord = span.dataset.clean;
+        if (!targetWord) continue;
+
+        // checkWord now handles Categories, Stems, and API Fallback
+        const result = await checkWord(cleanInput, targetWord);
+        
+        if (result === 'synonym') {
+            renderSynonymHint(span, cleanInput);
+            matchCount++;
+        }
+    }
+    
+    if (matchCount > 0) {
+        console.log(`[Game] Found ${matchCount} semantic matches for "${cleanInput}".`);
+    }
 }
 
 
@@ -613,6 +657,7 @@ function findOriginalText(cleanWord, span) {
 function updateCloseMatches() {
     const hiddenSpans = document.querySelectorAll('#wiki-body .wiki-word.hidden');
     hiddenSpans.forEach(span => {
+        if (span.classList.contains('synonym-hint')) return;
         const clean = span.dataset.clean;
         const hint = getBestMatchingGuess(clean);
         if (hint) {
