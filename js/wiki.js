@@ -90,8 +90,8 @@ export async function fetchRandomArticle() {
         const totalCharCount = paragraphs.join('\n\n').length;
         console.log(`WikiAPI: Extracted ${paragraphs.length} paragraphs (Total: ${totalCharCount} chars).`);
 
-        // Minimum 500 caractères
-        if (totalCharCount < 500) {
+        // MINNIMUM DE CARACTERE SUR LA PAGE POUR ÊTRE ACCEPTÉE
+        if (totalCharCount < 250) {
             updateLoadingStatus("Sujet trop court, on en cherche un autre...");
             await sleep(500);
             return fetchRandomArticle();
