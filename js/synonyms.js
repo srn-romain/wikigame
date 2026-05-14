@@ -309,7 +309,7 @@ export const SYNONYM_GROUPS = [
 
     // Alimentation
     ["nourriture", "aliment", "pain", "repas", "bouffe"],
-    ["fruit", "pomme", "poire", "banane", "orange", "fraise", "kiwi", "mangue", "ananas", "raisin", "melon", "peche", "abricot", "prune"],
+    ["fruit", "pomme", "poire", "banane", "orange", "fraise", "kiwi", "mangue", "ananas", "raisin", "melon", "peche", "abricot", "prune", "citron", "cerise", "nectarine"],
     ["legume", "carotte", "pomme-de-terre", "salade"],
     ["viande", "boeuf", "porc", "poulet"],
     ["lait", "laitage", "fromage", "beurre", "yaourt"],
@@ -419,6 +419,17 @@ export const SYNONYM_GROUPS = [
     ["peuple", "nation", "population", "foule"]
 ];
 
+const MONTHS = ["janvier", "fevrier", "mars", "avril", "mai", "juin", "juillet", "aout", "septembre", "octobre", "novembre", "decembre"];
+const DAYS = ["lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche"];
+
+function getSequenceDistance(w1, w2, seq) {
+    const i1 = seq.indexOf(w1);
+    const i2 = seq.indexOf(w2);
+    if (i1 === -1 || i2 === -1) return Infinity;
+    const diff = Math.abs(i1 - i2);
+    return Math.min(diff, seq.length - diff);
+}
+
 function isYearLike(s) {
     const n = parseInt(s, 10);
     if (isNaN(n)) return false;
@@ -488,6 +499,34 @@ export function checkSynonymMatch(target, guesses) {
         if (best !== null) return best;
     }
 
+    // Mois de l'année : on cherche le plus proche chronologiquement
+    if (MONTHS.includes(target)) {
+        let best = null;
+        let minDiff = Infinity;
+        for (const g of guesses) {
+            const dist = getSequenceDistance(target, g, MONTHS);
+            if (dist < minDiff) {
+                minDiff = dist;
+                best = g;
+            }
+        }
+        if (best) return best;
+    }
+
+    // Jours de la semaine : on cherche le plus proche chronologiquement
+    if (DAYS.includes(target)) {
+        let best = null;
+        let minDiff = Infinity;
+        for (const g of guesses) {
+            const dist = getSequenceDistance(target, g, DAYS);
+            if (dist < minDiff) {
+                minDiff = dist;
+                best = g;
+            }
+        }
+        if (best) return best;
+    }
+
     // Chiffres romains dynamiques
     if (isRoman(target)) {
         for (const g of guesses) {
@@ -509,19 +548,30 @@ export function checkSynonymMatch(target, guesses) {
 
 export function renderSynonymHint(span, guess) {
     if (span.classList.contains('revealed') || span.classList.contains('found')) return;
-    
+
     const target = span.dataset.clean;
     const oldHint = span.getAttribute('data-hint');
 
     // Si on a déjà un indice, on vérifie si le nouveau est "meilleur" (plus proche pour les nombres)
-    if (oldHint && isNumber(target) && isNumber(guess) && isNumber(oldHint)) {
-        const targetVal = parseInt(target, 10);
-        const newVal = parseInt(guess, 10);
-        const oldVal = parseInt(oldHint, 10);
-        
-        // Si l'ancien indice était plus proche (ou égal) du résultat, on le garde
-        if (Math.abs(targetVal - oldVal) <= Math.abs(targetVal - newVal)) {
-            return;
+    if (oldHint) {
+        // Nombres
+        if (isNumber(target) && isNumber(guess) && isNumber(oldHint)) {
+            const targetVal = parseInt(target, 10);
+            if (Math.abs(targetVal - parseInt(oldHint, 10)) <= Math.abs(targetVal - parseInt(guess, 10))) {
+                return;
+            }
+        }
+        // Mois
+        if (MONTHS.includes(target)) {
+            if (getSequenceDistance(target, oldHint, MONTHS) <= getSequenceDistance(target, guess, MONTHS)) {
+                return;
+            }
+        }
+        // Jours
+        if (DAYS.includes(target)) {
+            if (getSequenceDistance(target, oldHint, DAYS) <= getSequenceDistance(target, guess, DAYS)) {
+                return;
+            }
         }
     }
 

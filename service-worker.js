@@ -1,11 +1,15 @@
-const CACHE_NAME = 'wikigame-v1';
+const CACHE_NAME = 'wikigame-v2';
 const ASSETS = [
   './',
   './index.html',
   './css/style.css',
   './js/main.js',
   './js/game.js',
+  './js/synonyms.js',
+  './js/wiki.js',
+  './js/solo.js',
   './js/firebase-app.js',
+  './js/firebase-config.js',
   './js/auth.js',
   './js/daily.js',
   './js/multiplayer.js',
