@@ -1399,6 +1399,7 @@ body {
     justify-content: center;
     gap: 20px;
     font-weight: 800;
+    white-space: nowrap;
 }
 
 .home-title i {
@@ -1756,6 +1757,7 @@ body {
 }
 
 /* How it works */
+/* How it works */
 .how-it-works {
     margin-top: 2rem;
     padding: 3rem;
@@ -1774,6 +1776,7 @@ body {
     align-items: center;
     gap: 15px;
     color: var(--text-main);
+    flex-wrap: wrap; /* allow wrap on small screens */
 }
 
 .how-it-works-content {
@@ -1799,4 +1802,29 @@ body {
 .how-it-works li i {
     color: var(--primary);
     margin-top: 6px;
+    flex-shrink: 0;
+}
+
+.how-it-works li span {
+    flex: 1;
+    word-break: break-word;
+}
+
+@media (max-width: 600px) {
+    .how-it-works h2 {
+        font-size: 1.4rem;
+    }
+    .how-it-works li {
+        font-size: 0.95rem;
+    }
+} 
+
+/* Mobile tweaks for how-it-works */
+@media (max-width: 600px) {
+    .how-it-works {
+        margin-top: 1rem;
+        padding: 1.5rem;
+        background: transparent; /* remove extra white layer */
+        box-shadow: none;
+    }
 }
