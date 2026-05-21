@@ -64,8 +64,15 @@ onAuthStateChanged(auth, async (user) => {
         console.log("Auth: No user – signing in anonymously...");
         signInAnonymously(auth).catch(err => {
             console.error("Auth: Anon sign-in error:", err);
-            // Résoudre quand même avec null pour éviter le blocage infini
-            if (_authResolve) { _authResolve(null); _authResolve = null; }
+            // Fallback: create a local guest if Firebase Anon Auth is disabled
+            let localGuestId = localStorage.getItem("localGuestId");
+            if (!localGuestId) {
+                localGuestId = "guest_" + Math.random().toString(36).substr(2, 9);
+                localStorage.setItem("localGuestId", localGuestId);
+            }
+            currentUser = { uid: localGuestId, isAnonymous: true, isLocalGuest: true };
+            if (_authResolve) { _authResolve(currentUser); _authResolve = null; }
+            updateUserProfileUI(currentUser);
         });
     }
 });
@@ -166,7 +173,7 @@ function updateUserProfileUI(user, firestoreData = null) {
     // Préférer les données Firestore si disponibles, sinon utiliser Auth
     const name = (firestoreData && firestoreData.pseudo) 
         ? firestoreData.pseudo 
-        : (user.displayName || user.email?.split('@')[0] || `Joueur-${user.uid.slice(0, 4)}`);
+        : (user.displayName || user.email?.split('@')[0] || `Joueur-${user.uid.replace('guest_', '').slice(0, 4).toUpperCase()}`);
         
     // Priorité absolue aux avatars. On ignore la photo Google pour éviter les erreurs 429
     // et respecter la consigne de suppression de la gestion des photos de profil.

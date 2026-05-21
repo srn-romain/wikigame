@@ -6,8 +6,7 @@ import { getDailyArticleId, checkDailySolved, getCountdown, getDailySolversCount
 import { getSoloDrafts, createSoloDraft, deleteSoloDraft } from './solo.js';
 import { getAvatarHtml } from './avatars.js';
 
-
-
+window.openAuthModal = openAuthModal;
 
 document.addEventListener('DOMContentLoaded', () => {
     setupNavigation();
@@ -284,22 +283,19 @@ async function renderMissions(container) {
     const { db, getDoc, doc, getCurrentUser } = await import("./firebase-app.js");
     const user = getCurrentUser();
 
-    if (!user || user.isAnonymous) {
-        container.innerHTML = `
-            <div class="glass" style="max-width:500px; margin:4rem auto; padding:3rem; text-align:center;">
-                <i class="fa-solid fa-lock" style="font-size:3rem; color:var(--accent); margin-bottom:1rem;"></i>
-                <h2>Connectez-vous</h2>
-                <p style="color:var(--text-muted); margin-top:1rem;">Vous devez avoir un compte pour suivre votre progression et accomplir des missions.</p>
-                <button class="btn-primary" onclick="window.openAuthModal()" style="margin-top:2rem; width:100%; justify-content:center;">Se connecter</button>
-            </div>
-        `;
-        return;
+    const isGuest = !user || user.isAnonymous;
+    let userData = {};
+
+    if (!isGuest) {
+        try {
+            const snap = await getDoc(doc(db, "users", user.uid));
+            userData = snap.data() || {};
+        } catch (e) {
+            console.error("Missions: Error loading user data", e);
+        }
     }
 
     try {
-        const snap = await getDoc(doc(db, "users", user.uid));
-        const userData = snap.data() || {};
-        
         // Stats de l'utilisateur (on complète avec des valeurs par défaut)
         const stats = {
             xp: userData.xp || 0,
@@ -330,7 +326,7 @@ async function renderMissions(container) {
         });
 
         // Déterminer les paliers débloqués séquentiellement
-        const unlockedTiers = { 1: true };
+        const unlockedTiers = { 1: !isGuest };
         for (let t = 2; t <= 9; t++) {
             // Un palier se débloque si le précédent est complété à au moins 90%
             unlockedTiers[t] = unlockedTiers[t - 1] && tierSuccessCounts[t - 1] >= 9;
@@ -353,6 +349,17 @@ async function renderMissions(container) {
                         </span>
                     </div>
                 </div>
+
+                ${isGuest ? `
+                    <div class="glass" style="margin-bottom: 3rem; padding: 2rem; text-align: center; border: 2px solid var(--accent); border-radius: 20px;">
+                        <i class="fa-solid fa-user-lock" style="font-size:2.5rem; color:var(--accent); margin-bottom:1rem;"></i>
+                        <h2 style="margin-top:0; color:white;">Mode Invité</h2>
+                        <p style="color:var(--text-muted); margin-bottom:1.5rem;">Vous devez créer un compte pour suivre votre progression et accomplir les missions.</p>
+                        <button class="btn-primary" onclick="window.openAuthModal()" style="margin:0 auto; justify-content:center; width: 100%; max-width: 300px;">
+                            <i class="fa-solid fa-right-to-bracket"></i> Se connecter / S'inscrire
+                        </button>
+                    </div>
+                ` : ''}
 
                 ${[1, 2, 3, 4, 5, 6, 7, 8, 9].map(t => {
                     const isLocked = !unlockedTiers[t];
@@ -742,22 +749,10 @@ function renderMultiplayerMenu(container) {
     const user = getCurrentUser();
     console.log("Multiplayer: Current user check:", user ? user.uid : "null", "isAnonymous:", user?.isAnonymous);
 
-    // Warning for anonymous users
-    if (!user || user.isAnonymous) {
-        container.innerHTML = `
-            <div style="max-width:500px;margin:3rem auto;padding:2rem;text-align:center;border-radius:var(--radius-lg);" class="glass">
-                <i class="fa-solid fa-user-lock" style="font-size:3rem;color:var(--accent);margin-bottom:1rem;"></i>
-                <h2 style="margin:0 0 1rem;">Connexion requise</h2>
-                <p style="color:var(--text-muted);margin:0 0 2rem;">Le mode compétition nécessite un compte pour participer et sauvegarder vos statistiques.</p>
-                <button class="btn-primary" onclick="document.getElementById('user-profile-btn').click()" style="justify-content:center;width:100%;padding:1rem;">
-                    <i class="fa-solid fa-right-to-bracket"></i> Se connecter / S'inscrire
-                </button>
-            </div>
-        `;
-        return;
-    }
+    // Warning for anonymous users removed so they can play competition with just a pseudo
 
-    const defaultName = user.displayName || '';
+
+    const defaultName = user?.displayName || '';
 
     container.innerHTML = `
         <div style="max-width:700px;margin:2rem auto;padding:0 1rem;">
