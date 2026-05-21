@@ -104,15 +104,18 @@ export async function joinRoom(roomId, username) {
         return;
     }
 
-    // Déjà en attente ? Juste réabonner
-    if (data.pending?.[user.uid]) {
-        _roomId = roomId;
-        _subscribe(roomId);
-        return;
-    }
-
     try {
-        await updateDoc(roomRef, { [`pending.${user.uid}`]: { name: username } });
+        await updateDoc(roomRef, {
+            [`players.${user.uid}`]: {
+                name: username,
+                isHost: false,
+                approved: true,
+                roundScores: {},
+                totalScore: 0,
+                finished: false,
+                attempts: 0
+            }
+        });
     } catch (e) {
         throw new Error("Impossible de rejoindre la salle. Vérifiez les permissions Firebase.");
     }
