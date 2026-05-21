@@ -808,11 +808,14 @@ function _renderLobby(data, roomId, user) {
                 <h2 style="margin:0 0 .25rem;">${data.name || roomId}</h2>
                 <div style="display:flex;align-items:center;justify-content:center;gap:12px;margin-top:.75rem;">
                     <span style="font-family:var(--font-mono);font-size:2rem;font-weight:800;color:var(--primary);letter-spacing:6px;">${roomId}</span>
-                    <button onclick="window._mpCopy('${roomId}')" id="copy-room-btn" style="all:unset;cursor:pointer;background:#f3f4f6;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:.9rem;" title="Copier">
+                    <button onclick="window._mpCopy('${roomId}')" id="copy-room-btn" style="all:unset;cursor:pointer;background:#f3f4f6;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:.9rem;" title="Copier le code">
                         <i class="fa-solid fa-copy"></i>
                     </button>
+                    <button onclick="window._mpShare('${roomId}')" id="share-room-btn" style="all:unset;cursor:pointer;background:var(--accent);color:white;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:.9rem;" title="Envoyer une invitation">
+                        <i class="fa-solid fa-share-nodes"></i>
+                    </button>
                 </div>
-                <p style="color:var(--text-muted);font-size:0.8rem;margin-top:.5rem;">Manche(s) : <strong>${data.maxRounds}</strong></p>
+                <p style="color:var(--text-muted);font-size:0.8rem;margin-top:.5rem;">Nombre de manche(s) : <strong>${data.maxRounds}</strong></p>
             </div>
 
             <div>
@@ -935,6 +938,33 @@ window._mpCopy = async (code) => {
     await navigator.clipboard.writeText(code).catch(() => {});
     const btn = document.getElementById('copy-room-btn');
     if (btn) { btn.innerHTML = '<i class="fa-solid fa-check"></i>'; setTimeout(() => { btn.innerHTML = '<i class="fa-solid fa-copy"></i>'; }, 1500); }
+};
+
+window._mpShare = async (code) => {
+    const url = window.location.origin + window.location.pathname;
+    const text = `Hey ! Viens me rejoindre pour une partie de WikiGame en mode compétition !\n\nRejoins la salle avec ce code : ${code}\nLien direct : ${url}`;
+    
+    if (navigator.share) {
+        try {
+            await navigator.share({
+                title: 'Partie WikiGame',
+                text: text
+            });
+            return;
+        } catch (e) {
+            console.log("Partage annulé ou en échec", e);
+        }
+    }
+
+    // Fallback: custom modal
+    const html = `
+        <p style="margin-bottom:1rem; color:var(--text-muted); font-size:0.9rem;">Copiez ce message pour inviter vos amis :</p>
+        <textarea id="share-text-area" readonly style="width:100%; height:120px; padding:12px; border-radius:12px; border:2px solid #e5e7eb; background:#f9fafb; font-family:var(--font-main); font-size:0.85rem; resize:none; margin-bottom:1rem;">${text}</textarea>
+        <button onclick="navigator.clipboard.writeText(document.getElementById('share-text-area').value); this.innerHTML='<i class=\\'fa-solid fa-check\\'></i> Copié !'; this.style.background='#10b981';" class="btn-primary" style="width:100%; justify-content:center; padding:1rem;">
+            <i class="fa-solid fa-copy"></i> Copier le message
+        </button>
+    `;
+    showInfoModal("Inviter des amis", html, "info");
 };
 
 // ── UTIL ──────────────────────────────────────────────────────────
