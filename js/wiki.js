@@ -29,21 +29,69 @@ let messageIndex = 0;
  * Fetch a random Wikipedia article with its extract in ONE request.
  */
 export async function fetchRandomArticle() {
-    const params = new URLSearchParams({
-        action: 'query',
-        format: 'json',
-        prop: 'extracts',
-        exintro: '0',
-        explaintext: '1',
-        generator: 'random',
-        grnnamespace: '0',
-        grnlimit: '1',
-        origin: '*'
-    });
-
     updateLoadingStatus(FRIENDLY_MESSAGES[messageIndex % FRIENDLY_MESSAGES.length]);
     messageIndex++;
 
+    if (!window._topArticlesCache) {
+        try {
+            updateLoadingStatus("Recherche des sujets les plus populaires...");
+            const d = new Date();
+            d.setDate(d.getDate() - 2); // 2 jours pour éviter les problèmes de fuseau horaire
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            
+            const res = await fetch(`https://wikimedia.org/api/rest_v1/metrics/pageviews/top/fr.wikipedia.org/all-access/${year}/${month}/${day}`);
+            if (res.ok) {
+                const data = await res.json();
+                if (data && data.items && data.items[0] && data.items[0].articles) {
+                    window._topArticlesCache = data.items[0].articles
+                        .map(a => a.article)
+                        .filter(title => {
+                            const t = title.toLowerCase();
+                            return !t.startsWith('spécial:') && 
+                                   !t.startsWith('wikipédia:') && 
+                                   !t.startsWith('fichier:') && 
+                                   !t.startsWith('aide:') && 
+                                   !t.startsWith('portail:') && 
+                                   !t.startsWith('modèle:') &&
+                                   !t.startsWith('utilisateur:') &&
+                                   !t.startsWith('discussion') &&
+                                   t !== 'accueil' &&
+                                   t !== 'cleopatre' &&
+                                   !t.includes('liste_des_');
+                        });
+                }
+            }
+        } catch(e) {
+            console.error("WikiAPI: Failed to fetch top articles", e);
+        }
+    }
+
+    const params = new URLSearchParams({
+        action: 'query',
+        format: 'json',
+        prop: 'extracts|categories',
+        clshow: '!hidden',
+        cllimit: 'max',
+        exintro: '0',
+        explaintext: '1',
+        origin: '*'
+    });
+
+    if (window._topArticlesCache && window._topArticlesCache.length > 0) {
+        // Prendre un article parmi les 1000 plus populaires
+        const rIndex = Math.floor(Math.random() * window._topArticlesCache.length);
+        const randomTitle = window._topArticlesCache[rIndex];
+        window._topArticlesCache.splice(rIndex, 1); // Eviter les doublons
+        
+        params.append('titles', randomTitle);
+        console.log("WikiAPI: Fetching popular article:", randomTitle);
+    } else {
+        params.append('generator', 'random');
+        params.append('grnnamespace', '0');
+        params.append('grnlimit', '1');
+    }
 
     try {
         const response = await fetch(`${API_BASE}?${params.toString()}`);
@@ -99,10 +147,15 @@ export async function fetchRandomArticle() {
 
 
 
+        const categories = (page.categories || [])
+            .map(c => c.title.replace(/^Catégorie:/, ''))
+            .filter(c => !c.toLowerCase().includes('wikipédia') && !c.toLowerCase().includes('article') && !c.toLowerCase().includes('portail') && !c.toLowerCase().includes('homonymie'));
+
         return {
             id: String(pageId),
             title: page.title,
             paragraphs,
+            categories,
             url: `https://fr.wikipedia.org/?curid=${pageId}`
         };
 
@@ -120,7 +173,9 @@ export async function fetchArticleById(pageId) {
     const params = new URLSearchParams({
         action: 'query',
         format: 'json',
-        prop: 'extracts',
+        prop: 'extracts|categories',
+        clshow: '!hidden',
+        cllimit: 'max',
         exintro: '0',
         explaintext: '1',
         pageids: pageId,
@@ -138,10 +193,15 @@ export async function fetchArticleById(pageId) {
 
         const paragraphs = processPlainText(page.extract, 8);
 
+        const categories = (page.categories || [])
+            .map(c => c.title.replace(/^Catégorie:/, ''))
+            .filter(c => !c.toLowerCase().includes('wikipédia') && !c.toLowerCase().includes('article') && !c.toLowerCase().includes('portail') && !c.toLowerCase().includes('homonymie'));
+
         return {
             id: String(pageId),
             title: page.title,
             paragraphs,
+            categories,
             url: `https://fr.wikipedia.org/?curid=${pageId}`
         };
     } catch (error) {

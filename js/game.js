@@ -29,7 +29,8 @@ let state = {
     pausedOffset: 0,   // ms accumulés avant une pause
     mode: 'solo',
     won: false,
-    draftId: null
+    draftId: null,
+    hintShown: false
 };
 
 export function isGameActive() {
@@ -162,6 +163,7 @@ function startGame(article, preSolved = false, savedGuesses = [], savedAttempts 
     state.won = false;
     state.history = [];
     state.synonyms = {}; // Cache pour les indices
+    state.hintShown = false;
 
     // Reconstruct foundCount
     let count = 0;
@@ -797,4 +799,43 @@ function updateTimer() {
     const m = Math.floor(elapsed / 60).toString().padStart(2, '0');
     const s = (elapsed % 60).toString().padStart(2, '0');
     el.textContent = `${m}:${s}`;
+
+    if (state.mode === 'multiplayer' && elapsed >= 120 && !state.won && !state.hintShown) {
+        showCompetitionHint();
+    }
+}
+
+function showCompetitionHint() {
+    state.hintShown = true;
+    const container = document.getElementById('wiki-body');
+    if (!container) return;
+
+    // Remove any punctuation or non-letters at the start to get the actual first letter
+    const match = state.article.title.match(/[\p{L}0-9]/u);
+    const firstChar = match ? match[0].toUpperCase() : state.article.title.charAt(0).toUpperCase();
+
+    let categoryHtml = '';
+    if (state.article.categories && state.article.categories.length > 0) {
+        // Prendre au hasard jusqu'à 3 catégories pour ne pas surcharger, ou juste les 2 premières
+        const cats = state.article.categories.slice(0, 2).map(c => `<li><i class="fa-solid fa-tag" style="margin-right:5px; color:var(--accent); font-size:0.8rem;"></i> ${c}</li>`).join('');
+        categoryHtml = `
+            <div style="margin-top:15px; padding-top:15px; border-top:1px solid rgba(0,0,0,0.1); text-align:left;">
+                <span style="font-size:0.75rem; text-transform:uppercase; color:var(--text-muted); font-weight:700; letter-spacing:1px;">Thèmes de l'article :</span>
+                <ul style="list-style:none; padding:0; margin:8px 0 0; color:#111; font-weight:600; font-size:0.9rem; line-height:1.5;">
+                    ${cats}
+                </ul>
+            </div>
+        `;
+    }
+
+    const hintEl = document.createElement('div');
+    hintEl.className = 'glass';
+    hintEl.style.cssText = "margin-top:3rem; padding:1.5rem; text-align:center; border:2px dashed var(--accent); border-radius:12px; animation: fadeIn 1s ease-out; background:rgba(255,255,255,0.7);";
+    hintEl.innerHTML = `
+        <i class="fa-solid fa-lightbulb" style="color:#fbbf24; font-size:1.5rem; margin-bottom:10px;"></i>
+        <h3 style="margin:0 0 5px 0; color:#111;">Coup de pouce (2 min)</h3>
+        <p style="margin:0; color:var(--text-muted); font-size:0.95rem;">Le premier mot du titre commence par la lettre <strong style="color:white; font-size:1.2rem; background:var(--accent); padding:2px 8px; border-radius:4px;">${firstChar}</strong></p>
+        ${categoryHtml}
+    `;
+    container.appendChild(hintEl);
 }
