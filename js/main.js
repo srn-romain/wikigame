@@ -1168,16 +1168,21 @@ export async function openAdminDashboard() {
                 </div>
 
                 <!-- ── POLITIQUE DE PURGE TECHNIQUE (ADMIN UNIQUEMENT) ── -->
-                <div style="background:rgba(240,253,250,0.85); border:1px solid #99f6e4; border-radius:12px; padding:15px; font-size:0.8rem; line-height:1.5; color:#0f766e; text-align:left; margin-bottom:2rem;">
-                    <h3 style="margin:0 0 8px 0; font-weight:700; display:flex; align-items:center; gap:6px; font-size:0.9rem; color:#115e59;">
-                        <i class="fa-solid fa-server" style="color:var(--accent); font-size:1rem;"></i> Politique de Purge Automatique des Salles (Firestore)
-                    </h3>
-                    <ul style="margin:0; padding-left:18px; color:#134e4a; font-weight:550;">
-                        <li style="margin-bottom:6px;"><strong>Création & Inactivité</strong> : Une salle créée reste valide pendant <strong>12 heures</strong> de manière inactive si elle n'est pas lancée (TTL de sécurité).</li>
-                        <li style="margin-bottom:6px;"><strong>Fin de partie / Arrêt manuel</strong> : Dès que la partie est terminée ou arrêtée, le délai d'expiration passe à <strong>30 minutes</strong> (ce qui permet aux joueurs de consulter le classement final avant la purge définitive).</li>
-                        <li style="margin-bottom:6px;"><strong>Départ de l'hôte (bouton Quitter)</strong> : Si l'hôte clique sur <em>Quitter la salle</em> ou change de page, la salle est <strong>immédiatement et définitivement supprimée</strong> de Firestore.</li>
-                        <li><strong>Fonctionnement autonome</strong> : Ce système de purge s'exécute de manière client-side lors des interactions de jeu et lors de la création de nouvelles salles. Il fonctionne de façon <strong>totalement gratuite</strong>, sans requérir d'abonnement payant Firebase ni d'activation de Cloud Functions.</li>
-                    </ul>
+                <div style="background:rgba(240,253,250,0.85); border:1px solid #99f6e4; border-radius:12px; padding:15px; font-size:0.8rem; line-height:1.5; color:#0f766e; text-align:left; margin-bottom:2rem; transition: all 0.3s ease;">
+                    <div id="admin-purge-header" style="display:flex; align-items:center; justify-content:space-between; user-select:none; cursor:pointer;">
+                        <h3 style="margin:0; font-weight:700; display:flex; align-items:center; gap:6px; font-size:0.9rem; color:#115e59;">
+                            <i class="fa-solid fa-server" style="color:var(--accent); font-size:1rem;"></i> Politique de Purge Automatique des Salles (Firestore)
+                        </h3>
+                        <i class="fa-solid fa-chevron-down" id="admin-purge-chevron" style="color:#0f766e; transition: transform 0.2s; margin-left: 10px;"></i>
+                    </div>
+                    <div id="admin-purge-content" style="display: none; margin-top: 12px; border-top: 1px solid rgba(153, 246, 228, 0.5); padding-top: 12px;">
+                        <ul style="margin:0; padding-left:18px; color:#134e4a; font-weight:550;">
+                            <li style="margin-bottom:6px;"><strong>Création & Inactivité</strong> : Une salle créée reste valide pendant <strong>12 heures</strong> de manière inactive si elle n'est pas lancée (TTL de sécurité).</li>
+                            <li style="margin-bottom:6px;"><strong>Fin de partie / Arrêt manuel</strong> : Dès que la partie est terminée ou arrêtée, le délai d'expiration passe à <strong>30 minutes</strong> (ce qui permet aux joueurs de consulter le classement final avant la purge définitive).</li>
+                            <li style="margin-bottom:6px;"><strong>Départ de l'hôte (bouton Quitter)</strong> : Si l'hôte clique sur <em>Quitter la salle</em> ou change de page, la salle est <strong>immédiatement et définitivement supprimée</strong> de Firestore.</li>
+                            <li><strong>Fonctionnement autonome</strong> : Ce système de purge s'exécute de manière client-side lors des interactions de jeu et lors de la création de nouvelles salles. Il fonctionne de façon <strong>totalement gratuite</strong>, sans requérir d'abonnement payant Firebase ni d'activation de Cloud Functions.</li>
+                        </ul>
+                    </div>
                 </div>
 
                 <h3 style="font-size:1rem; margin-bottom: 1rem;">10 Dernières Connexions</h3>
@@ -1215,6 +1220,23 @@ export async function openAdminDashboard() {
         `;
 
         document.getElementById("close-admin").onclick = () => container.classList.add("hidden");
+
+        // Gérer le repli de la section Purge
+        const purgeHeader = document.getElementById("admin-purge-header");
+        const purgeContent = document.getElementById("admin-purge-content");
+        const purgeChevron = document.getElementById("admin-purge-chevron");
+        if (purgeHeader && purgeContent && purgeChevron) {
+            purgeHeader.addEventListener("click", () => {
+                const isCollapsed = purgeContent.style.display === "none";
+                if (isCollapsed) {
+                    purgeContent.style.display = "block";
+                    purgeChevron.style.transform = "rotate(180deg)";
+                } else {
+                    purgeContent.style.display = "none";
+                    purgeChevron.style.transform = "rotate(0deg)";
+                }
+            });
+        }
 
         // ── Pagination — tout en mémoire, 0 requête supplémentaire ──────────
         const PAGE_SIZE = 50;
