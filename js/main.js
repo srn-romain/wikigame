@@ -1042,21 +1042,52 @@ export async function openAdminDashboard() {
     const { db, collection, getDocs, getCountFromServer, query, orderBy, limit, doc, getDoc } = await import("./firebase-app.js");
     
     try {
-        // 1. 10 derniers connectés
+        // 1. 10 derniers connectés  (1 lecture Firestore : getDocs limit 10)
         const usersSnap = await getDocs(query(collection(db, "users"), orderBy("lastLoginAt", "desc"), limit(10)));
         const lastUsers = [];
         usersSnap.forEach(d => lastUsers.push(d.data()));
 
-        // 2. Nb de salles (multiplayer)
+        // 2. Nb de salles — getCountFromServer = 0 lecture de document
         const roomsCountSnap = await getCountFromServer(collection(db, "rooms"));
         const roomsCount = roomsCountSnap.data().count;
 
-        // 3. Stats globales (total games, solo games)
+        // 3. Stats globales (1 lecture Firestore)
         const statsSnap = await getDoc(doc(db, "global_stats", "counters"));
         const globalStats = statsSnap.exists() ? statsSnap.data() : { totalGamesPlayed: 0, soloGamesPlayed: 0, roomsCreated: 0 };
 
+        // 4. Liste des 500 pages — API Wikimedia uniquement (0 lecture Firestore)
+        //    Réutilise le cache en mémoire si déjà chargé, sinon 1 requête HTTP Wikimedia
+        let topArticles = window._topArticlesCache || [];
+        if (topArticles.length === 0) {
+            try {
+                const d = new Date();
+                d.setDate(d.getDate() - 2);
+                const year = d.getFullYear();
+                const month = String(d.getMonth() + 1).padStart(2, '0');
+                const day = String(d.getDate()).padStart(2, '0');
+                const res = await fetch(`https://wikimedia.org/api/rest_v1/metrics/pageviews/top/fr.wikipedia.org/all-access/${year}/${month}/${day}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    topArticles = (data?.items?.[0]?.articles || [])
+                        .map(a => a.article)
+                        .filter(title => {
+                            const t = title.toLowerCase();
+                            return !t.startsWith('spécial:') && !t.startsWith('wikipédia:') &&
+                                   !t.startsWith('fichier:') && !t.startsWith('aide:') &&
+                                   !t.startsWith('portail:') && !t.startsWith('modèle:') &&
+                                   !t.startsWith('utilisateur:') && !t.startsWith('discussion') &&
+                                   t !== 'accueil' && t !== 'cleopatre' && !t.includes('liste_des_');
+                        })
+                        .slice(0, 500);
+                    window._topArticlesCache = topArticles; // mise en cache mémoire
+                }
+            } catch(e) {
+                console.warn("Admin: Impossible de charger les top articles Wikimedia", e);
+            }
+        }
+
         container.innerHTML = `
-            <div class="auth-modal" style="width:95%; max-width: 600px; padding: 2rem;">
+            <div class="auth-modal" style="width:95%; max-width: 700px; padding: 2rem; max-height:90vh; overflow-y:auto;">
                 <button class="close-modal" id="close-admin">&times;</button>
                 <h2 style="margin-bottom: 1.5rem; display:flex; align-items:center; gap:10px;">
                     <i class="fa-solid fa-user-shield" style="color:var(--accent);"></i> Console Admin
@@ -1078,7 +1109,7 @@ export async function openAdminDashboard() {
                 </div>
 
                 <h3 style="font-size:1rem; margin-bottom: 1rem;">10 Dernières Connexions</h3>
-                <div style="background:rgba(0,0,0,0.03); border-radius: 12px; overflow:hidden;">
+                <div style="background:rgba(0,0,0,0.03); border-radius: 12px; overflow:hidden; margin-bottom:2rem;">
                     ${lastUsers.map(u => {
                         const date = u.lastLoginAt ? new Date(u.lastLoginAt.seconds ? u.lastLoginAt.seconds * 1000 : u.lastLoginAt).toLocaleString("fr-FR") : "Inconnu";
                         return `
@@ -1089,10 +1120,92 @@ export async function openAdminDashboard() {
                         `;
                     }).join('')}
                 </div>
+
+                <!-- Pages Wikipedia populaires — données Wikimedia, 0 lecture Firestore -->
+                <div style="margin-top:0.5rem;">
+                    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.75rem; flex-wrap:wrap; gap:8px;">
+                        <h3 style="font-size:1rem; margin:0; display:flex; align-items:center; gap:8px;">
+                            <i class="fa-brands fa-wikipedia-w" style="color:var(--primary);"></i>
+                            Top 500 pages Wikipedia
+                            <span style="font-size:0.65rem; background:#f0fdf4; color:#166534; padding:2px 8px; border-radius:20px; font-weight:700; border:1px solid #bbf7d0;">
+                                <i class="fa-solid fa-shield-halved"></i> 0 lecture Firestore
+                            </span>
+                        </h3>
+                        <input id="admin-wiki-search" type="text" placeholder="🔍 Rechercher…" style="border:1px solid #e5e7eb; border-radius:8px; padding:5px 12px; font-size:0.8rem; outline:none; width:150px; transition:border .2s;" onfocus="this.style.borderColor='var(--primary)'" onblur="this.style.borderColor='#e5e7eb'">
+                    </div>
+                    <div id="admin-wiki-list" style="background:#f9fafb; border-radius:12px; border:1px solid #e5e7eb; overflow:hidden; max-height:300px; overflow-y:auto;"></div>
+                    <div id="admin-wiki-pagination" style="display:flex; align-items:center; justify-content:space-between; margin-top:0.75rem;"></div>
+                </div>
             </div>
         `;
 
         document.getElementById("close-admin").onclick = () => container.classList.add("hidden");
+
+        // ── Pagination — tout en mémoire, 0 requête supplémentaire ──────────
+        const PAGE_SIZE = 50;
+        let currentPage = 0;
+        let filteredArticles = topArticles;
+
+        function renderWikiPage() {
+            const list = document.getElementById('admin-wiki-list');
+            const pag  = document.getElementById('admin-wiki-pagination');
+            if (!list || !pag) return;
+
+            const start = currentPage * PAGE_SIZE;
+            const slice = filteredArticles.slice(start, start + PAGE_SIZE);
+            const totalPages = Math.ceil(filteredArticles.length / PAGE_SIZE);
+
+            list.innerHTML = slice.length === 0
+                ? `<div style="padding:1.5rem; text-align:center; color:#9ca3af; font-size:.85rem;"><i class="fa-solid fa-magnifying-glass" style="margin-right:6px;"></i>Aucun résultat</div>`
+                : slice.map((title, i) => {
+                    const rank = start + i + 1;
+                    const url = `https://fr.wikipedia.org/wiki/${encodeURIComponent(title)}`;
+                    const displayTitle = title.replace(/_/g, ' ');
+                    return `
+                        <div style="display:flex; align-items:center; gap:10px; padding:7px 14px; border-bottom:1px solid #e5e7eb; font-size:0.82rem; transition:background .12s;" onmouseover="this.style.background='#eff6ff'" onmouseout="this.style.background=''">
+                            <span style="font-weight:800; color:#9ca3af; min-width:34px; font-family:monospace; font-size:0.75rem;">#${rank}</span>
+                            <span style="flex:1; font-weight:600; color:#111827; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${displayTitle}">${displayTitle}</span>
+                            <a href="${url}" target="_blank" rel="noopener" style="all:unset; cursor:pointer; display:flex; align-items:center; gap:4px; color:var(--primary); font-size:0.72rem; font-weight:700; white-space:nowrap; padding:3px 9px; border-radius:6px; background:#eff6ff; transition:opacity .2s;" onmouseover="this.style.opacity='.7'" onmouseout="this.style.opacity='1'">
+                                <i class="fa-solid fa-arrow-up-right-from-square"></i> Voir
+                            </a>
+                        </div>`;
+                }).join('');
+
+            pag.innerHTML = `
+                <button id="admin-wiki-prev" style="all:unset; cursor:pointer; display:flex; align-items:center; gap:5px; background:${currentPage === 0 ? '#f3f4f6' : 'var(--primary)'}; color:${currentPage === 0 ? '#9ca3af' : 'white'}; padding:5px 14px; border-radius:8px; font-size:.8rem; font-weight:700;" ${currentPage === 0 ? 'disabled' : ''}>
+                    <i class="fa-solid fa-chevron-left"></i> Préc.
+                </button>
+                <span style="font-size:.8rem; color:#6b7280; font-weight:600;">
+                    Page ${currentPage + 1}&thinsp;/&thinsp;${totalPages || 1}
+                    &nbsp;·&nbsp; ${filteredArticles.length} article${filteredArticles.length > 1 ? 's' : ''}
+                </span>
+                <button id="admin-wiki-next" style="all:unset; cursor:pointer; display:flex; align-items:center; gap:5px; background:${currentPage >= totalPages - 1 ? '#f3f4f6' : 'var(--primary)'}; color:${currentPage >= totalPages - 1 ? '#9ca3af' : 'white'}; padding:5px 14px; border-radius:8px; font-size:.8rem; font-weight:700;" ${currentPage >= totalPages - 1 ? 'disabled' : ''}>
+                    Suiv. <i class="fa-solid fa-chevron-right"></i>
+                </button>`;
+
+            document.getElementById('admin-wiki-prev')?.addEventListener('click', () => {
+                if (currentPage > 0) { currentPage--; renderWikiPage(); }
+            });
+            document.getElementById('admin-wiki-next')?.addEventListener('click', () => {
+                if (currentPage < totalPages - 1) { currentPage++; renderWikiPage(); }
+            });
+        }
+
+        // Recherche locale — filtre instantané en mémoire, 0 requête réseau
+        let searchTimer;
+        document.getElementById('admin-wiki-search')?.addEventListener('input', e => {
+            clearTimeout(searchTimer);
+            searchTimer = setTimeout(() => {
+                const q = e.target.value.toLowerCase().trim();
+                filteredArticles = q
+                    ? topArticles.filter(t => t.toLowerCase().replace(/_/g, ' ').includes(q))
+                    : topArticles;
+                currentPage = 0;
+                renderWikiPage();
+            }, 200);
+        });
+
+        renderWikiPage();
 
     } catch (e) {
         console.error("Admin: Error fetching dashboard data", e);
@@ -1102,6 +1215,7 @@ export async function openAdminDashboard() {
 }
 
 window.openAdminDashboard = openAdminDashboard;
+
 
 async function renderRanking(container) {
     container.innerHTML = `
