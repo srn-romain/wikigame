@@ -818,18 +818,21 @@ function showCompetitionHint() {
     const firstChar = match ? match[0].toUpperCase() : state.article.title.charAt(0).toUpperCase();
 
     let categoryHtml = '';
-    if (state.article.categories && state.article.categories.length > 0) {
-        // Filtrage de sécurité : exclure toute catégorie révélant un mot du titre (même si wiki.js a déjà filtré)
-        const titleWordsHint = state.article.title
-            .toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-            .split(/[\s,.'"\-()[\]]+/).filter(w => w.length > 3);
-        const safeCats = state.article.categories.filter(c => {
-            const cNorm = c.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-            return !titleWordsHint.some(w => cNorm.includes(w));
-        });
-        if (safeCats.length > 0) {
-            const cats = safeCats.slice(0, 2).map(c => `<li><i class="fa-solid fa-tag" style="margin-right:5px; color:var(--accent); font-size:0.8rem;"></i> ${c}</li>`).join('');
-            categoryHtml = `
+    const categories = state.article.categories || [];
+    const allCategories = state.article.allCategories || [];
+
+    // Filtrage de sécurité : exclure toute catégorie révélant un mot du titre (même si wiki.js a déjà filtré)
+    const titleWordsHint = state.article.title
+        .toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .split(/[\s,.'"\-()[\]]+/).filter(w => w.length > 3);
+    const safeCats = categories.filter(c => {
+        const cNorm = c.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        return !titleWordsHint.some(w => cNorm.includes(w));
+    });
+
+    if (safeCats.length > 0) {
+        const cats = safeCats.slice(0, 2).map(c => `<li><i class="fa-solid fa-tag" style="margin-right:5px; color:var(--accent); font-size:0.8rem;"></i> ${c}</li>`).join('');
+        categoryHtml = `
             <div style="margin-top:15px; padding-top:15px; border-top:1px solid rgba(0,0,0,0.1); text-align:left;">
                 <span style="font-size:0.75rem; text-transform:uppercase; color:var(--text-muted); font-weight:700; letter-spacing:1px;">Thèmes de l'article :</span>
                 <ul style="list-style:none; padding:0; margin:8px 0 0; color:#111; font-weight:600; font-size:0.9rem; line-height:1.5;">
@@ -837,8 +840,17 @@ function showCompetitionHint() {
                 </ul>
             </div>
         `;
-        } // fin if safeCats.length > 0
-    } // fin if categories
+    } else if (allCategories.length > 0 || (categories.length > 0 && safeCats.length === 0)) {
+        categoryHtml = `
+            <div style="margin-top:15px; padding-top:15px; border-top:1px solid rgba(0,0,0,0.1); text-align:left;">
+                <span style="font-size:0.75rem; text-transform:uppercase; color:var(--text-muted); font-weight:700; letter-spacing:1px;">Thèmes de l'article :</span>
+                <p style="margin:8px 0 0; color:var(--text-muted); font-style:italic; font-size:0.85rem; line-height:1.4;">
+                    <i class="fa-solid fa-triangle-exclamation" style="color:#f59e0b; margin-right:5px;"></i>
+                    Aucune thématique ne peut etre dévoilé sans donné une réponse du titre...
+                </p>
+            </div>
+        `;
+    }
 
     const hintEl = document.createElement('div');
     hintEl.className = 'glass';

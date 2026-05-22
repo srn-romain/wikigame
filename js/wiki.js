@@ -148,24 +148,28 @@ export async function fetchRandomArticle() {
 
 
 
-        // Mots du titre normalisés (sans accents, minuscules) pour filtrer les catégories qui révèlent la réponse
         const titleWords = page.title.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').split(/[\s,.'-]+/).filter(w => w.length > 2);
-        const categories = (page.categories || [])
-            .map(c => c.title.replace(/^Catégorie:/, ''))
-            .filter(c => {
-                const cNorm = c.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-                // Exclure les catégories de maintenance Wikipedia
-                if (cNorm.includes('wikipédia') || cNorm.includes('wikipedia') || cNorm.includes('article') || cNorm.includes('portail') || cNorm.includes('homonymie')) return false;
-                // Exclure les catégories qui contiennent un mot significatif du titre (évite de révéler la réponse)
-                if (titleWords.some(w => w.length > 3 && cNorm.includes(w))) return false;
-                return true;
-            });
+        const allCats = (page.categories || [])
+            .map(c => c.title.replace(/^Catégorie:/, ''));
+        const allCategories = allCats.filter(c => {
+            const cNorm = c.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+            // Exclure les catégories de maintenance Wikipedia
+            if (cNorm.includes('wikipédia') || cNorm.includes('wikipedia') || cNorm.includes('article') || cNorm.includes('portail') || cNorm.includes('homonymie')) return false;
+            return true;
+        });
+        const categories = allCategories.filter(c => {
+            const cNorm = c.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+            // Exclure les catégories qui contiennent un mot significatif du titre (évite de révéler la réponse)
+            if (titleWords.some(w => w.length > 3 && cNorm.includes(w))) return false;
+            return true;
+        });
 
         return {
             id: String(pageId),
             title: page.title,
             paragraphs,
             categories,
+            allCategories,
             url: `https://fr.wikipedia.org/?curid=${pageId}`
         };
 
@@ -204,20 +208,27 @@ export async function fetchArticleById(pageId) {
         const paragraphs = processPlainText(page.extract, 8);
 
         const titleWords2 = page.title.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').split(/[\s,.'-]+/).filter(w => w.length > 2);
-        const categories = (page.categories || [])
-            .map(c => c.title.replace(/^Catégorie:/, ''))
-            .filter(c => {
-                const cNorm = c.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-                if (cNorm.includes('wikipédia') || cNorm.includes('wikipedia') || cNorm.includes('article') || cNorm.includes('portail') || cNorm.includes('homonymie')) return false;
-                if (titleWords2.some(w => w.length > 3 && cNorm.includes(w))) return false;
-                return true;
-            });
+        const allCats = (page.categories || [])
+            .map(c => c.title.replace(/^Catégorie:/, ''));
+        const allCategories = allCats.filter(c => {
+            const cNorm = c.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+            // Exclure les catégories de maintenance Wikipedia
+            if (cNorm.includes('wikipédia') || cNorm.includes('wikipedia') || cNorm.includes('article') || cNorm.includes('portail') || cNorm.includes('homonymie')) return false;
+            return true;
+        });
+        const categories = allCategories.filter(c => {
+            const cNorm = c.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+            // Exclure les catégories qui contiennent un mot significatif du titre (évite de révéler la réponse)
+            if (titleWords2.some(w => w.length > 3 && cNorm.includes(w))) return false;
+            return true;
+        });
 
         return {
             id: String(pageId),
             title: page.title,
             paragraphs,
             categories,
+            allCategories,
             url: `https://fr.wikipedia.org/?curid=${pageId}`
         };
     } catch (error) {
