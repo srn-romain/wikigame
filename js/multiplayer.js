@@ -848,6 +848,16 @@ function _renderLobby(data, roomId, user) {
             <i class="fa-solid fa-spinner fa-spin" style="margin-right:6px;"></i> En attente que l'hôte lance la partie…
         </div>`;
 
+    const winModeLabels = {
+        1: "🚀 Premier arrivé",
+        2: "🏁 Tout le monde finit",
+        3: "⏱️ Countdown 1 min"
+    };
+    const selectedWinMode = winModeLabels[data.winMode] || "🚀 Premier arrivé";
+    const hintText = data.hintEnabled !== false 
+        ? '<span style="color:#10b981;font-weight:700;"><i class="fa-solid fa-circle-check" style="margin-right:4px;"></i>Oui</span>' 
+        : '<span style="color:#ef4444;font-weight:700;"><i class="fa-solid fa-circle-xmark" style="margin-right:4px;"></i>Non</span>';
+
     container.innerHTML = `
         <div class="glass" style="padding:2rem;max-width:580px;margin:2rem auto;border-radius:var(--radius-lg);">
             <div style="text-align:center;margin-bottom:1.5rem;">
@@ -862,7 +872,19 @@ function _renderLobby(data, roomId, user) {
                         <i class="fa-solid fa-share-nodes"></i>
                     </button>
                 </div>
-                <p style="color:var(--text-muted);font-size:0.8rem;margin-top:.5rem;">Nombre de manche(s) : <strong>${data.maxRounds}</strong></p>
+                
+                <!-- ── PARAMÈTRES DE LA PARTIE ── -->
+                <div style="display:flex; justify-content:center; flex-wrap:wrap; gap:10px; margin-top:1.2rem; font-size:0.8rem;">
+                    <div style="background:rgba(255,255,255,0.7); padding:6px 12px; border-radius:20px; border:1px solid rgba(0,0,0,0.06); display:flex; align-items:center; gap:4px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
+                        <span style="color:var(--text-muted);">Manches :</span> <strong>${data.maxRounds}</strong>
+                    </div>
+                    <div style="background:rgba(255,255,255,0.7); padding:6px 12px; border-radius:20px; border:1px solid rgba(0,0,0,0.06); display:flex; align-items:center; gap:4px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
+                        <span style="color:var(--text-muted);">Mode :</span> <strong>${selectedWinMode}</strong>
+                    </div>
+                    <div style="background:rgba(255,255,255,0.7); padding:6px 12px; border-radius:20px; border:1px solid rgba(0,0,0,0.06); display:flex; align-items:center; gap:4px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
+                        <span style="color:var(--text-muted); display:flex; align-items:center; gap:3px;"><i class="fa-solid fa-lightbulb" style="color:#fbbf24; font-size:0.85rem;"></i> Aide (2 min) :</span> <strong>${hintText}</strong>
+                    </div>
+                </div>
             </div>
 
             <div>
