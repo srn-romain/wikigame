@@ -60,7 +60,8 @@ export async function fetchRandomArticle() {
                                    t !== 'accueil' &&
                                    t !== 'cleopatre' &&
                                    !t.includes('liste_des_');
-                        });
+                        })
+                        .slice(0, 500); // Limiter aux 500 articles les plus consultés
                 }
             }
         } catch(e) {
@@ -80,7 +81,7 @@ export async function fetchRandomArticle() {
     });
 
     if (window._topArticlesCache && window._topArticlesCache.length > 0) {
-        // Prendre un article parmi les 1000 plus populaires
+        // Prendre un article parmi les 500 plus populaires
         const rIndex = Math.floor(Math.random() * window._topArticlesCache.length);
         const randomTitle = window._topArticlesCache[rIndex];
         window._topArticlesCache.splice(rIndex, 1); // Eviter les doublons
