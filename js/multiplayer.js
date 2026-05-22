@@ -59,7 +59,7 @@ export async function createRoom({ roomName, username, maxRounds, winMode, hintE
         articleId:  null,
         startTime:  null,
         createdAt:  Date.now(),
-        expireAt:   new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // TTL: 30 jours
+        expireAt:   new Date(Date.now() + 12 * 60 * 60 * 1000), // TTL: 12 heures (inutilisation)
         players: {
             [user.uid]: { name: username, isHost: true, approved: true, roundScores: {}, totalScore: 0, finished: false, attempts: 0 }
         },
@@ -224,7 +224,10 @@ export async function pauseGame() {
 }
 
 export async function stopGame() {
-    await updateDoc(doc(db, "rooms", _roomId), { state: "FINISHED" });
+    await updateDoc(doc(db, "rooms", _roomId), { 
+        state: "FINISHED",
+        expireAt: new Date(Date.now() + 30 * 60 * 1000) // Expire et se purge dans 30 minutes (laissant le temps de voir le score)
+    });
 }
 
 export async function nextArticle() {
@@ -236,7 +239,10 @@ export async function nextArticle() {
     await updateDoc(doc(db, "rooms", _roomId), { state: "SEARCHING" });
 
     if (nextRound > data.maxRounds) {
-        await updateDoc(doc(db, "rooms", _roomId), { state: "FINISHED" });
+        await updateDoc(doc(db, "rooms", _roomId), { 
+            state: "FINISHED",
+            expireAt: new Date(Date.now() + 30 * 60 * 1000) // Expire et se purge dans 30 minutes (laissant le temps de voir le score)
+        });
         return;
     }
 
@@ -263,9 +269,28 @@ export async function nextArticle() {
     await updateDoc(doc(db, "rooms", _roomId), updates);
 }
 
-// ── QUITTER LA SALLE ─────────────────────────────────────────────
-export function leaveRoom() {
+export async function leaveRoom() {
     console.log("Multiplayer: Leaving room and cleaning up listeners...");
+    
+    if (_roomId) {
+        const user = getCurrentUser();
+        if (user) {
+            try {
+                const roomRef = doc(db, "rooms", _roomId);
+                const snap = await getDoc(roomRef);
+                if (snap.exists()) {
+                    const data = snap.data();
+                    if (data.creatorUid === user.uid) {
+                        console.log("Multiplayer: Host is leaving, deleting room from Firestore...");
+                        await deleteDoc(roomRef);
+                    }
+                }
+            } catch (e) {
+                console.warn("Multiplayer: Failed to delete room on leave", e);
+            }
+        }
+    }
+
     if (_unsub) { _unsub(); _unsub = null; }
     if (_countdownInterval) { clearInterval(_countdownInterval); _countdownInterval = null; }
     if (window._mpHeartbeat) { clearInterval(window._mpHeartbeat); window._mpHeartbeat = null; }

@@ -1077,6 +1077,27 @@ export async function openAdminDashboard() {
     container.innerHTML = `<div class="loading-screen"><div class="loading-spinner"></div><p>Chargement du tableau de bord admin...</p></div>`;
     container.classList.remove("hidden");
 
+    await waitForAuth();
+    const user = getCurrentUser();
+    if (!user || user.uid !== "xwX5eCsUqpRLIBAI3K5Y7y70HLp1") {
+        container.innerHTML = `
+            <div class="auth-modal" style="width:95%; max-width: 400px; padding: 2rem; text-align: center; border-radius: var(--radius-lg);">
+                <button class="close-modal" id="close-admin">&times;</button>
+                <h2 style="color: var(--danger); margin-bottom: 1rem; display:flex; align-items:center; justify-content:center; gap:10px;">
+                    <i class="fa-solid fa-triangle-exclamation" style="color: #ef4444;"></i> Accès refusé
+                </h2>
+                <p style="font-size:0.9rem; color:var(--text-muted); line-height:1.5; margin-bottom:1.5rem;">
+                    Vous n'avez pas les autorisations nécessaires pour accéder à la Console Admin de l'application.
+                </p>
+                <button class="btn-primary" id="close-admin-btn" style="margin: 0 auto; justify-content: center; width: 100%;">Fermer</button>
+            </div>
+        `;
+        const close = () => container.classList.add("hidden");
+        document.getElementById("close-admin").onclick = close;
+        document.getElementById("close-admin-btn").onclick = close;
+        return;
+    }
+
     const { db, collection, getDocs, getCountFromServer, query, orderBy, limit, doc, getDoc } = await import("./firebase-app.js");
     
     try {
@@ -1144,6 +1165,19 @@ export async function openAdminDashboard() {
                         <div style="font-size:1.5rem; font-weight:800; color:#3498db;">${globalStats.roomsCreated || roomsCount}</div>
                         <div style="font-size:0.7rem; color:var(--text-muted); text-transform:uppercase;">Salles Créées</div>
                     </div>
+                </div>
+
+                <!-- ── POLITIQUE DE PURGE TECHNIQUE (ADMIN UNIQUEMENT) ── -->
+                <div style="background:rgba(240,253,250,0.85); border:1px solid #99f6e4; border-radius:12px; padding:15px; font-size:0.8rem; line-height:1.5; color:#0f766e; text-align:left; margin-bottom:2rem;">
+                    <h3 style="margin:0 0 8px 0; font-weight:700; display:flex; align-items:center; gap:6px; font-size:0.9rem; color:#115e59;">
+                        <i class="fa-solid fa-server" style="color:var(--accent); font-size:1rem;"></i> Politique de Purge Automatique des Salles (Firestore)
+                    </h3>
+                    <ul style="margin:0; padding-left:18px; color:#134e4a; font-weight:550;">
+                        <li style="margin-bottom:6px;"><strong>Création & Inactivité</strong> : Une salle créée reste valide pendant <strong>12 heures</strong> de manière inactive si elle n'est pas lancée (TTL de sécurité).</li>
+                        <li style="margin-bottom:6px;"><strong>Fin de partie / Arrêt manuel</strong> : Dès que la partie est terminée ou arrêtée, le délai d'expiration passe à <strong>30 minutes</strong> (ce qui permet aux joueurs de consulter le classement final avant la purge définitive).</li>
+                        <li style="margin-bottom:6px;"><strong>Départ de l'hôte (bouton Quitter)</strong> : Si l'hôte clique sur <em>Quitter la salle</em> ou change de page, la salle est <strong>immédiatement et définitivement supprimée</strong> de Firestore.</li>
+                        <li><strong>Fonctionnement autonome</strong> : Ce système de purge s'exécute de manière client-side lors des interactions de jeu et lors de la création de nouvelles salles. Il fonctionne de façon <strong>totalement gratuite</strong>, sans requérir d'abonnement payant Firebase ni d'activation de Cloud Functions.</li>
+                    </ul>
                 </div>
 
                 <h3 style="font-size:1rem; margin-bottom: 1rem;">10 Dernières Connexions</h3>
