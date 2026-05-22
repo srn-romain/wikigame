@@ -167,6 +167,7 @@ export async function startRound() {
 
         const snap = await getDoc(doc(db, "rooms", _roomId));
         const data = snap.data();
+        const round = data.currentRound || 1;
 
         // Remettre finished à false pour tous les joueurs
         const updates = { 
@@ -175,7 +176,8 @@ export async function startRound() {
             startTime: Date.now(),
             roundWinner: deleteField(),
             countdownEnd: deleteField(),
-            roundFinished: deleteField()
+            roundFinished: deleteField(),
+            [`roundHistory.${round}`]: { id: article.id, title: article.title }
         };
     Object.keys(data.players || {}).forEach(uid => {
         updates[`players.${uid}.finished`] = false;
@@ -250,7 +252,8 @@ export async function nextArticle() {
         currentRound: nextRound,
         roundWinner: deleteField(),
         countdownEnd: deleteField(),
-        roundFinished: deleteField()
+        roundFinished: deleteField(),
+        [`roundHistory.${nextRound}`]: { id: article.id, title: article.title }
     };
     Object.keys(data.players || {}).forEach(uid => {
         updates[`players.${uid}.finished`] = false;
@@ -288,15 +291,44 @@ export async function reportProgress(found, total, finished, attempts) {
     const round = data.currentRound || 1;
     const updates = {};
     
-    // Calcul du score (mots trouvés)
-    let scoreForRound = found;
+    const elapsedSec = Math.floor((Date.now() - data.startTime) / 1000);
+    const alreadyFinished = data.players[user.uid]?.finished;
 
-    // Mode 2 : Bonus de vitesse si l'article est trouvé
-    if (data.winMode === 2 && finished && !data.players[user.uid]?.finished) {
-        const elapsedSec = Math.floor((Date.now() - data.startTime) / 1000);
-        // Bonus dégressif : 200 points si trouvé en 10s, 0 si > 3min30
-        const timeBonus = Math.max(0, 200 - Math.floor(elapsedSec / 1)); 
-        scoreForRound += timeBonus;
+    // ── Calcul du score selon le mode ──────────────────────────────
+    let scoreForRound;
+
+    if (data.winMode === 1) {
+        // Mode 1 : "Premier arrivé" — 1 point au premier qui trouve, 0 pour tous les autres
+        // On ne met à jour le score que quand l'article est trouvé
+        if (finished && !alreadyFinished) {
+            // Vérifier si quelqu'un a déjà trouvé cette manche (roundWinner positionné)
+            const alreadyWon = !!data.roundWinner;
+            scoreForRound = alreadyWon ? 0 : 1;
+        } else {
+            scoreForRound = data.players[user.uid]?.roundScores?.[round] ?? 0;
+        }
+    } else if (data.winMode === 2) {
+        // Mode 2 : "Tout le monde finit" — score basé uniquement sur la vitesse
+        // Plus tu es rapide, plus tu scores. Formule : max(0, 300 - secondes)
+        if (finished && !alreadyFinished) {
+            scoreForRound = Math.max(0, 300 - elapsedSec);
+        } else {
+            scoreForRound = data.players[user.uid]?.roundScores?.[round] ?? 0;
+        }
+    } else if (data.winMode === 3) {
+        // Mode 3 : "Countdown 1 min" — mots trouvés + bonus de vitesse pour le premier
+        scoreForRound = found;
+        if (finished && !alreadyFinished) {
+            const alreadyWon = !!data.roundWinner;
+            if (!alreadyWon) {
+                // Bonus dégressif pour le premier qui trouve : max 200 pts en 10s
+                const timeBonus = Math.max(0, 200 - elapsedSec);
+                scoreForRound = found + timeBonus;
+            }
+        }
+    } else {
+        // Fallback
+        scoreForRound = found;
     }
 
     updates[`players.${user.uid}.roundScores.${round}`] = scoreForRound;
@@ -308,23 +340,33 @@ export async function reportProgress(found, total, finished, attempts) {
     const total_score = Object.values({ ...existing, [round]: scoreForRound }).reduce((a, b) => a + b, 0);
     updates[`players.${user.uid}.totalScore`] = total_score;
 
-    // Logique de fin de manche
-    if (finished && data.state === "PLAYING") {
+    // ── Logique de fin de manche ────────────────────────────────────
+    if (finished && !alreadyFinished && data.state === "PLAYING") {
         const winnerName = user.displayName || user.uid;
         if (data.winMode === 1) {
-            // Mode 1 : Stop immédiat pour tout le monde
-            updates.state = "PAUSED";
-            updates.roundFinished = true;
-            updates.roundWinner = winnerName;
-        } else if (data.winMode === 3 && !data.countdownEnd) {
-            // Mode 3 : Déclenchement du compte à rebours de 1 minute
-            updates.countdownEnd = Date.now() + 60000;
-            updates.roundWinner = winnerName;
+            // Mode 1 : Stop immédiat dès le premier arrivé
+            if (!data.roundWinner) {
+                updates.state = "PAUSED";
+                updates.roundFinished = true;
+                updates.roundWinner = winnerName;
+            }
+        } else if (data.winMode === 2) {
+            // Mode 2 : On note juste le premier, la manche continue pour tous
+            if (!data.roundWinner) {
+                updates.roundWinner = winnerName;
+            }
+        } else if (data.winMode === 3) {
+            // Mode 3 : Déclenchement du compte à rebours de 1 minute au premier trouvé
+            if (!data.countdownEnd) {
+                updates.countdownEnd = Date.now() + 60000;
+                updates.roundWinner = winnerName;
+            }
         }
     }
 
     await updateDoc(roomRef, updates);
 }
+
 
 // ── SUBSCRIPTION ──────────────────────────────────────────────────
 function _subscribe(roomId) {
@@ -883,6 +925,27 @@ function _renderLeaderboard(data) {
         });
     }
 
+    // ── Récapitulatif des articles par manche ──────────────────────
+    const roundHistory = data.roundHistory || {};
+    const roundArticlesHtml = Array.from({ length: data.maxRounds }, (_, r) => {
+        const round = r + 1;
+        const art = roundHistory[round];
+        if (!art) return `
+            <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:#f9fafb;border-radius:10px;">
+                <span style="font-weight:800;color:var(--primary);min-width:28px;">M${round}</span>
+                <span style="color:#9ca3af;font-size:.85rem;font-style:italic;">Article non joué</span>
+            </div>`;
+        const wikiUrl = `https://fr.wikipedia.org/?curid=${art.id}`;
+        return `
+            <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:#f9fafb;border-radius:10px;border:1px solid #e5e7eb;">
+                <span style="font-weight:800;color:var(--primary);min-width:28px;">M${round}</span>
+                <span style="flex:1;font-weight:600;color:#111827;font-size:.9rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${art.title}">${art.title}</span>
+                <a href="${wikiUrl}" target="_blank" rel="noopener" style="all:unset;cursor:pointer;display:flex;align-items:center;gap:6px;background:var(--primary);color:white;padding:5px 12px;border-radius:8px;font-size:.75rem;font-weight:700;white-space:nowrap;transition:opacity .2s;" onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='1'">
+                    <i class="fa-brands fa-wikipedia-w"></i> Voir l'article
+                </a>
+            </div>`;
+    }).join('');
+
     container.innerHTML = `
 
         <div style="max-width:700px;margin:2rem auto;padding:0 1rem;">
@@ -904,6 +967,16 @@ function _renderLeaderboard(data) {
                         </thead>
                         <tbody>${rows}</tbody>
                     </table>
+                </div>
+
+                <!-- Articles par manche -->
+                <div style="margin-top:2rem;">
+                    <h3 style="font-size:.8rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted);margin-bottom:.75rem;display:flex;align-items:center;gap:8px;">
+                        <i class="fa-brands fa-wikipedia-w"></i> Articles joués
+                    </h3>
+                    <div style="display:flex;flex-direction:column;gap:8px;">
+                        ${roundArticlesHtml}
+                    </div>
                 </div>
 
                 ${isAdmin ? `
