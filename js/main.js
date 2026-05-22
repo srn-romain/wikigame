@@ -1127,7 +1127,14 @@ export async function openAdminDashboard() {
                 const res = await fetch(`https://wikimedia.org/api/rest_v1/metrics/pageviews/top/fr.wikipedia.org/all-access/${year}/${month}/${day}`);
                 if (res.ok) {
                     const data = await res.json();
-                    topArticles = (data?.items?.[0]?.articles || [])
+                    const rawArticles = data?.items?.[0]?.articles || [];
+                    
+                    window._topArticlesViewsCache = {};
+                    rawArticles.forEach(a => {
+                        window._topArticlesViewsCache[a.article] = a.views;
+                    });
+
+                    topArticles = rawArticles
                         .map(a => a.article)
                         .filter(title => {
                             const t = title.toLowerCase();
@@ -1258,10 +1265,15 @@ export async function openAdminDashboard() {
                     const rank = topArticles.indexOf(title) + 1;
                     const url = `https://fr.wikipedia.org/wiki/${encodeURIComponent(title)}`;
                     const displayTitle = title.replace(/_/g, ' ');
+                    const views = window._topArticlesViewsCache?.[title];
+                    const viewsText = views !== undefined ? ` (${views.toLocaleString('fr-FR')} vues)` : '';
                     return `
                         <div style="display:flex; align-items:center; gap:10px; padding:7px 14px; border-bottom:1px solid #e5e7eb; font-size:0.82rem; transition:background .12s;" onmouseover="this.style.background='#eff6ff'" onmouseout="this.style.background=''">
                             <span style="font-weight:800; color:#9ca3af; min-width:34px; font-family:monospace; font-size:0.75rem;">#${rank}</span>
-                            <span style="flex:1; font-weight:600; color:#111827; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${displayTitle}">${displayTitle}</span>
+                            <span style="flex:1; font-weight:600; color:#111827; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${displayTitle}${viewsText}">
+                                ${displayTitle}
+                                ${viewsText ? `<span style="color:var(--text-muted); font-size:0.72rem; font-weight:500; margin-left: 6px;">${viewsText}</span>` : ''}
+                            </span>
                             <a href="${url}" target="_blank" rel="noopener" style="all:unset; cursor:pointer; display:flex; align-items:center; gap:4px; color:var(--primary); font-size:0.72rem; font-weight:700; white-space:nowrap; padding:3px 9px; border-radius:6px; background:#eff6ff; transition:opacity .2s;" onmouseover="this.style.opacity='.7'" onmouseout="this.style.opacity='1'">
                                 <i class="fa-solid fa-arrow-up-right-from-square"></i> Voir
                             </a>

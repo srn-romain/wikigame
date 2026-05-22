@@ -45,6 +45,10 @@ export async function fetchRandomArticle() {
             if (res.ok) {
                 const data = await res.json();
                 if (data && data.items && data.items[0] && data.items[0].articles) {
+                    window._topArticlesViewsCache = {};
+                    data.items[0].articles.forEach(a => {
+                        window._topArticlesViewsCache[a.article] = a.views;
+                    });
                     window._topArticlesCache = data.items[0].articles
                         .map(a => a.article)
                         .filter(title => {
