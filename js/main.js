@@ -865,6 +865,31 @@ function renderMultiplayerMenu(container) {
                         </div>
                     </div>
 
+                    <!-- ── OPTION AIDE 2 MIN ── -->
+                    <div style="display:flex; align-items:center; justify-content:space-between; background:#f9fafb; padding:0.9rem 1.1rem; border-radius:12px; border:1px solid #eee; gap:1rem;">
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <i class="fa-solid fa-lightbulb" style="color:#fbbf24; font-size:1.1rem;"></i>
+                            <div>
+                                <div style="font-size:0.85rem; font-weight:700; color:#111;">Aide au bout de 2 min</div>
+                                <div style="font-size:0.7rem; color:var(--text-muted); margin-top:2px;">Affiche la 1ère lettre et un thème après 2 minutes de jeu</div>
+                            </div>
+                        </div>
+                        <label style="position:relative; display:inline-block; width:44px; height:24px; flex-shrink:0;">
+                            <input type="checkbox" id="create-hint-enabled" checked style="opacity:0; width:0; height:0; position:absolute;">
+                            <span id="hint-toggle-track" style="
+                                position:absolute; cursor:pointer; inset:0;
+                                background:var(--primary); border-radius:24px;
+                                transition: background 0.25s;
+                            "></span>
+                            <span id="hint-toggle-thumb" style="
+                                position:absolute; content:''; height:18px; width:18px;
+                                left:3px; bottom:3px; background:white; border-radius:50%;
+                                transition: transform 0.25s;
+                                transform: translateX(20px);
+                            "></span>
+                        </label>
+                    </div>
+
                     <button id="create-room-btn" class="btn-primary" style="width:100%;justify-content:center;margin-top:.5rem; padding: 1rem;">
                         <i class="fa-solid fa-play"></i> Lancer la compétition
                     </button>
@@ -878,12 +903,25 @@ function renderMultiplayerMenu(container) {
     const display = document.getElementById('rounds-display');
     slider.addEventListener('input', () => { display.textContent = slider.value; });
 
+    // Toggle aide
+    const hintCheckbox = document.getElementById('create-hint-enabled');
+    const hintTrack    = document.getElementById('hint-toggle-track');
+    const hintThumb    = document.getElementById('hint-toggle-thumb');
+    function updateHintToggle() {
+        const on = hintCheckbox.checked;
+        hintTrack.style.background = on ? 'var(--primary)' : '#d1d5db';
+        hintThumb.style.transform  = on ? 'translateX(20px)' : 'translateX(0)';
+    }
+    hintCheckbox.addEventListener('change', updateHintToggle);
+    updateHintToggle(); // init
+
     // Créer
     document.getElementById('create-room-btn').onclick = async () => {
         const username  = document.getElementById('create-username').value.trim();
         const roomName  = document.getElementById('create-roomname').value.trim();
         const maxRounds = parseInt(document.getElementById('create-rounds').value, 10);
         const winMode   = parseInt(document.querySelector('input[name="win-mode"]:checked').value, 10);
+        const hintEnabled = document.getElementById('create-hint-enabled').checked;
 
         if (!username) { 
             showInfoModal("Pseudo manquant", "Veuillez entrer un pseudo pour créer une salle.", "error"); 
@@ -893,7 +931,7 @@ function renderMultiplayerMenu(container) {
         btn.disabled = true;
         btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Création…';
         try {
-            await createRoom({ username, roomName, maxRounds, winMode });
+            await createRoom({ username, roomName, maxRounds, winMode, hintEnabled });
         } catch (err) {
             showInfoModal("Échec de création", err.message || "Impossible de créer la salle.", "error");
             btn.disabled = false;

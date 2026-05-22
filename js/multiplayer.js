@@ -22,7 +22,7 @@ let _countdownInterval = null;
 let _lastRoomData = null; // Cache pour éviter les getDoc() répétitifs
 
 // ── CRÉER UNE SALLE ──────────────────────────────────────────────
-export async function createRoom({ roomName, username, maxRounds, winMode }) {
+export async function createRoom({ roomName, username, maxRounds, winMode, hintEnabled }) {
     const user = await waitForAuth();
     if (!user) return;
 
@@ -54,6 +54,7 @@ export async function createRoom({ roomName, username, maxRounds, winMode }) {
         locked:     false,
         maxRounds:  maxRounds || 3,
         winMode:    winMode || 1,
+        hintEnabled: hintEnabled !== false, // true par défaut
         currentRound: 1,
         articleId:  null,
         startTime:  null,
@@ -482,7 +483,8 @@ function _startGame(articleId, roomData) {
     window.mpReportProgress = (found, total, finished, attempts) => {
         reportProgress(found, total, finished, attempts);
     };
-    initGame('multiplayer', articleId);
+    // Transmettre hintEnabled depuis les paramètres de la salle
+    initGame('multiplayer', articleId, false, null, { hintEnabled: roomData.hintEnabled !== false });
 
     // Injecter panneau admin après init
     const user = getCurrentUser();
