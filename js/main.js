@@ -1182,11 +1182,14 @@ export async function openAdminDashboard() {
 
                 <h3 style="font-size:1rem; margin-bottom: 1rem;">10 Dernières Connexions</h3>
                 <div style="background:rgba(0,0,0,0.03); border-radius: 12px; overflow:hidden; margin-bottom:2rem;">
-                    ${lastUsers.map(u => {
+                    ${lastUsers.map((u, i) => {
                         const date = u.lastLoginAt ? new Date(u.lastLoginAt.seconds ? u.lastLoginAt.seconds * 1000 : u.lastLoginAt).toLocaleString("fr-FR") : "Inconnu";
                         return `
                             <div style="display:flex; justify-content:space-between; padding: 10px 15px; border-bottom: 1px solid rgba(0,0,0,0.05); font-size:0.85rem;">
-                                <strong>${u.pseudo || "Anonyme"}</strong>
+                                <span>
+                                    <strong style="color:var(--text-muted); margin-right: 8px; font-family:var(--font-mono); font-size:0.8rem;">#${i + 1}</strong>
+                                    <strong>${u.pseudo || "Anonyme"}</strong>
+                                </span>
                                 <span style="color:var(--text-muted);">${date}</span>
                             </div>
                         `;
@@ -1229,8 +1232,8 @@ export async function openAdminDashboard() {
 
             list.innerHTML = slice.length === 0
                 ? `<div style="padding:1.5rem; text-align:center; color:#9ca3af; font-size:.85rem;"><i class="fa-solid fa-magnifying-glass" style="margin-right:6px;"></i>Aucun résultat</div>`
-                : slice.map((title, i) => {
-                    const rank = start + i + 1;
+                : slice.map((title) => {
+                    const rank = topArticles.indexOf(title) + 1;
                     const url = `https://fr.wikipedia.org/wiki/${encodeURIComponent(title)}`;
                     const displayTitle = title.replace(/_/g, ' ');
                     return `
