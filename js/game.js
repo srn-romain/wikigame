@@ -30,7 +30,7 @@ let state = {
     mode: 'solo',
     won: false,
     draftId: null,
-    hintShown: false,
+    hintShown: 0,
     hintEnabled: true  // true par défaut (solo/daily), peut être false en multijoueur
 };
 
@@ -105,6 +105,7 @@ export async function initGame(mode, articleId = null, preSolved = false, draftI
     console.log(`Game: Initializing mode="${mode}" articleId=${articleId} draftId=${draftId}`);
     // options.hintEnabled : true par défaut (undefined = true)
     state.hintEnabled = options.hintEnabled !== false;
+    console.log(`[Game] Hint is ${state.hintEnabled ? 'ENABLED' : 'DISABLED'} for this session (mode: ${mode}).`);
     state.mode = mode;
     state.won = false;
     state.draftId = draftId;
@@ -166,13 +167,10 @@ function startGame(article, preSolved = false, savedGuesses = [], savedAttempts 
     state.won = false;
     state.history = [];
     state.synonyms = {}; // Cache pour les indices
-    state.hintShown = false;
+    state.hintShown = 0;
 
     // Reconstruct foundCount
-    let count = 0;
-    article.paragraphs.forEach(p => {
-        // Need to tokenize to count correctly, but let's estimate or better: wait for tokenize to finish
-    });
+    state.foundCount = 0;
 
     // Fetch synonyms for title words to help player
     fetchTitleSynonyms(article.title).catch(console.error);
@@ -803,13 +801,18 @@ function updateTimer() {
     const s = (elapsed % 60).toString().padStart(2, '0');
     el.textContent = `${m}:${s}`;
 
-    if (state.mode === 'multiplayer' && elapsed >= 120 && !state.won && !state.hintShown && state.hintEnabled) {
-        showCompetitionHint();
+    if (state.mode === 'multiplayer' && state.hintEnabled && !state.won) {
+        const hintStage = Math.floor(elapsed / 120); // 1 pour 2min, 2 pour 4min, etc.
+        if (hintStage >= 1 && state.hintShown < hintStage && state.hintShown < 5) {
+            const nextStage = Math.min(hintStage, 5);
+            console.log(`[Game] Elapsed time is ${elapsed}s, triggering progressive help stage ${nextStage}!`);
+            showCompetitionHint(nextStage);
+        }
     }
 }
 
-function showCompetitionHint() {
-    state.hintShown = true;
+function showCompetitionHint(stage = 1) {
+    state.hintShown = stage;
     const container = document.getElementById('wiki-body');
     if (!container) return;
 
@@ -817,7 +820,6 @@ function showCompetitionHint() {
     const match = state.article.title.match(/[\p{L}0-9]/u);
     const firstChar = match ? match[0].toUpperCase() : state.article.title.charAt(0).toUpperCase();
 
-    let categoryHtml = '';
     const categories = state.article.categories || [];
     const allCategories = state.article.allCategories || [];
 
@@ -830,11 +832,24 @@ function showCompetitionHint() {
         return !titleWordsHint.some(w => cNorm.includes(w));
     });
 
+    // Check if the hint box already exists in the DOM to avoid duplication and update it smoothly
+    let hintEl = document.getElementById('game-hint-box');
+    if (!hintEl) {
+        hintEl = document.createElement('div');
+        hintEl.id = 'game-hint-box';
+        hintEl.className = 'glass';
+        hintEl.style.cssText = "margin-top:3rem; padding:1.5rem; text-align:center; border:2px dashed var(--accent); border-radius:12px; animation: fadeIn 1s ease-out; background:rgba(255,255,255,0.7);";
+        container.appendChild(hintEl);
+    }
+
+    let categoryHtml = '';
     if (safeCats.length > 0) {
-        const cats = safeCats.slice(0, 2).map(c => `<li><i class="fa-solid fa-tag" style="margin-right:5px; color:var(--accent); font-size:0.8rem;"></i> ${c}</li>`).join('');
+        // Show up to "stage" categories progress
+        const visibleCats = safeCats.slice(0, stage);
+        const cats = visibleCats.map(c => `<li><i class="fa-solid fa-tag" style="margin-right:5px; color:var(--accent); font-size:0.8rem;"></i> ${c}</li>`).join('');
         categoryHtml = `
             <div style="margin-top:15px; padding-top:15px; border-top:1px solid rgba(0,0,0,0.1); text-align:left;">
-                <span style="font-size:0.75rem; text-transform:uppercase; color:var(--text-muted); font-weight:700; letter-spacing:1px;">Thèmes de l'article :</span>
+                <span style="font-size:0.75rem; text-transform:uppercase; color:var(--text-muted); font-weight:700; letter-spacing:1px;">Thèmes de l'article (${visibleCats.length}/${safeCats.length}) :</span>
                 <ul style="list-style:none; padding:0; margin:8px 0 0; color:#111; font-weight:600; font-size:0.9rem; line-height:1.5;">
                     ${cats}
                 </ul>
@@ -846,20 +861,16 @@ function showCompetitionHint() {
                 <span style="font-size:0.75rem; text-transform:uppercase; color:var(--text-muted); font-weight:700; letter-spacing:1px;">Thèmes de l'article :</span>
                 <p style="margin:8px 0 0; color:var(--text-muted); font-style:italic; font-size:0.85rem; line-height:1.4;">
                     <i class="fa-solid fa-triangle-exclamation" style="color:#f59e0b; margin-right:5px;"></i>
-                    Aucune thématique ne peut etre dévoilé sans donné une réponse du titre...
+                    Aucune thématique ne peut être dévoilée sans donner une réponse du titre...
                 </p>
             </div>
         `;
     }
 
-    const hintEl = document.createElement('div');
-    hintEl.className = 'glass';
-    hintEl.style.cssText = "margin-top:3rem; padding:1.5rem; text-align:center; border:2px dashed var(--accent); border-radius:12px; animation: fadeIn 1s ease-out; background:rgba(255,255,255,0.7);";
     hintEl.innerHTML = `
         <i class="fa-solid fa-lightbulb" style="color:#fbbf24; font-size:1.5rem; margin-bottom:10px;"></i>
-        <h3 style="margin:0 0 5px 0; color:#111;">Coup de pouce (2 min)</h3>
+        <h3 style="margin:0 0 5px 0; color:#111;">Coup de pouce (Aide progressive)</h3>
         <p style="margin:0; color:var(--text-muted); font-size:0.95rem;">Le premier mot du titre commence par la lettre <strong style="color:white; font-size:1.2rem; background:var(--accent); padding:2px 8px; border-radius:4px;">${firstChar}</strong></p>
         ${categoryHtml}
     `;
-    container.appendChild(hintEl);
 }
