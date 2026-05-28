@@ -516,6 +516,10 @@ function _subscribe(roomId) {
             }
             if (window._pauseTimer) window._pauseTimer();
             _showPauseBanner();
+            if (data.creatorUid === user?.uid) {
+                _updateAdminPanel(data);
+            }
+            _updateLivePlayers(data);
         } else if (data.state === "FINISHED") {
             if (window._pauseTimer) window._pauseTimer();
             _renderLeaderboard(data);
@@ -569,20 +573,20 @@ async function _checkMultiplayerRewards(data) {
 }
 
 // ── DÉMARRAGE DU JEU ─────────────────────────────────────────────
-function _startGame(articleId, roomData) {
+async function _startGame(articleId, roomData) {
     window.mpReportProgress = (found, total, finished, attempts) => {
         reportProgress(found, total, finished, attempts);
     };
     // Transmettre hintEnabled et roomId depuis les paramètres de la salle
-    initGame('multiplayer', articleId, false, null, { 
+    await initGame('multiplayer', articleId, false, null, { 
         hintEnabled: roomData.hintEnabled !== false,
         roomId: roomData.roomId 
     });
 
-    // Injecter panneau admin après init
+    // Injecter panneau admin après init (garanti d'être dans le DOM car initGame est terminé)
     const user = getCurrentUser();
     if (user && roomData.creatorUid === user.uid) {
-        setTimeout(() => _injectAdminPanel(roomData), 300);
+        _injectAdminPanel(roomData);
     }
 }
 
@@ -745,6 +749,12 @@ function _updateCountdown(data) {
 }
 
 function _updateAdminPanel(data) {
+    const slot = document.getElementById('mp-admin-slot');
+    if (slot && !document.getElementById('mp-admin-panel')) {
+        _injectAdminPanel(data);
+        return;
+    }
+
     const info = document.getElementById('mp-round-info');
     if (info) info.textContent = `Manche ${data.currentRound} / ${data.maxRounds}`;
 
