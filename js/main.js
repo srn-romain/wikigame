@@ -1,5 +1,4 @@
 import { initGame, handleGuess } from './game.js';
-import { createRoom, joinRoom } from './multiplayer.js';
 import { waitForAuth, getCurrentUser } from './firebase-app.js';
 import { openAuthModal, showInfoModal, showConfirmModal } from './auth.js';
 import { getDailyArticleId, checkDailySolved, getCountdown, getDailySolversCount } from './daily.js';
@@ -778,11 +777,11 @@ function renderMultiplayerMenu(container) {
 
                     <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
                         <div style="display:flex;flex-direction:column;gap:.6rem;">
-                            <label style="font-size:.7rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;">Votre pseudo</label>
+                            <label style="font-size:.7rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;">Votre pseudo <span style="color:#dc2626; font-weight:bold; margin-left:2px;">*</span></label>
                             <input type="text" id="join-username" class="wiki-input" placeholder="Pseudo" value="${defaultName}" style="width:100%; padding: 0.6rem;">
                         </div>
                         <div style="display:flex;flex-direction:column;gap:.6rem;">
-                            <label style="font-size:.7rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;">Code de salle</label>
+                            <label style="font-size:.7rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;">Code de salle <span style="color:#dc2626; font-weight:bold; margin-left:2px;">*</span></label>
                             <input type="text" id="join-code" class="wiki-input" placeholder="ABCDE" maxlength="5" style="width:100%; text-transform:uppercase; text-align:center; font-family:var(--font-mono); font-weight:800; padding: 0.6rem;">
                         </div>
                     </div>
@@ -812,7 +811,7 @@ function renderMultiplayerMenu(container) {
 
                     <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
                         <div style="display:flex;flex-direction:column;gap:.6rem;">
-                            <label style="font-size:.8rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;">Votre pseudo</label>
+                            <label style="font-size:.8rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;">Votre pseudo <span style="color:#dc2626; font-weight:bold; margin-left:2px;">*</span></label>
                             <input type="text" id="create-username" class="wiki-input" placeholder="Pseudo" value="${defaultName}" style="width:100%;">
                         </div>
                         <div style="display:flex;flex-direction:column;gap:.6rem;">
@@ -865,6 +864,19 @@ function renderMultiplayerMenu(container) {
                         </div>
                     </div>
 
+                    <!-- ── OPTION CATÉGORIE ── -->
+                    <div style="display:flex;flex-direction:column;gap:.6rem;">
+                        <label style="font-size:.8rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;">Thématique de la salle (facultatif)</label>
+                        <select id="create-category" class="wiki-input" style="width:100%; cursor:pointer; padding: 0.8rem; border-radius: 12px; background: white; border: 1px solid #eee;">
+                            <option value="">Toutes - Aléatoire (par défaut)</option>
+                            <option value="" disabled>⏳ Chargement des catégories populaires...</option>
+                        </select>
+                        <p style="font-size:0.7rem; color:var(--text-muted); margin: 0; line-height: 1.4; display: flex; gap: 5px; align-items: flex-start;">
+                            <i class="fa-solid fa-circle-info" style="color:var(--primary); margin-top:2px;"></i>
+                            <span><strong>Pour info :</strong> en choisissant une thématique, vous êtes plus susceptible de retomber sur un article déjà joué. Choisissez « Aléatoire » pour être sûr d'avoir de nouveaux articles.</span>
+                        </p>
+                    </div>
+
                     <!-- ── OPTION AIDE 2 MIN ── -->
                     <div style="display:flex; align-items:center; justify-content:space-between; background:#f9fafb; padding:0.9rem 1.1rem; border-radius:12px; border:1px solid #eee; gap:1rem;">
                         <div style="display:flex; align-items:center; gap:10px;">
@@ -915,6 +927,40 @@ function renderMultiplayerMenu(container) {
     hintCheckbox.addEventListener('change', updateHintToggle);
     updateHintToggle(); // init
 
+    // Chargement des catégories thématiques en tâche de fond
+    let categoriesList = [];
+    import('./wiki.js').then(async (wiki) => {
+        try {
+            const selectEl = document.getElementById('create-category');
+            if (selectEl) {
+                const cats = await wiki.fetchTopArticlesCategories();
+                // Tirer au sort jusqu'à 20 catégories populaires
+                const shuffled = cats.sort(() => 0.5 - Math.random());
+                categoriesList = shuffled.slice(0, 20);
+                
+                selectEl.innerHTML = '<option value="">Toutes - Aléatoire (par défaut)</option>';
+                categoriesList.forEach(c => {
+                    const option = document.createElement('option');
+                    option.value = c.name;
+                    option.textContent = `${c.name} (${c.articles.length} articles)`;
+                    selectEl.appendChild(option);
+                });
+                
+                // Mettre en cache la correspondance catégorie -> articles pour le créateur
+                window._multiplayerCategoriesMap = {};
+                categoriesList.forEach(c => {
+                    window._multiplayerCategoriesMap[c.name] = c.articles;
+                });
+            }
+        } catch (e) {
+            console.error("Multiplayer: Failed to load categories", e);
+            const selectEl = document.getElementById('create-category');
+            if (selectEl) {
+                selectEl.innerHTML = '<option value="">Toutes - Aléatoire (par défaut)</option>';
+            }
+        }
+    });
+
     // Créer
     document.getElementById('create-room-btn').onclick = async () => {
         const username  = document.getElementById('create-username').value.trim();
@@ -922,6 +968,7 @@ function renderMultiplayerMenu(container) {
         const maxRounds = parseInt(document.getElementById('create-rounds').value, 10);
         const winMode   = parseInt(document.querySelector('input[name="win-mode"]:checked').value, 10);
         const hintEnabled = document.getElementById('create-hint-enabled').checked;
+        const category  = document.getElementById('create-category').value;
 
         if (!username) { 
             showInfoModal("Pseudo manquant", "Veuillez entrer un pseudo pour créer une salle.", "error"); 
@@ -931,7 +978,8 @@ function renderMultiplayerMenu(container) {
         btn.disabled = true;
         btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Création…';
         try {
-            await createRoom({ username, roomName, maxRounds, winMode, hintEnabled });
+            const { createRoom } = await import('./multiplayer.js');
+            await createRoom({ username, roomName, maxRounds, winMode, hintEnabled, category });
         } catch (err) {
             showInfoModal("Échec de création", err.message || "Impossible de créer la salle.", "error");
             btn.disabled = false;
@@ -955,6 +1003,7 @@ function renderMultiplayerMenu(container) {
         btn.disabled = true;
         btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Connexion…';
         try {
+            const { joinRoom } = await import('./multiplayer.js');
             await joinRoom(code, username);
         } catch (err) {
             showInfoModal("Échec de connexion", err.message || "Impossible de rejoindre la salle.", "error");

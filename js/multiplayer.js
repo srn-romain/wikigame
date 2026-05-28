@@ -12,7 +12,6 @@ import { db, waitForAuth, getCurrentUser, doc, setDoc, getDoc, updateDoc, onSnap
 import { fetchRandomArticle } from './wiki.js';
 import { initGame } from './game.js';
 import { showInfoModal } from './auth.js';
-import { navigateTo } from './main.js';
 import confetti from 'https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/+esm';
 
 
@@ -20,9 +19,10 @@ let _unsub = null;
 let _roomId = null;
 let _countdownInterval = null;
 let _lastRoomData = null; // Cache pour éviter les getDoc() répétitifs
+let _isTransitioning = false;
 
 // ── CRÉER UNE SALLE ──────────────────────────────────────────────
-export async function createRoom({ roomName, username, maxRounds, winMode, hintEnabled }) {
+export async function createRoom({ roomName, username, maxRounds, winMode, hintEnabled, category }) {
     const user = await waitForAuth();
     if (!user) return;
 
@@ -55,6 +55,7 @@ export async function createRoom({ roomName, username, maxRounds, winMode, hintE
         maxRounds:  maxRounds || 3,
         winMode:    winMode || 1,
         hintEnabled: hintEnabled !== false, // true par défaut
+        category:   category || null, // Thématique facultative
         currentRound: 1,
         articleId:  null,
         startTime:  null,
@@ -127,8 +128,9 @@ export async function joinRoom(roomId, username) {
 
 // ── ACTIONS ADMIN ─────────────────────────────────────────────────
 export async function approvePlayer(uid) {
-    const snap = await getDoc(doc(db, "rooms", _roomId));
-    const name = snap.data().pending?.[uid]?.name || uid;
+    const data = _lastRoomData || (await getDoc(doc(db, "rooms", _roomId))).data();
+    if (!data) return;
+    const name = data.pending?.[uid]?.name || uid;
     const updates = {};
     updates[`players.${uid}`] = { name, isHost: false, approved: true, roundScores: {}, totalScore: 0, finished: false, attempts: 0 };
     updates[`pending.${uid}`] = deleteField();
@@ -142,11 +144,15 @@ export async function rejectPlayer(uid) {
 }
 
 export async function toggleLock() {
-    const snap = await getDoc(doc(db, "rooms", _roomId));
-    await updateDoc(doc(db, "rooms", _roomId), { locked: !snap.data().locked });
+    const data = _lastRoomData || (await getDoc(doc(db, "rooms", _roomId))).data();
+    if (!data) return;
+    await updateDoc(doc(db, "rooms", _roomId), { locked: !data.locked });
 }
 
 export async function startRound() {
+    if (_isTransitioning) return;
+    _isTransitioning = true;
+
     const btn = document.getElementById('mp-start-btn');
     const originalHtml = btn ? btn.innerHTML : '';
     if (btn) {
@@ -155,10 +161,14 @@ export async function startRound() {
     }
 
     try {
+        const data = _lastRoomData || (await getDoc(doc(db, "rooms", _roomId))).data();
+        if (!data) return;
+        const category = data.category || null;
+
         // Signaler la recherche à tout le monde
         await updateDoc(doc(db, "rooms", _roomId), { state: "SEARCHING" });
 
-        const article = await fetchRandomArticle();
+        const article = await fetchRandomArticle(category);
         if (!article) { 
             showInfoModal("Erreur", "Impossible de charger un article aléatoire depuis Wikipédia.", "error"); 
             await updateDoc(doc(db, "rooms", _roomId), { state: "WAITING" });
@@ -166,8 +176,6 @@ export async function startRound() {
             return; 
         }
 
-        const snap = await getDoc(doc(db, "rooms", _roomId));
-        const data = snap.data();
         const round = data.currentRound || 1;
 
         // Remettre finished à false pour tous les joueurs
@@ -180,11 +188,11 @@ export async function startRound() {
             roundFinished: deleteField(),
             [`roundHistory.${round}`]: { id: article.id, title: article.title }
         };
-    Object.keys(data.players || {}).forEach(uid => {
-        updates[`players.${uid}.finished`] = false;
-        updates[`players.${uid}.attempts`] = 0;
-    });
-    await updateDoc(doc(db, "rooms", _roomId), updates);
+        Object.keys(data.players || {}).forEach(uid => {
+            updates[`players.${uid}.finished`] = false;
+            updates[`players.${uid}.attempts`] = 0;
+        });
+        await updateDoc(doc(db, "rooms", _roomId), updates);
     } catch (err) {
         console.error(err);
         showInfoModal("Erreur", "Une erreur est survenue lors du lancement de la manche.", "error");
@@ -193,80 +201,132 @@ export async function startRound() {
             btn.disabled = false;
             btn.innerHTML = originalHtml;
         }
+    } finally {
+        _isTransitioning = false;
     }
 }
 
 export async function pauseGame() {
-    const user = getCurrentUser();
-    if (!user) return;
+    if (_isTransitioning) return;
+    _isTransitioning = true;
 
-    const roomRef = doc(db, "rooms", _roomId);
-    const snap = await getDoc(roomRef);
-    if (!snap.exists()) return;
-    const data = snap.data();
+    try {
+        const user = getCurrentUser();
+        if (!user) return;
 
-    if (data.state === "PLAYING") {
-        // N'importe qui peut mettre pause
-        await updateDoc(roomRef, { 
-            state: "PAUSED", 
-            pausedBy: user.uid 
-        });
-    } else if (data.state === "PAUSED") {
-        // Seul celui qui a mis pause (ou l'admin par sécurité ?) peut relancer
-        // On suit la règle demandée : celui qui a mis pause relance.
-        if (data.pausedBy === user.uid) {
+        const roomRef = doc(db, "rooms", _roomId);
+        const data = _lastRoomData || (await getDoc(roomRef)).data();
+        if (!data) return;
+
+        if (data.state === "PLAYING") {
+            // N'importe qui peut mettre pause
             await updateDoc(roomRef, { 
-                state: "PLAYING", 
-                pausedBy: deleteField() 
+                state: "PAUSED", 
+                pausedBy: user.uid 
             });
+        } else if (data.state === "PAUSED") {
+            // Seul celui qui a mis pause (ou l'admin par sécurité ?) peut relancer
+            // On suit la règle demandée : celui qui a mis pause relance.
+            if (data.pausedBy === user.uid) {
+                await updateDoc(roomRef, { 
+                    state: "PLAYING", 
+                    pausedBy: deleteField() 
+                });
+            }
         }
+    } catch (e) {
+        console.error("Multiplayer pauseGame error:", e);
+    } finally {
+        _isTransitioning = false;
     }
 }
 
-export async function stopGame() {
-    await updateDoc(doc(db, "rooms", _roomId), { 
-        state: "FINISHED",
-        expireAt: new Date(Date.now() + 30 * 60 * 1000) // Expire et se purge dans 30 minutes (laissant le temps de voir le score)
-    });
-}
+export async function stopGame(btnElement) {
+    if (_isTransitioning) return;
+    _isTransitioning = true;
 
-export async function nextArticle() {
-    const snap = await getDoc(doc(db, "rooms", _roomId));
-    const data = snap.data();
-    const nextRound = (data.currentRound || 1) + 1;
+    if (btnElement) {
+        btnElement.disabled = true;
+    }
 
-    // Signaler la recherche
-    await updateDoc(doc(db, "rooms", _roomId), { state: "SEARCHING" });
+    const banner = document.getElementById('mp-pause-banner');
+    if (banner) {
+        banner.remove();
+    }
 
-    if (nextRound > data.maxRounds) {
+    try {
         await updateDoc(doc(db, "rooms", _roomId), { 
             state: "FINISHED",
             expireAt: new Date(Date.now() + 30 * 60 * 1000) // Expire et se purge dans 30 minutes (laissant le temps de voir le score)
         });
-        return;
+    } catch (err) {
+        console.error("Multiplayer stopGame error:", err);
+    } finally {
+        _isTransitioning = false;
+    }
+}
+
+export async function nextArticle(btnElement) {
+    if (_isTransitioning) return;
+    _isTransitioning = true;
+
+    if (btnElement) {
+        btnElement.disabled = true;
+        btnElement.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Chargement...';
     }
 
-    const article = await fetchRandomArticle();
-    if (!article) {
-        await updateDoc(doc(db, "rooms", _roomId), { state: "WAITING" });
-        return;
+    // Retirer la modale immédiatement pour éviter les clics répétés
+    const banner = document.getElementById('mp-pause-banner');
+    if (banner) {
+        banner.remove();
     }
 
-    const updates = { 
-        state: "PLAYING", 
-        articleId: article.id, 
-        startTime: Date.now(), 
-        currentRound: nextRound,
-        roundWinner: deleteField(),
-        countdownEnd: deleteField(),
-        roundFinished: deleteField(),
-        [`roundHistory.${nextRound}`]: { id: article.id, title: article.title }
-    };
-    Object.keys(data.players || {}).forEach(uid => {
-        updates[`players.${uid}.finished`] = false;
-        updates[`players.${uid}.attempts`] = 0;
-    });
-    await updateDoc(doc(db, "rooms", _roomId), updates);
+    try {
+        const data = _lastRoomData || (await getDoc(doc(db, "rooms", _roomId))).data();
+        if (!data) return;
+        const nextRound = (data.currentRound || 1) + 1;
+        const category = data.category || null;
+
+        // Signaler la recherche
+        await updateDoc(doc(db, "rooms", _roomId), { state: "SEARCHING" });
+
+        if (nextRound > data.maxRounds) {
+            await updateDoc(doc(db, "rooms", _roomId), { 
+                state: "FINISHED",
+                expireAt: new Date(Date.now() + 30 * 60 * 1000) // Expire et se purge dans 30 minutes (laissant le temps de voir le score)
+            });
+            return;
+        }
+
+        const article = await fetchRandomArticle(category);
+        if (!article) {
+            await updateDoc(doc(db, "rooms", _roomId), { state: "WAITING" });
+            return;
+        }
+
+        const updates = { 
+            state: "PLAYING", 
+            articleId: article.id, 
+            startTime: Date.now(), 
+            currentRound: nextRound,
+            roundWinner: deleteField(),
+            countdownEnd: deleteField(),
+            roundFinished: deleteField(),
+            [`roundHistory.${nextRound}`]: { id: article.id, title: article.title }
+        };
+        Object.keys(data.players || {}).forEach(uid => {
+            updates[`players.${uid}.finished`] = false;
+            updates[`players.${uid}.attempts`] = 0;
+        });
+        await updateDoc(doc(db, "rooms", _roomId), updates);
+    } catch (err) {
+        console.error("Multiplayer nextArticle error:", err);
+        showInfoModal("Erreur", "Impossible de charger la manche suivante.", "error");
+        // En cas d'erreur, on remet en pause pour que l'hôte puisse réessayer
+        await updateDoc(doc(db, "rooms", _roomId), { state: "PAUSED" }).catch(() => {});
+    } finally {
+        _isTransitioning = false;
+    }
 }
 
 export async function leaveRoom() {
@@ -277,13 +337,10 @@ export async function leaveRoom() {
         if (user) {
             try {
                 const roomRef = doc(db, "rooms", _roomId);
-                const snap = await getDoc(roomRef);
-                if (snap.exists()) {
-                    const data = snap.data();
-                    if (data.creatorUid === user.uid) {
-                        console.log("Multiplayer: Host is leaving, deleting room from Firestore...");
-                        await deleteDoc(roomRef);
-                    }
+                const data = _lastRoomData || (await getDoc(roomRef)).data();
+                if (data && data.creatorUid === user.uid) {
+                    console.log("Multiplayer: Host is leaving, deleting room from Firestore...");
+                    await deleteDoc(roomRef);
                 }
             } catch (e) {
                 console.warn("Multiplayer: Failed to delete room on leave", e);
@@ -408,7 +465,7 @@ function _subscribe(roomId) {
         if (expireDate < new Date()) {
             showInfoModal("Salle expirée", "Cette salle a dépassé la limite de 30 jours et n'est plus accessible.", "info");
             leaveRoom();
-            navigateTo('home');
+            window.navigateTo('home');
             return;
         }
 
@@ -424,6 +481,13 @@ function _subscribe(roomId) {
             }, 20000);
         }
 
+        if (data.state !== "PAUSED") {
+            const banner = document.getElementById('mp-pause-banner');
+            if (banner) {
+                banner.remove();
+            }
+        }
+
         if (data.state === "WAITING") {
             window._mpGameStarted = false;
             window._mpArticleId = null;
@@ -437,11 +501,7 @@ function _subscribe(roomId) {
                 _startGame(data.articleId, data);
             } else {
                 // Reprise après pause
-                const banner = document.getElementById('mp-pause-banner');
-                if (banner) {
-                    banner.remove();
-                    if (window._resumeTimer) window._resumeTimer();
-                }
+                if (window._resumeTimer) window._resumeTimer();
             }
             if (data.creatorUid === user?.uid) {
                 _updateAdminPanel(data);
@@ -623,13 +683,13 @@ function _injectAdminPanel(data) {
         <div id="mp-round-info" style="font-size:0.85rem; color:#374151; font-weight:700; margin-right:auto;"></div>
         
         <div style="display:flex; gap:8px;">
-            <button id="mp-pause-btn" onclick="window._mpPause()" style="all:unset; cursor:pointer; background:#f3f4f6; color:#374151; border:1px solid #d1d5db; padding:6px 14px; border-radius:8px; font-size:0.8rem; font-weight:600; display:flex; align-items:center; gap:6px; transition:all 0.2s;">
+            <button id="mp-pause-btn" onclick="window._mpPause(this)" style="all:unset; cursor:pointer; background:#f3f4f6; color:#374151; border:1px solid #d1d5db; padding:6px 14px; border-radius:8px; font-size:0.8rem; font-weight:600; display:flex; align-items:center; gap:6px; transition:all 0.2s;">
                 <i class="fa-solid fa-pause"></i> Pause
             </button>
-            <button id="mp-next-btn" onclick="window._mpNext()" style="all:unset; cursor:pointer; background:var(--accent); color:white; padding:6px 14px; border-radius:8px; font-size:0.8rem; font-weight:600; display:flex; align-items:center; gap:6px;">
+            <button id="mp-next-btn" onclick="window._mpNext(this)" style="all:unset; cursor:pointer; background:var(--accent); color:white; padding:6px 14px; border-radius:8px; font-size:0.8rem; font-weight:600; display:flex; align-items:center; gap:6px;">
                 <i class="fa-solid fa-forward"></i> Suivant
             </button>
-            <button id="mp-stop-btn" onclick="window._mpStop()" style="all:unset; cursor:pointer; background:#fef2f2; color:#dc2626; padding:6px 14px; border-radius:8px; font-size:0.8rem; font-weight:600; display:flex; align-items:center; gap:6px;">
+            <button id="mp-stop-btn" onclick="window._mpStop(this)" style="all:unset; cursor:pointer; background:#fef2f2; color:#dc2626; padding:6px 14px; border-radius:8px; font-size:0.8rem; font-weight:600; display:flex; align-items:center; gap:6px;">
                 <i class="fa-solid fa-stop"></i> Arrêter
             </button>
         </div>
@@ -742,7 +802,7 @@ function _showPauseBanner() {
                 <h2 style="margin:0; font-size:1.8rem;">Article trouvé !</h2>
                 <p style="color:#6b7280; margin-top:.75rem; font-size:1.1rem;">Bravo à <strong>${winner}</strong></p>
                 ${isAdmin ? `
-                    <button onclick="window._mp${data.currentRound < data.maxRounds ? 'Next' : 'Stop'}()" class="btn-primary" style="margin-top:2rem; width:100%; justify-content:center;">
+                    <button onclick="window._mp${data.currentRound < data.maxRounds ? 'Next' : 'Stop'}(this)" class="btn-primary" style="margin-top:2rem; width:100%; justify-content:center;">
                         <i class="fa-solid fa-${data.currentRound < data.maxRounds ? 'forward' : 'square-poll-vertical'}"></i>
                         ${data.currentRound < data.maxRounds ? 'Manche suivante' : 'Voir les résultats'}
                     </button>
@@ -756,7 +816,7 @@ function _showPauseBanner() {
                 <h2 style="margin:0; font-size:1.8rem;">Temps écoulé !</h2>
                 <p style="color:#6b7280; margin-top:.75rem; font-size:1.1rem;">La manche est terminée.</p>
                 ${isAdmin ? `
-                    <button onclick="window._mp${data.currentRound < data.maxRounds ? 'Next' : 'Stop'}()" class="btn-primary" style="margin-top:2rem; width:100%; justify-content:center;">
+                    <button onclick="window._mp${data.currentRound < data.maxRounds ? 'Next' : 'Stop'}(this)" class="btn-primary" style="margin-top:2rem; width:100%; justify-content:center;">
                         <i class="fa-solid fa-${data.currentRound < data.maxRounds ? 'forward' : 'square-poll-vertical'}"></i>
                         ${data.currentRound < data.maxRounds ? 'Manche suivante' : 'Voir les résultats'}
                     </button>
@@ -770,7 +830,7 @@ function _showPauseBanner() {
                 <h2 style="margin:0;">Partie en pause</h2>
                 <p style="color:#6b7280; margin-top:.5rem;"><strong>${pauserName}</strong> a mis la partie en pause.</p>
                 ${canResume ? `
-                    <button onclick="window._mpPause()" class="btn-primary" style="margin-top:2rem; width:100%; justify-content:center;">
+                    <button onclick="window._mpPause(this)" class="btn-primary" style="margin-top:2rem; width:100%; justify-content:center;">
                         <i class="fa-solid fa-play"></i> Reprendre la partie
                     </button>
                 ` : `
@@ -917,6 +977,11 @@ function _renderLobby(data, roomId, user) {
                     <div style="background:rgba(255,255,255,0.7); padding:6px 12px; border-radius:20px; border:1px solid rgba(0,0,0,0.06); display:flex; align-items:center; gap:4px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
                         <span style="color:var(--text-muted); display:flex; align-items:center; gap:3px;"><i class="fa-solid fa-lightbulb" style="color:#fbbf24; font-size:0.85rem;"></i> Aide (2 min) :</span> <strong>${hintText}</strong>
                     </div>
+                    ${data.category ? `
+                    <div style="background:rgba(255,255,255,0.7); padding:6px 12px; border-radius:20px; border:1px solid rgba(0,0,0,0.06); display:flex; align-items:center; gap:4px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
+                        <span style="color:var(--text-muted); display:flex; align-items:center; gap:3px;"><i class="fa-solid fa-tags" style="color:var(--accent); font-size:0.85rem;"></i> Thème :</span> <strong style="color:var(--accent);">${data.category}</strong>
+                    </div>
+                    ` : ''}
                 </div>
             </div>
 
@@ -1049,6 +1114,20 @@ function _renderLeaderboard(data) {
         </div>`;
 }
 
+export async function startNewGame() {
+    if (_isTransitioning) return;
+    _isTransitioning = true;
+    try {
+        await updateDoc(doc(db, "rooms", _roomId), {
+            state: "WAITING", articleId: null, startTime: null, currentRound: 1
+        });
+    } catch (err) {
+        console.error("Multiplayer startNewGame error:", err);
+    } finally {
+        _isTransitioning = false;
+    }
+}
+
 // ── GLOBALS (appelés depuis HTML injecté) ─────────────────────────
 window._mpApprove     = approvePlayer;
 window._mpReject      = rejectPlayer;
@@ -1057,16 +1136,7 @@ window._mpStart       = startRound;
 window._mpPause       = pauseGame;
 window._mpNext        = nextArticle;
 window._mpStop        = stopGame;
-window._mpNewGame     = () => {
-    // Remettre la salle en état WAITING
-    updateDoc(doc(db, "rooms", _roomId), {
-        state: "WAITING", articleId: null, startTime: null, currentRound: 1
-    }).then(() => {
-        // Reset scores
-        const user = getCurrentUser();
-        // Full reset via snapshot
-    });
-};
+window._mpNewGame     = startNewGame;
 window._mpCopy = async (code) => {
     await navigator.clipboard.writeText(code).catch(() => {});
     const btn = document.getElementById('copy-room-btn');
