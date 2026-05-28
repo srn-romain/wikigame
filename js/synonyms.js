@@ -454,25 +454,28 @@ function isRoman(s) {
 export async function checkWord(guess, target) {
     if (!guess || !target) return false;
 
+    const canonicalGuess = getCanonicalWord(guess);
+    const canonicalTarget = getCanonicalWord(target);
+
     // Cas particulier : Les Années / Dates
-    if (isYearLike(guess) && isYearLike(target)) {
+    if (isYearLike(canonicalGuess) && isYearLike(canonicalTarget)) {
         return 'synonym';
     }
 
     // Cas particulier : Chiffres Romains (si les deux en sont)
-    if (isRoman(guess) && isRoman(target)) {
+    if (isRoman(canonicalGuess) && isRoman(canonicalTarget)) {
         return 'synonym';
     }
 
     // Cas particulier : Nombres génériques (si l'un est le synonyme de l'autre)
-    if (isNumber(guess) && isNumber(target)) {
+    if (isNumber(canonicalGuess) && isNumber(canonicalTarget)) {
         // Optionnel : On pourrait limiter aux nombres proches ou juste "tout nombre est synonyme de tout nombre"
         // pour aider à repérer les stats/données chiffrées
         return 'synonym';
     }
 
     for (const group of SYNONYM_GROUPS) {
-        if (group.includes(guess) && group.includes(target)) {
+        if (group.includes(canonicalGuess) && group.includes(canonicalTarget)) {
             return 'synonym';
         }
     }
@@ -534,10 +537,12 @@ export function checkSynonymMatch(target, guesses) {
         }
     }
 
+    const canonicalTarget = getCanonicalWord(target);
     for (const group of SYNONYM_GROUPS) {
-        if (group.includes(target)) {
+        if (group.includes(canonicalTarget)) {
             for (const guess of guesses) {
-                if (group.includes(guess)) {
+                const canonicalGuess = getCanonicalWord(guess);
+                if (group.includes(canonicalGuess)) {
                     return guess;
                 }
             }
@@ -581,11 +586,194 @@ export function renderSynonymHint(span, guess) {
     span.setAttribute('data-hint', guess);
 }
 
+const SPELLED_ORDINALS = {
+    "premier": 1, "premiere": 1, "premiers": 1, "premieres": 1,
+    "second": 2, "seconde": 2, "seconds": 2, "secondes": 2,
+    "deuxieme": 2, "deuxiemes": 2,
+    "troisieme": 3, "troisiemes": 3,
+    "quatrieme": 4, "quatriemes": 4,
+    "cinquieme": 5, "cinquiemes": 5,
+    "sixieme": 6, "sixiemes": 6,
+    "septieme": 7, "septiemes": 7,
+    "huitieme": 8, "huitiemes": 8,
+    "neuvieme": 9, "neuviemes": 9,
+    "dixieme": 10, "dixiemes": 10,
+    "onzieme": 11, "onziemes": 11,
+    "douzieme": 12, "douziemes": 12,
+    "treizieme": 13, "treiziemes": 13,
+    "quatorzieme": 14, "quatorziemes": 14,
+    "quinzieme": 15, "quinziemes": 15,
+    "seizieme": 16, "seiziemes": 16,
+    "dixseptieme": 17, "dixseptiemes": 17,
+    "dixhuitieme": 18, "dixhuitiemes": 18,
+    "dixneuvieme": 19, "dixneuviemes": 19,
+    "vingtieme": 20, "vingtiemes": 20,
+    "vingtetunieme": 21, "vingtetuniemes": 21,
+    "vingtdeuxieme": 22, "vingtdeuxiemes": 22,
+    "vingttroisieme": 23, "vingttroisiemes": 23,
+    "vingtquatrieme": 24, "vingtquatriemes": 24,
+    "vingtcinquieme": 25, "vingtcinquiemes": 25,
+    "vingtsixieme": 26, "vingtsixiemes": 26,
+    "vingtseptieme": 27, "vingtseptiemes": 27,
+    "vingthuitieme": 28, "vingthuitiemes": 28,
+    "vingtneuvieme": 29, "vingtneuviemes": 29,
+    "trentieme": 30, "trentiemes": 30,
+    "trenteetunieme": 31, "trenteetuniemes": 31,
+    "centieme": 100, "centiemes": 100,
+    "millieme": 1000, "milliemes": 1000
+};
+
+const STANDARD_ORDINALS = {
+    1: "premier",
+    2: "deuxieme",
+    3: "troisieme",
+    4: "quatrieme",
+    5: "cinquieme",
+    6: "sixieme",
+    7: "septieme",
+    8: "huitieme",
+    9: "neuvieme",
+    10: "dixieme",
+    11: "onzieme",
+    12: "douzieme",
+    13: "treizieme",
+    14: "quatorzieme",
+    15: "quinzieme",
+    16: "seizieme",
+    17: "dixseptieme",
+    18: "dixhuitieme",
+    19: "dixneuvieme",
+    20: "vingtieme",
+    21: "vingtetunieme",
+    30: "trentieme",
+    40: "quarantieme",
+    50: "cinquantieme",
+    60: "soixantieme",
+    70: "soixantedixieme",
+    80: "quatrevingtieme",
+    90: "quatrevingtdixieme",
+    100: "centieme",
+    1000: "millieme"
+};
+
+const TENS = {
+    "trente": 30,
+    "quarante": 40,
+    "cinquante": 50,
+    "soixante": 60,
+    "quatrevingt": 80,
+    "quatrevingtdix": 90
+};
+
+const ONES = {
+    "unieme": 1, "deuxieme": 2, "troisieme": 3, "quatrieme": 4, "cinquieme": 5,
+    "sixieme": 6, "septieme": 7, "huitieme": 8, "neuvieme": 9
+};
+
+function romanToArabic(roman) {
+    const map = { i: 1, v: 5, x: 10, l: 50, c: 100, d: 500, m: 1000 };
+    let total = 0;
+    let prev = 0;
+    for (let i = roman.length - 1; i >= 0; i--) {
+        const current = map[roman[i].toLowerCase()];
+        if (!current) return null;
+        if (current < prev) {
+            total -= current;
+        } else {
+            total += current;
+        }
+        prev = current;
+    }
+    return total;
+}
+
+function parseCompoundOrdinal(clean) {
+    for (const [tenStr, tenVal] of Object.entries(TENS)) {
+        if (clean.startsWith(tenStr)) {
+            const rest = clean.slice(tenStr.length);
+            if (ONES[rest] !== undefined) {
+                return tenVal + ONES[rest];
+            }
+            if (rest.startsWith("et")) {
+                const rest2 = rest.slice(2);
+                if (ONES[rest2] !== undefined) {
+                    return tenVal + ONES[rest2];
+                }
+            }
+        }
+    }
+    return null;
+}
+
+export function normalize(str) {
+    if (!str) return '';
+    return str
+        .toLowerCase()
+        .replace(/œ/g, 'oe')
+        .replace(/æ/g, 'ae')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/['-]/g, '');
+}
+
+export function getOrdinalNumber(word) {
+    if (!word) return null;
+    const clean = normalize(word);
+
+    // 1. Spelled-out ordinals
+    if (SPELLED_ORDINALS[clean] !== undefined) {
+        return SPELLED_ORDINALS[clean];
+    }
+
+    // 2. Digit ordinals: e.g., "1er", "2e", "3eme", "2nd"
+    const digitMatch = clean.match(/^(\d+)(er|ere|ers|eres|nd|nde|nds|ndes|e|es|eme|emes)$/);
+    if (digitMatch) {
+        return parseInt(digitMatch[1], 10);
+    }
+
+    // 3. Roman ordinals: e.g., "ier", "iieme", "xxe"
+    const romanMatch = clean.match(/^(m{0,4}(?:cm|cd|d?c{0,3})(?:xc|xl|l?x{0,3})(?:ix|iv|v?i{0,3}))(er|ere|ers|eres|e|es|eme|emes)$/i);
+    if (romanMatch && romanMatch[1]) {
+        const romanNumeral = romanMatch[1];
+        const val = romanToArabic(romanNumeral);
+        if (val) return val;
+    }
+
+    // 4. Try parsing compound words like "trentedeuxieme"
+    return parseCompoundOrdinal(clean);
+}
+
+export function areWordsEquivalent(w1, w2) {
+    if (!w1 || !w2) return false;
+    const norm1 = normalize(w1);
+    const norm2 = normalize(w2);
+    if (norm1 === norm2) return true;
+
+    // Check if they are equivalent ordinals
+    const ord1 = getOrdinalNumber(norm1);
+    const ord2 = getOrdinalNumber(norm2);
+    if (ord1 !== null && ord2 !== null && ord1 === ord2) {
+        return true;
+    }
+
+    return false;
+}
+
+export function getCanonicalWord(word) {
+    if (!word) return word;
+    const ord = getOrdinalNumber(word);
+    if (ord !== null && STANDARD_ORDINALS[ord] !== undefined) {
+        return STANDARD_ORDINALS[ord];
+    }
+    return word;
+}
+
 export function getSynonyms(word) {
     let syns = [];
+    const canonicalWord = getCanonicalWord(word);
     for (const group of SYNONYM_GROUPS) {
-        if (group.includes(word)) {
-            syns = syns.concat(group.filter(w => w !== word));
+        if (group.includes(canonicalWord)) {
+            syns = syns.concat(group.filter(w => w !== canonicalWord));
         }
     }
     return syns;

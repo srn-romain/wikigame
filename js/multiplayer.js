@@ -449,6 +449,11 @@ function _subscribe(roomId) {
             _updateLivePlayers(data);
             _updateCountdown(data);
         } else if (data.state === "PAUSED") {
+            if (!window._mpGameStarted || window._mpArticleId !== data.articleId) {
+                window._mpGameStarted = true;
+                window._mpArticleId = data.articleId;
+                _startGame(data.articleId, data);
+            }
             if (window._pauseTimer) window._pauseTimer();
             _showPauseBanner();
         } else if (data.state === "FINISHED") {
@@ -508,8 +513,11 @@ function _startGame(articleId, roomData) {
     window.mpReportProgress = (found, total, finished, attempts) => {
         reportProgress(found, total, finished, attempts);
     };
-    // Transmettre hintEnabled depuis les paramètres de la salle
-    initGame('multiplayer', articleId, false, null, { hintEnabled: roomData.hintEnabled !== false });
+    // Transmettre hintEnabled et roomId depuis les paramètres de la salle
+    initGame('multiplayer', articleId, false, null, { 
+        hintEnabled: roomData.hintEnabled !== false,
+        roomId: roomData.roomId 
+    });
 
     // Injecter panneau admin après init
     const user = getCurrentUser();

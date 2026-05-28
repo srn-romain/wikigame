@@ -1,6 +1,6 @@
 import { fetchRandomArticle, fetchArticleById } from './wiki.js';
 import confetti from 'https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/+esm';
-import { checkWord, renderSynonymHint, getSynonyms, checkSynonymMatch } from './synonyms.js';
+import { checkWord, renderSynonymHint, getSynonyms, checkSynonymMatch, areWordsEquivalent, normalize } from './synonyms.js';
 
 import { db, doc, updateDoc, getCurrentUser, getDoc } from './firebase-app.js';
 import { saveSoloProgress, deleteSoloDraft } from './solo.js';
@@ -10,8 +10,8 @@ import { saveSoloProgress, deleteSoloDraft } from './solo.js';
 // REGEXES
 // ─────────────────────────────────────────────
 // Matches word characters (Unicode letters, digits, accented chars, hyphens) OR non-word sequences
-const TOKEN_REGEX = /[\p{L}0-9'-]+|[^\p{L}0-9'-]+/gu;
-const IS_WORD = /^[\p{L}0-9'-]+$/u;
+const TOKEN_REGEX = /[\p{L}0-9']+|[^\p{L}0-9']+/gu;
+const IS_WORD = /^[\p{L}0-9']+$/u;
 
 // ─────────────────────────────────────────────
 // GAME STATE
@@ -44,6 +44,8 @@ export function resetGameState() {
     state.won = false;
     const controls = document.getElementById('game-controls');
     if (controls) controls.classList.add('hidden');
+    const roomCodeBadge = document.getElementById('mp-room-code-badge');
+    if (roomCodeBadge) roomCodeBadge.style.display = 'none';
     if (window._saveTimeout) clearTimeout(window._saveTimeout);
     if (window._mpReportTimeout) clearTimeout(window._mpReportTimeout);
 }
@@ -90,12 +92,15 @@ async function fetchTitleSynonyms(title) {
 function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
-function normalize(str) {
-    return str
-        .toLowerCase()
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .replace(/['-]/g, '');
+
+
+function hasGuessed(cleanWord) {
+    if (!cleanWord) return false;
+    if (state.guesses.has(cleanWord)) return true;
+    for (const g of state.guesses) {
+        if (areWordsEquivalent(cleanWord, g)) return true;
+    }
+    return false;
 }
 
 // ─────────────────────────────────────────────
@@ -105,6 +110,7 @@ export async function initGame(mode, articleId = null, preSolved = false, draftI
     console.log(`Game: Initializing mode="${mode}" articleId=${articleId} draftId=${draftId}`);
     // options.hintEnabled : true par défaut (undefined = true)
     state.hintEnabled = options.hintEnabled !== false;
+    state.roomId = options.roomId || null;
     console.log(`[Game] Hint is ${state.hintEnabled ? 'ENABLED' : 'DISABLED'} for this session (mode: ${mode}).`);
     state.mode = mode;
     state.won = false;
@@ -192,7 +198,7 @@ function startGame(article, preSolved = false, savedGuesses = [], savedAttempts 
         raw.forEach(token => {
             const isWord = IS_WORD.test(token);
             const clean = isWord ? normalize(token) : null;
-            const revealed = !isWord || state.guesses.has(clean);
+            const revealed = !isWord || hasGuessed(clean);
             if (revealed && isWord) state.foundCount++;
 
             state.tokens.push({
@@ -211,7 +217,23 @@ function startGame(article, preSolved = false, savedGuesses = [], savedAttempts 
     state.totalWords = state.tokens.filter(t => t.isWord).length;
 
     renderGame();
-    document.getElementById('game-controls').classList.remove('hidden');
+    const controls = document.getElementById('game-controls');
+    controls.classList.remove('hidden');
+
+    // Room code indicator for competition/multiplayer
+    let roomCodeBadge = document.getElementById('mp-room-code-badge');
+    if (state.mode === 'multiplayer' && state.roomId) {
+        if (!roomCodeBadge) {
+            roomCodeBadge = document.createElement('div');
+            roomCodeBadge.id = 'mp-room-code-badge';
+            roomCodeBadge.style.cssText = "font-size:0.75rem; text-align:center; color:var(--text-muted); padding-top:6px; margin-top:6px; border-top:1px solid rgba(255,255,255,0.1); font-weight:600; width:100%; display:flex; justify-content:center; gap:4px; align-items:center;";
+            controls.appendChild(roomCodeBadge);
+        }
+        roomCodeBadge.innerHTML = `<i class="fa-solid fa-users" style="color:var(--accent); font-size:0.7rem;"></i> Code de la salle : <strong style="color:var(--accent); letter-spacing:1px; text-transform:uppercase; font-size:0.8rem;">${state.roomId}</strong>`;
+        roomCodeBadge.style.display = 'flex';
+    } else {
+        if (roomCodeBadge) roomCodeBadge.style.display = 'none';
+    }
 
     // Timer
     state.startTime = Date.now();
@@ -356,7 +378,7 @@ function renderTitle(target) {
             return;
         }
         const clean = normalize(token);
-        const isRevealed = state.guesses.has(clean) || state.won;
+        const isRevealed = hasGuessed(clean) || state.won;
 
         const span = document.createElement('span');
         span.dataset.original = token;
@@ -530,7 +552,7 @@ export function handleGuess(rawInput) {
 
     // Reveal matching tokens
     state.tokens.forEach(t => {
-        if (t.isWord && t.clean === cleanInput && !t.revealed) {
+        if (t.isWord && areWordsEquivalent(t.clean, cleanInput) && !t.revealed) {
             t.revealed = true;
             hitCount++;
             state.foundCount++;
@@ -594,14 +616,14 @@ export function handleGuess(rawInput) {
 
 function checkTitleFound(latestGuess) {
     // Check if all title words are now guessed
-    return state.titleTokens.every(w => state.guesses.has(w));
+    return state.titleTokens.every(w => hasGuessed(w));
 }
 
 function revealWordInDOM(cleanWord, count) {
     // Reveal in body
     const hiddenSpans = document.querySelectorAll('#wiki-body .wiki-word.hidden');
     hiddenSpans.forEach(span => {
-        if (span.dataset.clean === cleanWord) {
+        if (areWordsEquivalent(span.dataset.clean, cleanWord)) {
             span.className = 'wiki-word revealed found';
             span.textContent = span.dataset.original; // USE STORED ORIGINAL
             span.removeEventListener('click', handleWordClick);
@@ -613,7 +635,7 @@ function revealWordInDOM(cleanWord, count) {
     // Reveal in title
     const titleSpans = document.querySelectorAll('#wiki-title .wiki-word.hidden');
     titleSpans.forEach(span => {
-        if (span.dataset.clean === cleanWord) {
+        if (areWordsEquivalent(span.dataset.clean, cleanWord)) {
             span.className = 'wiki-word revealed found';
             span.textContent = span.dataset.original;
             span.removeEventListener('click', handleWordClick);
@@ -843,19 +865,35 @@ function showCompetitionHint(stage = 1) {
     }
 
     let categoryHtml = '';
+    let isExhausted = false;
+
     if (safeCats.length > 0) {
         // Show up to "stage" categories progress
         const visibleCats = safeCats.slice(0, stage);
         const cats = visibleCats.map(c => `<li><i class="fa-solid fa-tag" style="margin-right:5px; color:var(--accent); font-size:0.8rem;"></i> ${c}</li>`).join('');
+        
+        let warningText = '';
+        if (stage > safeCats.length) {
+            isExhausted = true;
+            warningText = `
+                <li style="margin-top:10px; color:var(--text-muted); font-style:italic; font-size:0.8rem; list-style:none; line-height:1.4; border-top:1px dashed rgba(0,0,0,0.1); padding-top:8px;">
+                    <i class="fa-solid fa-triangle-exclamation" style="color:#f59e0b; margin-right:5px;"></i>
+                    Aucun autre thème ne peut être dévoilé sans révéler le titre...
+                </li>
+            `;
+        }
+        
         categoryHtml = `
             <div style="margin-top:15px; padding-top:15px; border-top:1px solid rgba(0,0,0,0.1); text-align:left;">
                 <span style="font-size:0.75rem; text-transform:uppercase; color:var(--text-muted); font-weight:700; letter-spacing:1px;">Thèmes de l'article (${visibleCats.length}/${safeCats.length}) :</span>
                 <ul style="list-style:none; padding:0; margin:8px 0 0; color:#111; font-weight:600; font-size:0.9rem; line-height:1.5;">
                     ${cats}
+                    ${warningText}
                 </ul>
             </div>
         `;
     } else if (allCategories.length > 0 || (categories.length > 0 && safeCats.length === 0)) {
+        isExhausted = true;
         categoryHtml = `
             <div style="margin-top:15px; padding-top:15px; border-top:1px solid rgba(0,0,0,0.1); text-align:left;">
                 <span style="font-size:0.75rem; text-transform:uppercase; color:var(--text-muted); font-weight:700; letter-spacing:1px;">Thèmes de l'article :</span>
@@ -873,4 +911,53 @@ function showCompetitionHint(stage = 1) {
         <p style="margin:0; color:var(--text-muted); font-size:0.95rem;">Le premier mot du titre commence par la lettre <strong style="color:white; font-size:1.2rem; background:var(--accent); padding:2px 8px; border-radius:4px;">${firstChar}</strong></p>
         ${categoryHtml}
     `;
+
+    // Affiche la notification Toaster adéquate (disparaît après 10 secondes ou via clic)
+    if (isExhausted) {
+        showToastNotification("Plus aucun autre thème ne peut être dévoilé sans révéler le titre !", 10000);
+    } else {
+        showToastNotification("Un coup de pouce progressif est disponible au bas de l'article.", 10000);
+    }
+}
+
+function showToastNotification(message, duration = 5000) {
+    const existing = document.getElementById('game-toast-notification');
+    if (existing) existing.remove();
+
+    const toast = document.createElement('div');
+    toast.id = 'game-toast-notification';
+    toast.style.cssText = "position:fixed; top:20px; left:50%; transform:translateX(-50%) translateY(-20px); background:rgba(255,255,255,0.95); border-left:5px solid var(--accent); border-radius:12px; padding:12px 20px; box-shadow:0 10px 25px rgba(0,0,0,0.15); display:flex; align-items:center; gap:12px; z-index:9999; opacity:0; transition:all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); max-width:90%; width:340px; backdrop-filter:blur(8px); border:1px solid rgba(243,156,18,0.15);";
+    
+    toast.innerHTML = `
+        <div style="background:rgba(243,156,18,0.1); border-radius:50%; width:32px; height:32px; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+            <i class="fa-solid fa-lightbulb" style="color:var(--accent); font-size:1.1rem;"></i>
+        </div>
+        <div style="flex:1; text-align:left;">
+            <div style="font-weight:800; font-size:0.85rem; color:#111827; margin-bottom:2px;">Nouvel indice disponible !</div>
+            <div style="font-size:0.75rem; color:#4b5563; line-height:1.3;">${message}</div>
+        </div>
+        <button id="close-toast-btn" style="all:unset; cursor:pointer; color:#9ca3af; padding:4px; display:flex; align-items:center; justify-content:center; font-size:0.8rem; border-radius:50%; transition:all 0.2s;">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+    `;
+
+    document.body.appendChild(toast);
+
+    const closeBtn = toast.querySelector('#close-toast-btn');
+    const closeToast = () => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(-50%) translateY(-20px)';
+        setTimeout(() => toast.remove(), 400);
+    };
+
+    closeBtn.addEventListener('click', closeToast);
+
+    // Entre en fondu avec rebond
+    setTimeout(() => {
+        toast.style.opacity = '1';
+        toast.style.transform = 'translateX(-50%) translateY(0)';
+    }, 50);
+
+    // Retrait automatique
+    setTimeout(closeToast, duration);
 }
