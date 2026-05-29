@@ -823,7 +823,7 @@ function updateTimer() {
     const s = (elapsed % 60).toString().padStart(2, '0');
     el.textContent = `${m}:${s}`;
 
-    if (state.mode === 'multiplayer' && state.hintEnabled && !state.won) {
+    if ((state.mode === 'multiplayer' || state.mode === 'solo' || state.mode === 'daily') && state.hintEnabled && !state.won) {
         const hintStage = Math.floor(elapsed / 120); // 1 pour 2min, 2 pour 4min, etc.
         if (hintStage >= 1 && state.hintShown < hintStage && state.hintShown < 5) {
             const nextStage = Math.min(hintStage, 5);
