@@ -1449,9 +1449,14 @@ async function renderRanking(container) {
                         <div style="display:flex; align-items:center; gap:12px;">
                             ${getAvatarHtml(p.avatarId || 0, "38px", "0.9rem")}
 
-                            <div style="font-weight:800; color:#111827; font-size:1rem;">
-                                ${p.pseudo || "Anonyme"} 
-                                ${isPersonal ? '<span style="background:var(--primary); color:white; font-size:0.65rem; padding:2px 6px; border-radius:4px; margin-left:8px;">VOUS</span>' : ""}
+                            <div>
+                                <div style="font-weight:800; color:#111827; font-size:1rem;">
+                                    ${p.pseudo || "Anonyme"} 
+                                    ${isPersonal ? '<span style="background:var(--primary); color:white; font-size:0.65rem; padding:2px 6px; border-radius:4px; margin-left:8px;">VOUS</span>' : ""}
+                                </div>
+                                <div style="font-size:0.85rem; color:#6b7280; margin-top:3px; max-width:250px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                                    ${p.bio ? String(p.bio).replace(/</g, "&lt;").replace(/>/g, "&gt;") : '<span style="font-style:italic; opacity:0.7;">pas de bio</span>'}
+                                </div>
                             </div>
                         </div>
                     </td>
@@ -1479,6 +1484,9 @@ async function renderRanking(container) {
                                 <div style="font-weight:800; color:#111827; font-size:1rem;">
                                     ${currentUserData.pseudo || "Anonyme"} 
                                     <span style="background:${isPrivate ? 'var(--accent)' : 'var(--primary)'}; color:white; font-size:0.65rem; padding:2px 6px; border-radius:4px; margin-left:8px;">VOUS</span>
+                                </div>
+                                <div style="font-size:0.85rem; color:#6b7280; margin-top:3px; max-width:250px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                                    ${currentUserData.bio ? String(currentUserData.bio).replace(/</g, "&lt;").replace(/>/g, "&gt;") : '<span style="font-style:italic; opacity:0.7;">pas de bio</span>'}
                                 </div>
                                 ${isPrivate ? `
                                     <div style="font-size:0.75rem; color:#b45309; font-weight:700; margin-top:3px;">
