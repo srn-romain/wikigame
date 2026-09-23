@@ -50,7 +50,6 @@ export async function getDailyArticleId() {
 }
 
 async function rotateDailyArticle(dateId) {
-    console.log(`Daily: Rotating article for ${dateId}…`);
     const article = await fetchRandomArticle();
     if (!article) return null;
 
@@ -70,7 +69,6 @@ async function rotateDailyArticle(dateId) {
                 solversCount: 0
             });
 
-            console.log(`Daily: New article for ${dateId}:`, article.title);
             return article.id;
         });
     } catch (e) {
@@ -137,8 +135,6 @@ export async function markDailyAsSolved(user, articleTitle) {
         // Incrémenter le compteur global du défi
         const dailyRef = doc(db, "dailies", dateId);
         await updateDoc(dailyRef, { solversCount: increment(1) });
-
-        console.log("Daily: Marked as solved for", user.uid, "on", dateId);
     } catch (e) {
         console.error("Daily: markDailyAsSolved error:", e);
     }

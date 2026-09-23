@@ -8,7 +8,7 @@
  *   pending: { [uid]: { name } }
  * }
  */
-import { db, waitForAuth, getCurrentUser, doc, setDoc, getDoc, updateDoc, onSnapshot, deleteField, collection, query, where, getDocs, deleteDoc } from './firebase-app.js';
+import { db, waitForAuth, getCurrentUser, doc, setDoc, getDoc, updateDoc, onSnapshot, deleteField, collection, query, where, getDocs, deleteDoc, escapeHtml } from './firebase-app.js';
 import { fetchRandomArticle } from './wiki.js';
 import { initGame } from './game.js';
 import { showInfoModal } from './auth.js';
@@ -25,6 +25,9 @@ let _isTransitioning = false;
 export async function createRoom({ roomName, username, maxRounds, winMode, hintEnabled, category }) {
     const user = await waitForAuth();
     if (!user) return;
+
+    username = (username || `Joueur-${user.uid.slice(0, 4)}`).trim().slice(0, 25);
+    roomName = (roomName || `Salle de ${username}`).trim().slice(0, 40);
 
     // Fallback TTL : Nettoyage des anciennes salles de cet utilisateur
     try {
@@ -47,7 +50,7 @@ export async function createRoom({ roomName, username, maxRounds, winMode, hintE
 
     await setDoc(roomRef, {
         roomId,
-        name:       roomName || `Salle de ${username}`,
+        name:       roomName,
         creatorUid: user.uid,
         hostId:     user.uid,
         state:      "WAITING",
@@ -76,6 +79,7 @@ export async function joinRoom(roomId, username) {
     const user = await waitForAuth();
     if (!user) throw new Error("Erreur d'authentification.");
 
+    username = (username || `Joueur-${user.uid.slice(0, 4)}`).trim().slice(0, 25);
     roomId = roomId.toUpperCase().trim();
     const roomRef = doc(db, "rooms", roomId);
 
@@ -330,8 +334,6 @@ export async function nextArticle(btnElement) {
 }
 
 export async function leaveRoom() {
-    console.log("Multiplayer: Leaving room and cleaning up listeners...");
-    
     if (_roomId) {
         const user = getCurrentUser();
         if (user) {
@@ -339,7 +341,6 @@ export async function leaveRoom() {
                 const roomRef = doc(db, "rooms", _roomId);
                 const data = _lastRoomData || (await getDoc(roomRef)).data();
                 if (data && data.creatorUid === user.uid) {
-                    console.log("Multiplayer: Host is leaving, deleting room from Firestore...");
                     await deleteDoc(roomRef);
                 }
             } catch (e) {
@@ -364,8 +365,6 @@ export async function reportProgress(found, total, finished, attempts) {
     if (!_roomId) return;
     const user = getCurrentUser();
     if (!user) return;
-
-    console.log(`Multiplayer: Reporting progress for ${user.uid} - Found: ${found}/${total}, Finished: ${finished}`);
 
     const roomRef = doc(db, "rooms", _roomId);
     const data = _lastRoomData; // Utilisation du cache local au lieu d'un getDoc()
@@ -559,7 +558,6 @@ async function _checkMultiplayerRewards(data) {
             if (rank === 1) updates.mpWins = increment(1);
             
             await updateDoc(doc(db, "users", user.uid), updates);
-            console.log(`Competition Rewards: +${xpToAdd} XP (Rank #${rank}/${N})`);
         } catch (e) {
             console.error("Competition Rewards: Error updating XP", e);
         }
@@ -633,7 +631,7 @@ function _updateLivePlayers(data) {
             <div style="${style}">
                 <span style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; display:flex; gap:6px; align-items:center; font-size:0.85rem; font-weight:${isMe ? '800' : '600'}; color:${isOffline ? '#9ca3af' : 'var(--text-main)'}">
                     ${isMe ? '<i class="fa-solid fa-caret-right" style="color:var(--accent);"></i>' : ''}
-                    ${p.name} ${finishedIcon}
+                    ${escapeHtml(p.name)} ${finishedIcon}
                 </span>
                 <div style="display:flex; gap:8px; align-items:center;">
                     <span style="font-size:0.65rem; color:#9ca3af;"><i class="fa-solid fa-bullseye"></i> ${p.attempts || 0}</span>
@@ -653,7 +651,7 @@ function _updateLivePlayers(data) {
                 </p>
                 ${pending.map(([uid, p]) => `
                     <div style="display:flex; justify-content:space-between; align-items:center; background:#fffbeb; padding:6px 10px; border-radius:8px; margin-bottom:5px; border:1px solid #fde68a;">
-                        <span style="font-size:0.75rem; font-weight:600; color:#92400e; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-right:8px;">${p.name}</span>
+                        <span style="font-size:0.75rem; font-weight:600; color:#92400e; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-right:8px;">${escapeHtml(p.name)}</span>
                         <div style="display:flex; gap:4px;">
                             <button onclick="window._mpApprove('${uid}')" style="all:unset; cursor:pointer; color:#065f46; background:#d1fae5; width:22px; height:22px; display:flex; align-items:center; justify-content:center; border-radius:4px; font-size:0.75rem;"><i class="fa-solid fa-check"></i></button>
                             <button onclick="window._mpReject('${uid}')" style="all:unset; cursor:pointer; color:#991b1b; background:#fee2e2; width:22px; height:22px; display:flex; align-items:center; justify-content:center; border-radius:4px; font-size:0.75rem;"><i class="fa-solid fa-xmark"></i></button>
@@ -810,7 +808,7 @@ function _showPauseBanner() {
             content = `
                 <i class="fa-solid fa-trophy" style="font-size:3rem; color:#f1c40f; margin-bottom:1rem;"></i>
                 <h2 style="margin:0; font-size:1.8rem;">Article trouvé !</h2>
-                <p style="color:#6b7280; margin-top:.75rem; font-size:1.1rem;">Bravo à <strong>${winner}</strong></p>
+                <p style="color:#6b7280; margin-top:.75rem; font-size:1.1rem;">Bravo à <strong>${escapeHtml(winner)}</strong></p>
                 ${isAdmin ? `
                     <button onclick="window._mp${data.currentRound < data.maxRounds ? 'Next' : 'Stop'}(this)" class="btn-primary" style="margin-top:2rem; width:100%; justify-content:center;">
                         <i class="fa-solid fa-${data.currentRound < data.maxRounds ? 'forward' : 'square-poll-vertical'}"></i>
@@ -838,13 +836,13 @@ function _showPauseBanner() {
             content = `
                 <i class="fa-solid fa-pause" style="font-size:2rem; color:var(--accent); margin-bottom:1rem;"></i>
                 <h2 style="margin:0;">Partie en pause</h2>
-                <p style="color:#6b7280; margin-top:.5rem;"><strong>${pauserName}</strong> a mis la partie en pause.</p>
+                <p style="color:#6b7280; margin-top:.5rem;"><strong>${escapeHtml(pauserName)}</strong> a mis la partie en pause.</p>
                 ${canResume ? `
                     <button onclick="window._mpPause(this)" class="btn-primary" style="margin-top:2rem; width:100%; justify-content:center;">
                         <i class="fa-solid fa-play"></i> Reprendre la partie
                     </button>
                 ` : `
-                    <p style="color:#94a3b8; font-size:0.85rem; margin-top:1.5rem;">En attente de reprise par ${pauserName}…</p>
+                    <p style="color:#94a3b8; font-size:0.85rem; margin-top:1.5rem;">En attente de reprise par ${escapeHtml(pauserName)}…</p>
                 `}
             `;
         }
@@ -871,7 +869,7 @@ function _renderSearching(data) {
             <div style="background:#f3f4f6; padding:1.25rem; border-radius:16px; border:1px solid #e5e7eb;">
                 <p style="color:#4b5563; line-height:1.6; margin:0; font-size:1rem;">
                     <i class="fa-solid fa-crown" style="color:#fbbf24; margin-right:6px;"></i>
-                    <strong>${hostName}</strong> a lancé la partie !
+                    <strong>${escapeHtml(hostName)}</strong> a lancé la partie !
                 </p>
                 <p style="color:#6b7280; font-size:0.9rem; margin-top:0.5rem;">
                     <span id=" loading-status-text\>Recherche d'un article</span> Wikipédia passionnant en cours...
@@ -903,7 +901,7 @@ function _renderLobby(data, roomId, user) {
             <div class="glass" style="max-width:400px;margin:4rem auto;padding:2rem;text-align:center;border-radius:var(--radius-lg);">
                 <i class="fa-solid fa-hourglass-half" style="font-size:2rem;color:var(--accent);margin-bottom:1rem;"></i>
                 <h2>En attente d'approbation</h2>
-                <p style="color:var(--text-muted);margin-top:.5rem;">L'hôte doit vous accepter pour rejoindre la salle <strong>${roomId}</strong>.</p>
+                <p style="color:var(--text-muted);margin-top:.5rem;">L'hôte doit vous accepter pour rejoindre la salle <strong>${escapeHtml(roomId)}</strong>.</p>
                 <div style="margin-top:1.5rem;"><i class="fa-solid fa-spinner fa-spin"></i></div>
             </div>`;
         return;
@@ -916,7 +914,7 @@ function _renderLobby(data, roomId, user) {
         <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:#f9fafb;border-radius:10px;margin-bottom:6px;">
             <span style="font-weight:600;">
                 ${p.isHost ? '<i class="fa-solid fa-crown" style="color:gold;margin-right:6px;"></i>' : ''}
-                ${p.name}
+                ${escapeHtml(p.name)}
                 ${uid === user?.uid ? '<span style="color:var(--text-muted);font-size:0.75rem;"> (vous)</span>' : ''}
             </span>
             <span style="font-size:0.8rem;color:var(--text-muted);">✅ Accepté</span>
@@ -929,7 +927,7 @@ function _renderLobby(data, roomId, user) {
             </h3>
             ${pending.map(([uid, p]) => `
                 <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:10px;margin-bottom:6px;">
-                    <span style="font-weight:600;">${p.name}</span>
+                    <span style="font-weight:600;">${escapeHtml(p.name)}</span>
                     <div style="display:flex;gap:6px;">
                         <button onclick="window._mpApprove('${uid}')" style="all:unset;cursor:pointer;background:#d1fae5;color:#065f46;padding:4px 10px;border-radius:6px;font-size:0.8rem;font-weight:700;">✓ Accepter</button>
                         <button onclick="window._mpReject('${uid}')" style="all:unset;cursor:pointer;background:#fee2e2;color:#991b1b;padding:4px 10px;border-radius:6px;font-size:0.8rem;font-weight:700;">✕ Refuser</button>
@@ -1032,7 +1030,7 @@ function _renderLeaderboard(data) {
                 <td style="padding:12px 16px;display:flex;align-items:center;gap:10px;">
                     <span style="font-size:1.2rem;">${medals[i] || `${i + 1}.`}</span>
                     ${p.isHost ? '<i class="fa-solid fa-crown" style="color:gold;font-size:.75rem;"></i>' : ''}
-                    ${p.name}
+                    ${escapeHtml(p.name)}
                 </td>
                 ${roundCols}
                 <td style="text-align:center;padding:10px 16px;font-weight:800;color:var(--accent);font-size:1.05rem;">${p.totalScore}</td>
@@ -1071,7 +1069,7 @@ function _renderLeaderboard(data) {
         return `
             <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:#f9fafb;border-radius:10px;border:1px solid #e5e7eb;">
                 <span style="font-weight:800;color:var(--primary);min-width:28px;">M${round}</span>
-                <span style="flex:1;font-weight:600;color:#111827;font-size:.9rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${art.title}">${art.title}</span>
+                <span style="flex:1;font-weight:600;color:#111827;font-size:.9rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeHtml(art.title)}">${escapeHtml(art.title)}</span>
                 <a href="${wikiUrl}" target="_blank" rel="noopener" style="all:unset;cursor:pointer;display:flex;align-items:center;gap:6px;background:var(--primary);color:white;padding:5px 12px;border-radius:8px;font-size:.75rem;font-weight:700;white-space:nowrap;transition:opacity .2s;" onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='1'">
                     <i class="fa-brands fa-wikipedia-w"></i> Voir l'article
                 </a>
@@ -1085,7 +1083,7 @@ function _renderLeaderboard(data) {
                 <div style="text-align:center;margin-bottom:2rem;">
                     <i class="fa-solid fa-trophy" style="font-size:3rem;color:#f39c12;margin-bottom:.75rem;"></i>
                     <h2 style="margin:0;">Classement Final</h2>
-                    <p style="color:var(--text-muted);font-size:.85rem;">${data.name || _roomId} · ${data.maxRounds} manche(s)</p>
+                    <p style="color:var(--text-muted);font-size:.85rem;">${escapeHtml(data.name || _roomId)} · ${data.maxRounds} manche(s)</p>
                 </div>
 
                 <div style="overflow-x:auto;">
@@ -1165,7 +1163,7 @@ window._mpShare = async (code) => {
             });
             return;
         } catch (e) {
-            console.log("Partage annulé ou en échec", e);
+            // Partage annulé ou non supporté
         }
     }
 

@@ -1,5 +1,5 @@
 import { initGame, handleGuess } from './game.js';
-import { waitForAuth, getCurrentUser } from './firebase-app.js';
+import { waitForAuth, getCurrentUser, escapeHtml } from './firebase-app.js';
 import { openAuthModal, showInfoModal, showConfirmModal } from './auth.js';
 import { getDailyArticleId, checkDailySolved, getCountdown, getDailySolversCount } from './daily.js';
 import { getSoloDrafts, createSoloDraft, deleteSoloDraft } from './solo.js';
@@ -16,9 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Register PWA Service Worker
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-            navigator.serviceWorker.register('./service-worker.js')
-                .then(reg => console.log('PWA: Service Worker registered'))
-                .catch(err => console.log('PWA: Service Worker failed', err));
+            navigator.serviceWorker.register('./service-worker.js').catch(() => {});
         });
     }
 });
@@ -104,7 +102,6 @@ export async function navigateTo(view, force = false) {
         window.mpLeaveRoom();
     }
 
-    console.log(`Main: Navigating to view="${view}"`);
     window.scrollTo(0, 0);
 
     const homeView = document.getElementById('home-view');
@@ -140,7 +137,6 @@ export async function navigateTo(view, force = false) {
             break;
 
         case 'daily':
-            console.log("Main: Loading daily challenge...");
             await loadDailyChallenge();
             break;
 
@@ -601,7 +597,6 @@ window._claimMission = async (id) => {
 // SOLO DASHBOARD (Brouillons)
 // ─────────────────────────────────────────────
 async function renderSoloDashboard(container) {
-    console.log("Main: Rendering Solo Dashboard...");
     const user = getCurrentUser();
     
     if (!user || user.isAnonymous) {
@@ -746,7 +741,6 @@ async function renderSoloDashboard(container) {
 // ─────────────────────────────────────────────
 function renderMultiplayerMenu(container) {
     const user = getCurrentUser();
-    console.log("Multiplayer: Current user check:", user ? user.uid : "null", "isAnonymous:", user?.isAnonymous);
 
     // Warning for anonymous users removed so they can play competition with just a pseudo
 
@@ -1101,7 +1095,6 @@ function setupGameInputs() {
 
     const submit = () => {
         const val = input.value.trim();
-        console.log(`[Main] Submit triggered with: "${val}"`);
         if (val) {
             handleGuess(val);
             input.value = '';
@@ -1262,7 +1255,7 @@ export async function openAdminDashboard() {
                             <div style="display:flex; justify-content:space-between; padding: 10px 15px; border-bottom: 1px solid rgba(0,0,0,0.05); font-size:0.85rem;">
                                 <span>
                                     <strong style="color:var(--text-muted); margin-right: 8px; font-family:var(--font-mono); font-size:0.8rem;">#${i + 1}</strong>
-                                    <strong>${u.pseudo || "Anonyme"}</strong>
+                                    <strong>${escapeHtml(u.pseudo || "Anonyme")}</strong>
                                 </span>
                                 <span style="color:var(--text-muted);">${date}</span>
                             </div>
@@ -1464,11 +1457,11 @@ async function renderRanking(container) {
 
                             <div>
                                 <div style="font-weight:800; color:#111827; font-size:1rem;">
-                                    ${p.pseudo || "Anonyme"} 
+                                    ${escapeHtml(p.pseudo || "Anonyme")} 
                                     ${isPersonal ? '<span style="background:var(--primary); color:white; font-size:0.65rem; padding:2px 6px; border-radius:4px; margin-left:8px;">VOUS</span>' : ""}
                                 </div>
                                 <div style="font-size:0.85rem; color:#6b7280; margin-top:3px; max-width:250px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-                                    ${p.bio ? String(p.bio).replace(/</g, "&lt;").replace(/>/g, "&gt;") : '<span style="font-style:italic; opacity:0.7;">pas de bio</span>'}
+                                    ${p.bio ? escapeHtml(p.bio) : '<span style="font-style:italic; opacity:0.7;">pas de bio</span>'}
                                 </div>
                             </div>
                         </div>
@@ -1495,11 +1488,11 @@ async function renderRanking(container) {
 
                             <div>
                                 <div style="font-weight:800; color:#111827; font-size:1rem;">
-                                    ${currentUserData.pseudo || "Anonyme"} 
+                                    ${escapeHtml(currentUserData.pseudo || "Anonyme")} 
                                     <span style="background:${isPrivate ? 'var(--accent)' : 'var(--primary)'}; color:white; font-size:0.65rem; padding:2px 6px; border-radius:4px; margin-left:8px;">VOUS</span>
                                 </div>
                                 <div style="font-size:0.85rem; color:#6b7280; margin-top:3px; max-width:250px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-                                    ${currentUserData.bio ? String(currentUserData.bio).replace(/</g, "&lt;").replace(/>/g, "&gt;") : '<span style="font-style:italic; opacity:0.7;">pas de bio</span>'}
+                                    ${currentUserData.bio ? escapeHtml(currentUserData.bio) : '<span style="font-style:italic; opacity:0.7;">pas de bio</span>'}
                                 </div>
                                 ${isPrivate ? `
                                     <div style="font-size:0.75rem; color:#b45309; font-weight:700; margin-top:3px;">

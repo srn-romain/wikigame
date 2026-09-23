@@ -294,7 +294,6 @@ export async function fetchRandomArticle(category = null) {
         }
         
         params.append('titles', randomTitle);
-        console.log(`WikiAPI: Fetching popular article (category="${category}"):`, randomTitle);
     } else {
         params.append('generator', 'random');
         params.append('grnnamespace', '0');
@@ -320,7 +319,6 @@ export async function fetchRandomArticle(category = null) {
         const pages = data?.query?.pages;
 
         if (!pages) {
-            console.warn("WikiAPI: No pages in response. Retrying...");
             await sleep(1000);
             return fetchRandomArticle(category);
         }
@@ -336,13 +334,10 @@ export async function fetchRandomArticle(category = null) {
 
         updateLoadingStatus("Sujet trouvé ! Analyse en cours...");
 
-        console.log("WikiAPI: Found article:", page.title);
-
         // Process plain text into paragraphs
         const paragraphs = processPlainText(page.extract, 6); // On prend jusqu'à 8 paragraphes pour atteindre la longueur
 
         const totalCharCount = paragraphs.join('\n\n').length;
-        console.log(`WikiAPI: Extracted ${paragraphs.length} paragraphs (Total: ${totalCharCount} chars).`);
 
         // MINNIMUM DE CARACTERE SUR LA PAGE POUR ÊTRE ACCEPTÉE
         if (totalCharCount < 250) {
@@ -458,7 +453,6 @@ function processPlainText(text, maxP) {
         .filter(p => !p.startsWith('==') && !p.endsWith('==')) // Skip headers
         .filter(p => !p.includes('may refer to:') && !p.includes('peut désigner :'));
 
-    console.log(`WikiAPI: Filtered down to ${filtered.length} usable segments.`);
 
     // Fallback: If we only have ONE very long paragraph, split it into two
     if (filtered.length === 1 && filtered[0].length > 600) {

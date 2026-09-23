@@ -107,11 +107,9 @@ function hasGuessed(cleanWord) {
 // INIT
 // ─────────────────────────────────────────────
 export async function initGame(mode, articleId = null, preSolved = false, draftId = null, options = {}) {
-    console.log(`Game: Initializing mode="${mode}" articleId=${articleId} draftId=${draftId}`);
     // options.hintEnabled : true par défaut (undefined = true)
     state.hintEnabled = options.hintEnabled !== false;
     state.roomId = options.roomId || null;
-    console.log(`[Game] Hint is ${state.hintEnabled ? 'ENABLED' : 'DISABLED'} for this session (mode: ${mode}).`);
     state.mode = mode;
     state.won = false;
     state.draftId = draftId;
@@ -127,10 +125,8 @@ export async function initGame(mode, articleId = null, preSolved = false, draftI
 
     let article = null;
     if (articleId) {
-        console.log("Game: Fetching specific article by ID...");
         article = await fetchArticleById(articleId);
     } else {
-        console.log("Game: Fetching random article...");
         article = await fetchRandomArticle();
     }
 
@@ -142,8 +138,6 @@ export async function initGame(mode, articleId = null, preSolved = false, draftI
         </div>`;
         return;
     }
-
-    console.log("Game: Article loaded successfully:", article.title);
 
     // Charger les données du brouillon si présent
     let savedGuesses = [];
@@ -165,7 +159,6 @@ export async function initGame(mode, articleId = null, preSolved = false, draftI
 
 // ── START ──
 function startGame(article, preSolved = false, savedGuesses = [], savedAttempts = 0) {
-    console.log("Game: Starting Level with article:", article);
     state.article = article;
 
     state.guesses = new Set(savedGuesses);
@@ -540,7 +533,6 @@ function handleWordClick(e) {
 // GUESS HANDLING
 // ─────────────────────────────────────────────
 export function handleGuess(rawInput) {
-    console.log(`[Game] handleGuess called with: "${rawInput}"`);
     if (!rawInput || !state.article || state.won) return;
 
     const cleanInput = normalize(rawInput.trim());
@@ -645,10 +637,7 @@ function revealWordInDOM(cleanWord, count) {
 
 
 async function checkSynonymsForGuess(cleanInput) {
-    console.log(`[Game] Checking synonyms and local matches for guess: "${cleanInput}"`);
-    
     const hiddenSpans = document.querySelectorAll('.wiki-word.hidden:not(.revealed)');
-    console.log(`[Game] Scanning ${hiddenSpans.length} hidden words...`);
     
     let matchCount = 0;
     
@@ -665,10 +654,6 @@ async function checkSynonymsForGuess(cleanInput) {
             renderSynonymHint(span, cleanInput);
             matchCount++;
         }
-    }
-    
-    if (matchCount > 0) {
-        console.log(`[Game] Found ${matchCount} semantic matches for "${cleanInput}".`);
     }
 }
 
@@ -827,7 +812,6 @@ function updateTimer() {
         const hintStage = Math.floor(elapsed / 120); // 1 pour 2min, 2 pour 4min, etc.
         if (hintStage >= 1 && state.hintShown < hintStage && state.hintShown < 5) {
             const nextStage = Math.min(hintStage, 5);
-            console.log(`[Game] Elapsed time is ${elapsed}s, triggering progressive help stage ${nextStage}!`);
             showCompetitionHint(nextStage);
         }
     }

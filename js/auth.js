@@ -9,7 +9,8 @@ import {
     deleteUser,
     getCurrentUser,
     updateUserProfileUI,
-    doc, getDoc, setDoc, updateDoc
+    doc, getDoc, setDoc, updateDoc,
+    escapeHtml
 } from './firebase-app.js';
 import { AVATARS, getUserTier, getAvatarHtml } from './avatars.js';
 
@@ -103,7 +104,7 @@ function renderProfileModal(container, user, userData) {
                         </div>
                     </div>
                     <h2 style="margin-bottom:0.25rem;">Mon Profil</h2>
-                    <p style="color:var(--text-muted); font-size:0.8rem;">${user.email}</p>
+                    <p style="color:var(--text-muted); font-size:0.8rem;">${escapeHtml(user.email || '')}</p>
                 </div>
 
 
@@ -123,11 +124,11 @@ function renderProfileModal(container, user, userData) {
                 <div class="auth-form">
                     <div class="form-group">
                         <label>Pseudo</label>
-                        <input type="text" id="profile-pseudo" value="${userData.pseudo || ''}" placeholder="Votre pseudo">
+                        <input type="text" id="profile-pseudo" value="${escapeHtml(userData.pseudo || '')}" placeholder="Votre pseudo" maxlength="25">
                     </div>
                     <div class="form-group">
                         <label>Bio (max 100 caractères)</label>
-                        <textarea id="profile-bio" maxlength="100" style="background:#f9fafb; border:1px solid #e5e7eb; padding:0.8rem; border-radius:var(--radius-md); color:var(--text-main); font-family:var(--font-ui); resize:none; height:60px; outline:none;">${userData.bio || ''}</textarea>
+                        <textarea id="profile-bio" maxlength="100" style="background:#f9fafb; border:1px solid #e5e7eb; padding:0.8rem; border-radius:var(--radius-md); color:var(--text-main); font-family:var(--font-ui); resize:none; height:60px; outline:none;">${escapeHtml(userData.bio || '')}</textarea>
                     </div>
 
                     <div style="display:flex; align-items:center; gap:10px; margin: 10px 0; background: #f0f7ff; padding: 10px; border-radius: 8px;">
@@ -281,8 +282,10 @@ function setupProfileEvents(container, user, userData) {
     };
 
     const performSave = async () => {
-        const pseudo = document.getElementById('profile-pseudo').value;
-        const bio = document.getElementById('profile-bio').value;
+        const rawPseudo = document.getElementById('profile-pseudo').value || '';
+        const rawBio = document.getElementById('profile-bio').value || '';
+        const pseudo = rawPseudo.trim().replace(/<[^>]*>?/gm, '').slice(0, 25);
+        const bio = rawBio.trim().replace(/<[^>]*>?/gm, '').slice(0, 100);
         const isPublic = document.getElementById('profile-public').checked;
         saveBtn.disabled = true;
         saveBtn.textContent = "Enregistrement...";

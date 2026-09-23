@@ -50,7 +50,6 @@ const authReady = new Promise(resolve => { _authResolve = resolve; });
 onAuthStateChanged(auth, async (user) => {
     currentUser = user;
     if (user) {
-        console.log("Auth: Logged in. UID:", user.uid, "| anon:", user.isAnonymous);
         updateUserProfileUI(user);
 
         // ✅ Résoudre authReady IMMÉDIATEMENT — ne pas bloquer sur Firestore
@@ -61,7 +60,6 @@ onAuthStateChanged(auth, async (user) => {
             _syncUserDoc(user); // async, non bloquant
         }
     } else {
-        console.log("Auth: No user – signing in anonymously...");
         signInAnonymously(auth).catch(err => {
             console.error("Auth: Anon sign-in error:", err);
             // Fallback: create a local guest if Firebase Anon Auth is disabled
@@ -163,6 +161,17 @@ window._handleAvatarError = (img, url, fallbackIcon = 'fa-user-astronaut') => {
     img.outerHTML = `<i class="fa-solid ${fallbackIcon}"></i>`;
 };
 
+// Fonction universelle d'échappement HTML pour prévenir les attaques XSS
+export function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
 function updateUserProfileUI(user, firestoreData = null) {
     const btn = document.getElementById('user-profile-btn');
     const adminArea = document.getElementById('admin-nav-area');
@@ -226,7 +235,7 @@ function updateUserProfileUI(user, firestoreData = null) {
 
 
     btn.innerHTML = `
-        <span class="username">${name}</span>
+        <span class="username">${escapeHtml(name)}</span>
         ${avatarHtml}
     `;
 
