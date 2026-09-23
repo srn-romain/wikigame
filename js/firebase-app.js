@@ -187,16 +187,16 @@ function updateUserProfileUI(user, firestoreData = null) {
         photo = null;
     }
 
+    const isAdmin = Boolean(firestoreData && (firestoreData.isAdmin === true || firestoreData.role === 'admin'));
+
     // ⚡ Optimisation : Éviter de rafraichir le DOM si rien n'a changé
     if (_lastNavUpdate.name === name && 
         _lastNavUpdate.photo === (photo || '') && 
-        _lastNavUpdate.avatarId === avatarId) {
+        _lastNavUpdate.avatarId === avatarId &&
+        _lastNavUpdate.isAdmin === isAdmin) {
         return;
     }
-    _lastNavUpdate = { name, photo: photo || '', avatarId };
-
-
-    const isAdmin = user.uid === "xwX5eCsUqpRLIBAI3K5Y7y70HLp1";
+    _lastNavUpdate = { name, photo: photo || '', avatarId, isAdmin };
 
     // 1. Gérer le bouton Admin (Indépendant)
     if (adminArea) {

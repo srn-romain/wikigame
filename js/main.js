@@ -1128,7 +1128,22 @@ export async function openAdminDashboard() {
 
     await waitForAuth();
     const user = getCurrentUser();
-    if (!user || user.uid !== "xwX5eCsUqpRLIBAI3K5Y7y70HLp1") {
+    const { db, collection, getDocs, getCountFromServer, query, orderBy, limit, doc, getDoc } = await import("./firebase-app.js");
+
+    let isAdmin = false;
+    if (user) {
+        try {
+            const userSnap = await getDoc(doc(db, "users", user.uid));
+            if (userSnap.exists()) {
+                const data = userSnap.data();
+                isAdmin = Boolean(data.isAdmin === true || data.role === 'admin');
+            }
+        } catch (e) {
+            console.error("Admin: Erreur vérification autorisation:", e);
+        }
+    }
+
+    if (!isAdmin) {
         container.innerHTML = `
             <div class="auth-modal" style="width:95%; max-width: 400px; padding: 2rem; text-align: center; border-radius: var(--radius-lg);">
                 <button class="close-modal" id="close-admin">&times;</button>
@@ -1146,8 +1161,6 @@ export async function openAdminDashboard() {
         document.getElementById("close-admin-btn").onclick = close;
         return;
     }
-
-    const { db, collection, getDocs, getCountFromServer, query, orderBy, limit, doc, getDoc } = await import("./firebase-app.js");
     
     try {
         // 1. 10 derniers connectés  (1 lecture Firestore : getDocs limit 10)
